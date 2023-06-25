@@ -48,7 +48,7 @@ def defaultLogger():
 
 
 defaultOptions = {
-    "folderNameToken": r"E:\Projects\Python\Whatsapp_Api\tokens",
+    "folderNameToken": r"E:\Projects\Python\_Libs_\tokens",
     "headless": True,
     "devtools": False,
     "useChrome": True,
@@ -65,7 +65,7 @@ defaultOptions = {
     "waitForLogin": True,
     "logger": defaultLogger(),
     "tokenStore": 'file',
-    'whatsappVersion': '2.2307.x',
+    'whatsappVersion': '2.2326.x',
     'deviceName': False,
     'linkPreviewApiServers': None,
     'disableGoogleAnalytics': True,

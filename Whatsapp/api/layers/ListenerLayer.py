@@ -1,6 +1,5 @@
-from Whatsapp.api.helpers.jsFunction import EventEmitter
 from Whatsapp.api.layers.ProfileLayer import ProfileLayer
-# from .event_emitter import EventEmitter
+from event_emitter import EventEmitter
 
 OnMessage = 'onMessage'
 OnAnyMessage = 'onAnyMessage'

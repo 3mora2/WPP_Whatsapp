@@ -1,3 +1,4 @@
+import asyncio
 import traceback
 from playwright.async_api import async_playwright
 
@@ -9,7 +10,7 @@ class Browser:
     lastPercentMessage = None
     session = None
 
-    def __init__(self, session, user_data_dir=""):
+    def __init__(self, session="", user_data_dir=""):
         self.session = session
         self.user_data_dir = user_data_dir
         # self.initBrowser()
@@ -47,3 +48,6 @@ class Browser:
             return await self.page.wait_for_function(expression, arg=arg, timeout=timeout, polling=polling)
         except:
             print(expression, arg)
+
+# if __name__ == '__main__':
+#     asyncio.run(Browser().initBrowser())

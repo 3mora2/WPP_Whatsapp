@@ -18,7 +18,7 @@ class SenderLayer(ListenerLayer):
                     }""", {"chatId": chatId, "message": message})
         return result
 
-    async def sendText(self, to, content, options={}):
+    async def sendText(self, to, content, options=None):
         """
           /**
            * Sends a text message to given chat
@@ -58,40 +58,44 @@ class SenderLayer(ListenerLayer):
            * ```
            */
         """
+        if not options:
+            options = {}
         to = self.valid_chatId(to)
-        sendResult = await self.page_evaluate("""({ to, content, options }) =>
+        send_result = await self.page_evaluate("""({ to, content, options }) =>
                             WPP.chat.sendTextMessage(to, content, {
                               ...options,
                               waitForAck: true,
                             })""", {"to": to, "content": content, "options": options})
-        result = await self.page_evaluate("""async ({ messageId }) => {
-                        return JSON.parse(JSON.stringify(await WAPI.getMessageById(messageId)));
-                      }""", sendResult.get("id"))
+        self.logger.debug(f'{self.session}: Send Message {send_result=}')
+        # result = await self.page_evaluate("""async (messageId) => {
+        #                 return JSON.parse(JSON.stringify(await WAPI.getMessageById(messageId)));
+        #               }""", send_result.get("id"))
+        return send_result
 
-        return result
-
-    async def sendMessageOptions(self, chat, content, options={}):
-        messageId = await self.page_evaluate("""({ chat, content, options }) => {
+    async def sendMessageOptions(self, chat, content, options=None):
+        if not options:
+            options = {}
+        message_id = await self.page_evaluate("""({ chat, content, options }) => {
         return WAPI.sendMessageOptions(chat, content, options);
       }""", {"chat": chat, "content": content, "options": options})
-        result = await self.page_evaluate("""(messageId) => WAPI.getMessageById(messageId)""", messageId)
+        result = await self.page_evaluate("""(messageId) => WAPI.getMessageById(messageId)""", message_id)
         return result
 
     async def sendImage(self, to, filePath, filename="", caption="", quotedMessageId=None, isViewOnce=None):
         to = self.valid_chatId(to)
         if filePath and os.path.exists(filePath):
-            base64 = self.convert_to_base64(filePath)
+            _base64 = self.convert_to_base64(filePath)
             filename = os.path.basename(filePath) if not filename else filename
-            return await self.sendImageFromBase64(to, base64, filename, caption, quotedMessageId, isViewOnce)
+            return await self.sendImageFromBase64(to, _base64, filename, caption, quotedMessageId, isViewOnce)
         else:
             print("Path Not Found")
 
-    async def sendImageFromBase64(self, to, base64, filename, caption, quotedMessageId, isViewOnce):
-        mimeType = self.base64MimeType(base64)
-        if not mimeType:
+    async def sendImageFromBase64(self, to, _base64, filename, caption, quotedMessageId, isViewOnce):
+        mime_type = self.base64MimeType(_base64)
+        if not mime_type:
             print("Not valid mimeType")
             return
-        if 'image' not in mimeType:
+        if 'image' not in mime_type:
             print('Not an image, allowed formats png, jpeg and webp')
             return
         # filename = filenameFromMimeType(filename, mimeType)
@@ -118,7 +122,7 @@ class SenderLayer(ListenerLayer):
           sendMsgResult: await result.sendMsgResult,
           error: result.message,
         };
-      }""", {"to": to, "base64": base64, "filename": filename, "caption": caption, "quotedMessageId": quotedMessageId,
+      }""", {"to": to, "base64": _base64, "filename": filename, "caption": caption, "quotedMessageId": quotedMessageId,
              "isViewOnce": isViewOnce})
         return result
 
@@ -147,16 +151,16 @@ class SenderLayer(ListenerLayer):
         elif type(nameOrOptions) is dict:
             options = nameOrOptions
 
-        base64 = ''
+        _base64 = ''
         if pathOrBase64.startswith('data:'):
-            base64 = pathOrBase64
+            _base64 = pathOrBase64
         else:
             if pathOrBase64 and os.path.exists(pathOrBase64):
-                base64 = self.convert_to_base64(pathOrBase64)
+                _base64 = self.convert_to_base64(pathOrBase64)
 
             if not options.get("filename"):
                 options["filename"] = os.path.basename(pathOrBase64)
-        if not base64:
+        if not _base64:
             print("Empty or invalid file or base64")
             return
 
@@ -167,7 +171,7 @@ class SenderLayer(ListenerLayer):
           id: result.id,
           sendMsgResult: await result.sendMsgResult,
         };
-      }""", {"to": to, "base64": base64, "options": options})
+      }""", {"to": to, "base64": _base64, "options": options})
 
     async def sendContactVcard(self, to, contactsId, name):
         """
@@ -190,7 +194,7 @@ class SenderLayer(ListenerLayer):
         to = self.valid_chatId(to)
         return await self.page_evaluate("""({ to, messages, skipMyMessages }) =>
         WAPI.forwardMessages(to, messages, skipMyMessages)""",
-                                  {"to": to, "messages": messages, "skipMyMessages": skipMyMessages})
+                                        {"to": to, "messages": messages, "skipMyMessages": skipMyMessages})
 
     async def sendLocation(self, to, options):
         to = self.valid_chatId(to)
@@ -216,7 +220,7 @@ class SenderLayer(ListenerLayer):
     async def startTyping(self, to, duration=None):
         to = self.valid_chatId(to)
         return await self.page_evaluate("({ to, duration }) => WPP.chat.markIsComposing(to, duration)",
-                                  {"to": to, "duration": duration})
+                                        {"to": to, "duration": duration})
 
     async def stopTyping(self, to):
         to = self.valid_chatId(to)
@@ -260,7 +264,7 @@ class SenderLayer(ListenerLayer):
            */
         """
         sendResult = await self.page_evaluate("({ to, options }) => WPP.chat.sendListMessage(to, options)",
-                                        {"to": to, "options": options})
+                                              {"to": to, "options": options})
         result = await self.page_evaluate("""async ({ messageId }) => {
                         return JSON.parse(JSON.stringify(await WAPI.getMessageById(messageId)));
                       }""", sendResult.get("id"))

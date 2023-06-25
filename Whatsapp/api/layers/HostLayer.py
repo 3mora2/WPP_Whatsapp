@@ -9,11 +9,10 @@ from pathlib import Path
 
 import pyqrcode
 from playwright.sync_api import Page, BrowserContext
-# from unsync import unsync
 
 from Whatsapp.api.const import defaultOptions, defaultLogger, whatsappUrl
 
-"getWAVersion"
+"Auto close"
 
 
 class HostLayer:
@@ -37,6 +36,7 @@ class HostLayer:
     # onLoadingScreen = LoadingScreen()
     lastPercent = None
     lastPercentMessage = None
+    Browser: "Browser"
 
     def __init__(self):
         # self.session = session
@@ -49,6 +49,7 @@ class HostLayer:
         # self.start()
 
     async def page_evaluate(self, expression, arg=None):
+
         return await self.Browser.page_evaluate(expression, arg)
 
     async def page_wait_for_function(self, expression, arg=None, timeout=None, polling=None):
@@ -118,7 +119,6 @@ class HostLayer:
             self.isStarted = True
             # ToDo:
             await self.initWhatsapp()
-
             await self.page.expose_function('checkQrCode', self.__checkQrCode)
             await self.page.expose_function('checkInChat', self.__checkInChat)
 
@@ -217,12 +217,12 @@ class HostLayer:
 
     def __setInterval(self, func, interval, *args, **kwargs):
         stopped = asyncio.Event()
-        loop = kwargs.get('loop') or self.loop  #
+        loop = kwargs.get('loop') or asyncio.get_event_loop()
 
-        def loop_():
+        async def loop_():
             while not stopped.is_set():
-                func()
-                asyncio.sleep(interval)
+                await func()
+                await asyncio.sleep(interval)
 
         loop.create_task(loop_())
         return stopped
@@ -236,7 +236,7 @@ class HostLayer:
         except:
             traceback.print_exc()
 
-    def autoCloseIntervalHandel(self):
+    async def autoCloseIntervalHandel(self):
         # print("autoCloseIntervalHandel")
         if self.page.is_closed():
             self.cancelAutoClose()
@@ -246,7 +246,7 @@ class HostLayer:
             self.logger.info(f'{self.session}: http => Auto close remain: {self.remain}s')
 
         if self.remain <= 0:
-            self.tryAutoClose()
+            await self.tryAutoClose()
 
     def cancelAutoClose(self):
         self.clearInterval(self.autoCloseInterval)
@@ -264,7 +264,7 @@ class HostLayer:
             needScan = await self.__needsToScan()
             self.isLogged = not needScan
 
-    def waitForInChat(self):
+    async def waitForInChat(self):
         if not self.isStarted:
             raise Exception('waitForInChat error: Session not started')
 
@@ -276,9 +276,9 @@ class HostLayer:
             if 0 < self.options.get("deviceSyncTimeout") <= (datetime.now() - start).seconds:
                 return False
 
-            sleep(1)
+            await sleep(1)
 
-            inChat = self.isInsideChat()
+            inChat = await self.isInsideChat()
             self.isInChat = inChat
 
         return self.isInChat
@@ -294,7 +294,7 @@ class HostLayer:
         self.logger.info(f'{self.session}: http => Waiting page load')
         await self.waitForPageLoad()
         self.logger.info(f'{self.session}: http => Checking is logged...')
-        authenticated = await  self.isAuthenticated()
+        authenticated = await self.isAuthenticated()
         self.startAutoClose()
         if authenticated is False:
             self.logger.info(f'{self.session}: http => Waiting for QRCode Scan...')
@@ -326,7 +326,7 @@ class HostLayer:
             self.startAutoClose(self.options.get("deviceSyncTimeout"))
 
             self.logger.info(f'{self.session}: http => Checking phone is connected...')
-            inChat = self.waitForInChat()
+            inChat = await self.waitForInChat()
             if not inChat:
                 self.logger.warn(f'{self.session}: http => Phone not connected')
                 self.statusFind('phoneNotConnected', self.session)
@@ -444,7 +444,7 @@ class HostLayer:
         try:
             injected = await self.page_evaluate("""() => {
                         return (typeof window.WAPI !== 'undefined' &&typeof window.Store !== 'undefined');}"""
-                                          )
+                                                )
             if injected:
                 print("- already injected ")
                 return
@@ -453,11 +453,9 @@ class HostLayer:
             await self.page_evaluate("() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3")
             await self.page_wait_for_function("() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3")
             await sleep(1)
-            print("000")
             await self.page.add_script_tag(
                 url="https://github.com/wppconnect-team/wa-js/releases/download/nightly/wppconnect-wa.js")
             await self.page_wait_for_function("() => window.WPP?.isReady")
-            print("ready")
             await self.page_evaluate("""() => {
                                   WPP.chat.defaultSendMessageOptions.createChat = true;
                                   WPP.conn.setKeepAlive(true);
@@ -519,10 +517,10 @@ class HostLayer:
                 subtree: true,
               });
             }""",
-                           {
-                               "PROGRESS": "//*[@id='app']/div/div/div[2]/progress",
-                               "PROGRESS_MESSAGE": "//*[@id='app']/div/div/div[3]",
-                           })
+                                 {
+                                     "PROGRESS": "//*[@id='app']/div/div/div[2]/progress",
+                                     "PROGRESS_MESSAGE": "//*[@id='app']/div/div/div[3]",
+                                 })
 
     @staticmethod
     def valid_chatId(chatId):

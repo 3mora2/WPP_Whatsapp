@@ -126,14 +126,15 @@ class Create:
                 raise Exception()
             # await asyncio.sleep(1)
             self.browser.browser.on("disconnected", lambda: self.statusFind('browserClose', session))
+
         except:
-            # traceback.print_exc()
+            traceback.print_exc()
             print("cant start browser")
             return
 
         try:
             # loop = asyncio.get_event_loop()
-            self.client = Whatsapp(session, self.browser)
+            self.client = Whatsapp(session, self.browser)  # , loop=self.loop)
             self.client.catchQR = self.catchQR
             self.client.statusFind = self.statusFind
             self.client.onLoadingScreen = self.onLoadingScreen
@@ -147,10 +148,9 @@ class Create:
 
             self.state = "CONNECTED"
             await self.setup()
-
             return self.client
         except:
-            # traceback.print_exc()
+            traceback.print_exc()
             print("cant start client")
             return
 
@@ -194,4 +194,3 @@ class Create:
 
     def on_any_message(self, message):
         print("int", message)
-
