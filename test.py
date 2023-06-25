@@ -7,7 +7,9 @@ from Whatsapp import Create
 async def main():
     try:
         self = Create()
-        client = await self.start(session="test", user_name="test")
+        # Pass Session Name to Save whatsapp session
+        client = await self.start(session="test")
+        # Pass Number with code of country, and message
         result = await client.sendText("201016708170", "hello from wpp")
         print(result)
         """

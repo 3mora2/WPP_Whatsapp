@@ -53,9 +53,8 @@ class Create:
             print("client.close - session.state: " + self.state)
 
     @staticmethod
-    def create_user_dir(tokens, user_name, session, new=False):
-        path = os.path.join(tokens, user_name)
-        user_dir = os.path.join(path, session)
+    def create_user_dir(tokens, session, new=False):
+        user_dir = os.path.join(tokens, session)
         if os.path.exists(user_dir):
             return user_dir
 
@@ -91,10 +90,10 @@ class Create:
         except:
             traceback.print_exc()
 
-    async def start(self, session, user_name, user_data_dir=''):
+    async def start(self, session, user_data_dir=''):
         self.session = session
         if not self.state or self.state in ["CLOSED"]:
-            await self.create(session, user_name, user_data_dir)
+            await self.create(session, user_data_dir)
 
         elif self.state in ["CONFLICT", "UNPAIRED", "UNLAUNCHED"]:
             print("client.useHere()")
@@ -105,13 +104,13 @@ class Create:
 
         return self.client
 
-    async def create(self, session, user_name, user_data_dir=''):
+    async def create(self, session, user_data_dir=''):
         self.state = "STARTING"
         mergedOptions = defaultOptions
         # user_data_dir = r"C:\Users\ammar\Whatsapp Pro\Profile-2-2022-09-21-20-21-23"
         tokens = mergedOptions.get("folderNameToken")
         if not user_data_dir:
-            user_data_dir = self.create_user_dir(tokens, user_name, session)
+            user_data_dir = self.create_user_dir(tokens, session)
             if not user_data_dir:
                 print("- Cant create user_data_dir", user_data_dir)
                 return
