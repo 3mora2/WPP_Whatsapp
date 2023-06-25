@@ -1,6 +1,7 @@
 import asyncio
 import os
 import traceback
+from typing import Optional
 
 import psutil as psutil
 
@@ -10,26 +11,25 @@ from Whatsapp.controllers.browser import Browser
 
 
 class Create:
-    browserSessionToken = None
-    waitLoginPromise = None
-    browser = None
-    client: Whatsapp = None
-    state = None
-    statusFind_dict = {}
-    catchQR_dict = {}
+    client: Optional[Whatsapp]
 
-    def __init__(self, session='', *args, **kwargs):
-        self.session = session
-        self.loop = kwargs.get("loop") or asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
+    def __init__(self, *args, **kwargs):
+        self.browserSessionToken = None
+        self.waitLoginPromise = None
+        self.browser = None
+        self.client = None
+        self.state = None
+        self.statusFind_dict = {}
+        self.catchQR_dict = {}
+        # self.session = session
+        # self.loop = kwargs.get("loop") or asyncio.new_event_loop()
+        # asyncio.set_event_loop(self.loop)
         # g = self.loop.run_until_complete(self.create(session, "-"))
         # self.loop.run_forever()
 
-    def close(self):
+    async def close(self):
         if self.client:
-            t = self.loop.create_task(self.client.close())
-            self.loop.run_until_complete(t)
-            self.loop.stop()
+            await self.client.close()
             self.state = "CLOSED"
 
     async def _onStateChange(self, state):
@@ -91,20 +91,19 @@ class Create:
         except:
             traceback.print_exc()
 
-    def start(self, session, user_name, user_data_dir=''):
+    async def start(self, session, user_name, user_data_dir=''):
         self.session = session
         if not self.state or self.state in ["CLOSED"]:
-            self.loop.run_until_complete(self.create(session, user_name, user_data_dir))
-            self.loop.run_forever()
+            await self.create(session, user_name, user_data_dir)
 
         elif self.state in ["CONFLICT", "UNPAIRED", "UNLAUNCHED"]:
             print("client.useHere()")
-            self.loop.run_until_complete(self.client.useHere())
-            self.loop.run_forever()
+            await self.client.useHere()
+
         else:
             print(self.get_state())
 
-        print("finish")
+        return self.client
 
     async def create(self, session, user_name, user_data_dir=''):
         self.state = "STARTING"
@@ -133,8 +132,8 @@ class Create:
             return
 
         try:
-            loop = asyncio.get_event_loop()
-            self.client = Whatsapp(session, self.browser, loop)
+            # loop = asyncio.get_event_loop()
+            self.client = Whatsapp(session, self.browser)
             self.client.catchQR = self.catchQR
             self.client.statusFind = self.statusFind
             self.client.onLoadingScreen = self.onLoadingScreen
@@ -191,10 +190,8 @@ class Create:
 
     async def setup(self):
         self.client.onStateChange(self._onStateChange)
-        self.client.onAnyMessage(self.on_any_message)
+        # self.client.onAnyMessage(self.on_any_message)
 
     def on_any_message(self, message):
         print("int", message)
 
-# Create("test")
-# print("done")

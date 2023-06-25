@@ -5,7 +5,7 @@ from Whatsapp.api.layers.BusinessLayer import BusinessLayer
 class Whatsapp(BusinessLayer):
     connected = None
 
-    def __init__(self, session, browser, loop=''):
+    def __init__(self, session, browser, loop=None):
         self.session = session
         self.page = browser.page
         self.browser = browser.browser

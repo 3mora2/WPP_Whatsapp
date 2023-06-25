@@ -1,4 +1,6 @@
+import asyncio
+
 from Whatsapp.controllers.initializer import Create
 
-c = Create()
-c.start(session="test", user_name="test")
+self = Create()
+asyncio.run(self.start(session="test", user_name="test"))
