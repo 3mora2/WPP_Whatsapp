@@ -1,7 +1,7 @@
 import asyncio
 import traceback
 
-from Whatsapp.controllers.initializer import Create
+from Whatsapp import Create
 
 
 async def main():
