@@ -4,15 +4,11 @@ import os
 import traceback
 from datetime import datetime
 from asyncio import sleep
-
 from pathlib import Path
-
 import pyqrcode
-from playwright.sync_api import Page, BrowserContext
-
-from Whatsapp.api.const import defaultOptions, defaultLogger, whatsappUrl
-
-"Auto close"
+from playwright._impl import _api_types
+from playwright.async_api import Page, BrowserContext
+from Whatsapp.api.const import whatsappUrl
 
 
 class HostLayer:
@@ -28,9 +24,12 @@ class HostLayer:
     isStarted = False
     isLogged = False
     isInChat = False
+    logQR = False
     checkStartInterval = None
     urlCode = ''
+    status = ''
     attempt = 0
+    autoClose = 0
     # catchQR_dict = {}
     # statusFind_dict = {}
     # onLoadingScreen = LoadingScreen()
@@ -41,26 +40,43 @@ class HostLayer:
     def __init__(self):
         # self.session = session
         # asyncio.set_event_loop(self.loop)
-        self.options.update(defaultOptions)
-        self.logger = self.options.get("logger") or defaultLogger()
-        self.logger.info(f'{self.session}: Initializing...')
+
         super().__init__()
         self.__initialize()
         # self.start()
 
     async def page_evaluate(self, expression, arg=None):
+        try:
+            return await self.Browser.page_evaluate(expression, arg)
+        except _api_types.Error as error:
+            if "WPP is not defined" in error.message:
+                pass
 
-        return await self.Browser.page_evaluate(expression, arg)
+            elif "Cannot read properties of null" in error.message:
+                pass
+
+            else:
+                raise error
 
     async def page_wait_for_function(self, expression, arg=None, timeout=None, polling=None):
-        return await self.Browser.page_wait_for_function(expression, arg, timeout, polling)
+        try:
+            return await self.Browser.page_wait_for_function(expression, arg, timeout, polling)
+        except _api_types.Error as error:
+            if "WPP is not defined" in error.message:
+                pass
+
+            elif "Cannot read properties of null" in error.message:
+                pass
+
+            else:
+                raise error
 
     def catchQR(self, **kwargs):
         # self.catchQR_dict = kwargs
         pass
 
     def statusFind(self, status, session):
-        pass
+        self.status = status
 
     def onLoadingScreen(self, percent, message):
         pass
@@ -162,10 +178,10 @@ class HostLayer:
 
         qr = ''
 
-        if self.options.get("logQR"):  # or self.catchQR_dict:
+        if self.logQR:  # or self.catchQR_dict:
             qr = self.asciiQr(self.urlCode)
 
-        if self.options.get("logQR"):
+        if self.logQR:
             self.logger.info(f'{self.session}: Waiting for QRCode Scan (Attempt {self.attempt})...:\n{qr}')
         else:
             self.logger.info(f'{self.session}: Waiting for QRCode Scan: Attempt {self.attempt}')
@@ -192,7 +208,7 @@ class HostLayer:
         if self.autoCloseInterval:
             self.cancelAutoClose()
 
-        if (self.options.get("autoClose") > 0 or self.options.get(
+        if (self.autoClose > 0 or self.options.get(
                 "deviceSyncTimeout") > 0) and not self.autoCloseInterval and not self.page.is_closed():
             self.logger.info(f'{self.session}: Closing the page')
             self.autoCloseCalled = True
@@ -206,7 +222,7 @@ class HostLayer:
 
     def startAutoClose(self, time=None):
         if not time:
-            time = self.options.get("autoClose")
+            time = self.autoClose
 
         if time > 0 and not self.autoCloseInterval:
             seconds = round(time / 1000)
@@ -397,7 +413,7 @@ class HostLayer:
     async def __needsToScan(self):
         return not await self.isAuthenticated()
 
-    async def asciiQr(self, code):
+    def asciiQr(self, code):
         return pyqrcode.create(code).terminal(quiet_zone=1)
 
     async def scrapeImg(self):

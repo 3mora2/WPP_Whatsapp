@@ -1,11 +1,11 @@
 import base64
 import mimetypes
 import os
-
 from Whatsapp.api.layers.ListenerLayer import ListenerLayer
 
 
 class SenderLayer(ListenerLayer):
+
     async def sendLinkPreview(self, chatId, url, text=''):
         """
         * Automatically sends a link with the auto generated link preview. You can also add a custom message to be added.

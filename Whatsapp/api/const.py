@@ -47,13 +47,15 @@ def defaultLogger():
     return logger
 
 
+Logger = defaultLogger()
+
 defaultOptions = {
     "folderNameToken": r"E:\Projects\Python\_Libs_\tokens",
     "headless": True,
     "devtools": False,
     "useChrome": True,
     "debug": False,
-    "logQR": False,
+    "logQR": True,
     "browserWS": '',
     "browserArgs": [''],
     "puppeteerOptions": {},
@@ -72,5 +74,3 @@ defaultOptions = {
     'googleAnalyticsId': None,
     'poweredBy': 'WPPConnect',
 }
-
-

@@ -1,53 +1,41 @@
 import asyncio
-import traceback
-from playwright.async_api import async_playwright
-
+from playwright.async_api import async_playwright, Playwright, BrowserContext, Page
 from Whatsapp.api.const import useragentOverride
 
 
 class Browser:
-    lastPercent = None
-    lastPercentMessage = None
-    session = None
+    session: str
+    playwright: "Playwright"
+    browser: "BrowserContext"
+    page: "Page"
 
-    def __init__(self, session="", user_data_dir=""):
+    def __init__(self, session: str = "", user_data_dir: str = "", headless=False,*args, **kwargs):
         self.session = session
         self.user_data_dir = user_data_dir
-        # self.initBrowser()
+        self.loop = kwargs.get("loop")
+        if not self.loop:
+            raise Exception("Not Add Loop")
+        asyncio.set_event_loop(self.loop)
+        self.headless = headless
 
     async def initBrowser(self):
-        try:
-            self.playwright = await async_playwright().start()
-            self.browser = await self.playwright.chromium.launch_persistent_context(
-                self.user_data_dir,  channel="chrome",
-                no_viewport=True,
-                headless=False,
-                # args=chromiumArgs,
-                bypass_csp=True,
-                user_agent=useragentOverride
-            )
+        self.playwright = await async_playwright().start()
+        self.browser = await self.playwright.chromium.launch_persistent_context(
+            self.user_data_dir, channel="chrome",
+            no_viewport=True,
+            headless=self.headless,
+            # args=chromiumArgs,
+            bypass_csp=True,
+            user_agent=useragentOverride
+        )
 
-            self.page = self.browser.pages[0] if self.browser.pages else await self.browser.new_page()
-
-            # stealth_sync(self.page)
-            # self.initWhatsapp()
-            # self.page.on('request', self.handel_page_request)
-            return True
-
-        except:
-            traceback.print_exc()
+        self.page = self.browser.pages[0] if self.browser.pages else await self.browser.new_page()
 
     async def page_evaluate(self, expression, arg=None):
-        try:
-            return await self.page.evaluate(expression, arg)
-        except:
-            print(expression, arg)
+        return await self.page.evaluate(expression, arg)
 
     async def page_wait_for_function(self, expression, arg=None, timeout=None, polling=None):
-        try:
-            return await self.page.wait_for_function(expression, arg=arg, timeout=timeout, polling=polling)
-        except:
-            print(expression, arg)
+        return await self.page.wait_for_function(expression, arg=arg, timeout=timeout, polling=polling)
 
 # if __name__ == '__main__':
 #     asyncio.run(Browser().initBrowser())

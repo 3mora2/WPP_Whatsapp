@@ -1,19 +1,27 @@
 import asyncio
+
+from Whatsapp.api.const import defaultOptions, Logger
 from Whatsapp.api.layers.BusinessLayer import BusinessLayer
 
 
 class Whatsapp(BusinessLayer):
     connected = None
 
-    def __init__(self, session, browser, loop=None):
+    def __init__(self, session, browser, *args, **kwargs):
         self.session = session
         self.page = browser.page
         self.browser = browser.browser
         self.Browser = browser
-        # asyncio.set_event_loop(loop)
-        # self.loop = loop
-        # self.page_evaluate = self.Browser.page_evaluate
-        # self.page_evaluate = self.Browser.page_wait_for_function
+        self.loop = kwargs.get("loop")  # or asyncio.new_event_loop()
+        if not self.loop:
+            raise Exception("Not Add Loop")
+        asyncio.set_event_loop(self.loop)
+        self.session = session
+        self.options.update(defaultOptions)
+        self.logger = self.options.get("logger") or Logger
+        self.logger.info(f'{self.session}: Initializing...')
+        self.logQR = kwargs.get("logQR") or False
+        self.autoClose = kwargs.get("autoClose") or self.options.get("autoClose") or 0
         super().__init__()
         self.handel()
 
@@ -56,24 +64,26 @@ class Whatsapp(BusinessLayer):
         self.connected = is_authenticated
 
     async def useHere(self):
-        return self.page_evaluate("() => WAPI.takeOver()")
+        return await self.page_evaluate("() => WAPI.takeOver()")
 
     async def logout(self):
-        return self.page_evaluate("() => WPP.conn.logout()")
+        return await self.page_evaluate("() => WPP.conn.logout()")
 
     async def getMessageById(self, messageId):
-        return self.page_evaluate("(messageId) => WAPI.getMessageById(messageId)", messageId)
+        return await self.page_evaluate("(messageId) => WAPI.getMessageById(messageId)", messageId)
 
-    async def getMessages(self, chatId, params={}):
+    async def getMessages(self, chatId, params=None):
         """
         :param chatId:
         :param params: (count, id, direction)
         :return:
         """
+        if not params:
+            params = {}
         chatId = self.valid_chatId(chatId)
-        return self.page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
-                                  {"chatId": chatId, "params": params})
+        return await self.page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
+                                        {"chatId": chatId, "params": params})
 
     async def rejectCall(self, callId):
-        return self.page_evaluate(
+        return await self.page_evaluate(
             "({callId}) => WPP.call.rejectCall(callId)", callId)
