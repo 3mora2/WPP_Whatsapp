@@ -14,10 +14,15 @@ class Create:
     client: Optional[Whatsapp]
 
     def __init__(
-            self, session: str, user_data_dir='', folderNameToken="", headless=False,catchQR: types.FunctionType = None,
+            self, session: str, user_data_dir='', folderNameToken="", headless=False,
+            catchQR: types.FunctionType = None,
             statusFind: types.FunctionType = None, onLoadingScreen: types.FunctionType = None,
             onStateChange: types.FunctionType = None, waitForLogin: bool = True, logQR: bool = False,
-            autoClose: int = 0, *args, **kwargs):
+            autoClose: int = 0, *args, **kwargs) -> None:
+        """
+
+        @type session: object
+        """
         self.browserSessionToken = None
         self.waitLoginPromise = None
         self.Browser = None
@@ -120,7 +125,7 @@ class Create:
         except:
             traceback.print_exc()
 
-    async def start(self):
+    async def start(self) -> Whatsapp:
         if not self.state or self.state in ["CLOSED"]:
             await self.create()
 
@@ -132,7 +137,7 @@ class Create:
 
         return self.client
 
-    async def create(self):
+    async def create(self) -> Whatsapp:
         self.state = "STARTING"
         # mergedOptions = defaultOptions
         # user_data_dir = r"C:\Users\ammar\Whatsapp Pro\Profile-2-2022-09-21-20-21-23"
@@ -161,14 +166,14 @@ class Create:
 
         return self.client
 
-    def get_state(self):
+    def get_state(self) -> dict:
         return {
             "session_name": self.session,
             "state": self.state,
             "status": self.statusFind_dict.get("status")
         }
 
-    def getQrcode(self):
+    def getQrcode(self)-> dict:
         if self.state in ["UNPAIRED_IDLE"]:
             # need restart session
             return {"result": "error", **self.get_state()}
