@@ -5,7 +5,7 @@ import types
 from typing import Optional
 import psutil as psutil
 from Whatsapp.api.Whatsapp import Whatsapp
-from Whatsapp.api.const import defaultOptions, Logger
+from Whatsapp.api.const import Logger
 from Whatsapp.controllers.browser import Browser
 from time import sleep
 

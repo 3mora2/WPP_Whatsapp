@@ -477,7 +477,7 @@ class HostLayer:
                                   WPP.conn.setKeepAlive(true);
                                 }""")
             base_dir = Path(__file__).resolve().parent.parent.parent
-            await self.page.add_script_tag(path=os.path.join(base_dir, 'lib/wapi.js'))
+            await self.page.add_script_tag(path=os.path.join(base_dir, 'js_lib/wapi.js'))
             await self._onLoadingScreen()
             # Make sure WAPI is initialized
             await self.page_wait_for_function("""() => {
