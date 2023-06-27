@@ -1,4 +1,3 @@
-event-emitter-js
 greenlet
 Pillow
 playwright
