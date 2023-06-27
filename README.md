@@ -35,7 +35,17 @@ See more at <a href="https://wppconnect.io/wppconnect/classes/Whatsapp.html">Wha
 
 ## Installation
 
-`pip install WPP_Whatsapp`
+installed with [pip](https://pip.pypa.io):
+```commandline
+pip install WPP_Whatsapp
+```
+Alternatively, you can grab the latest source code from [GitHub](https://github.com/3mora2/WPP_Whatsapp):
+
+```commandline
+git clone https://github.com/3mora2/WPP_Whatsapp.git
+cd WPP_Whatsapp
+pip install .
+```
 
 ## Getting Started
 
@@ -115,84 +125,4 @@ def new_message(message):
 self.client.onMessage(new_message)
 # wait new message
 self.client.loop.run_forever()
-```
-
-output
-
-```
- """
-        {
-        'id': 'false_**********@c.us_3EB0103CAE63ADF8D84EE9', 'rowId': None, 'serverId': None, 'body': 'message_body',
-        'type': 'chat', 'subtype': None, 't': 1687856231, 'revokeTimestamp': None, 'notifyName': '***',
-        'from': '******@c.us', 'to': '******@c.us', 'author': None, 'self': 'in', 'ack': 1, 'invis': None,
-        'isNewMsg': True, 'star': False, 'kicKey': None, 'kicState': None, 'kicTimestampMs': None, 'kicNotified': False,
-        'keepType': None, 'keptMessageKey': None, 'keptCount': None, 'recvFresh': True, 'caption': None,
-        'interactiveAnnotations': None, 'contextInfo': None, 'clientUrl': None, 'loc': None, 'lat': None, 'lng': None,
-        'isLive': None, 'accuracy': None, 'speed': None, 'degrees': None, 'comment': None, 'sequence': None,
-        'shareDuration': None, 'finalLat': None, 'finalLng': None, 'finalAccuracy': None, 'finalThumbnail': None,
-        'finalSpeed': None, 'finalDegrees': None, 'finalTimeOffset': None, 'deprecatedMms3Url': None,
-        'directPath': None, 'mimetype': None, 'duration': None, 'filehash': None, 'encFilehash': None, 'size': None,
-        'filename': None, 'streamingSidecar': None, 'mediaKey': None, 'mediaKeyTimestamp': None, 'pageCount': None,
-        'isGif': None, 'gifAttribution': None, 'isViewOnce': None, 'streamable': None, 'width': None, 'height': None,
-        'thumbnailDirectPath': None, 'thumbnailSha256': None, 'thumbnailEncSha256': None, 'thumbnailHeight': None,
-        'thumbnailWidth': None, 'waveform': None, 'staticUrl': None, 'stickerPackId': None, 'stickerPackName': None,
-        'stickerPackPublisher': None, 'mediaHandle': None, 'scanLengths': None, 'scansSidecar': None,
-        'isFromTemplate': False, 'devicesAdded': None, 'devicesRemoved': None, 'isThisDeviceAdded': None,
-        'firstFrameLength': None, 'firstFrameSidecar': None, 'isAnimated': None, 'canonicalUrl': None,
-        'matchedText': None, 'thumbnail': '', 'thumbnailHQ': None, 'richPreviewType': None, 'doNotPlayInline': None,
-        'rcat': None, 'title': None, 'description': None, 'businessOwnerJid': None, 'productId': None,
-        'currencyCode': None, 'priceAmount1000': None, 'salePriceAmount1000': None, 'retailerId': None, 'url': None,
-        'productImageCount': None, 'sessionId': None, 'pollName': None, 'pollOptions': None,
-        'pollSelectableOptionsCount': None, 'pollInvalidated': False, 'isSentCagPollCreation': False,
-        'pollUpdateParentKey': None, 'encPollVote': None, 'senderTimestampMs': None, 'latestEditMsgKey': None,
-        'latestEditSenderTimestampMs': None, 'editMsgType': None, 'recipients': None, 'broadcast': False,
-        'quotedMsg': None, 'quotedStanzaID': None, 'quotedRemoteJid': None, 'quotedParticipant': None,
-        'quotedGroupSubject': None, 'quotedParentGroupJid': None, 'mentionedJidList': [], 'groupMentions': [],
-        'footer': None, 'hydratedButtons': None, 'hsmTag': None, 'hsmCategory': None, 'selectedId': None,
-        'selectedIndex': None, 'multicast': None, 'urlText': None, 'urlNumber': None, 'clearMedia': None,
-        'isVcardOverMmsDocument': False, 'isCaptionByUser': None, 'vcardList': None, 'vcardFormattedName': None,
-        'revokeSender': None, 'protocolMessageKey': None, 'futureproofBuffer': None, 'futureproofParams': None,
-        'futureproofType': None, 'futureproofSubtype': None, 'templateParams': None, 'textColor': None,
-        'backgroundColor': None, 'font': None, 'campaignId': None, 'campaignDuration': None, 'actionLink': None,
-        'statusPSAReadTimestamp': None, 'isForwarded': None, 'forwardingScore': None, 'labels': [],
-        'hasReaction': False, 'paymentCurrency': None, 'paymentAmount1000': None, 'paymentMessageReceiverJid': None,
-        'paymentTransactionTimestamp': None, 'paymentStatus': None, 'paymentTxnStatus': None, 'paymentNoteMsg': None,
-        'paymentRequestMessageKey': None, 'paymentExpiryTimestamp': None, 'paymentInviteServiceType': None,
-        'paymentBackground': None, 'ephemeralStartTimestamp': None, 'ephemeralDuration': None,
-        'ephemeralSettingTimestamp': 1687688096, 'ephemeralOutOfSync': None, 'ephemeralSharedSecret': None,
-        'disappearingModeInitiator': 'chat', 'ephemeralSettingUser': None, 'messageSecret': None,
-        'originalSelfAuthor': None, 'bizPrivacyStatus': None, 'privacyModeWhenSent': None, 'verifiedBizName': None,
-        'inviteCode': None, 'inviteCodeExp': None, 'inviteGrp': None, 'inviteGrpName': None, 'inviteGrpJpegThum': None,
-        'inviteGrpType': 'DEFAULT', 'sellerJid': None, 'message': None, 'orderTitle': None, 'itemCount': None,
-        'orderId': None, 'surface': None, 'status': None, 'token': None, 'totalAmount1000': None,
-        'totalCurrencyCode': None, 'historySyncMetaData': None, 'isSendFailure': None, 'errorCode': None,
-        'appStateSyncKeyShare': None, 'appStateSyncKeyRequest': None, 'appStateFatalExceptionNotification': None,
-        'peerDataOperationRequestMessage': None, 'peerDataOperationRequestResponseMessage': None,
-        'broadcastParticipants': None, 'broadcastEphSettings': None, 'broadcastId': None, 'ctwaContext': None,
-        'list': None, 'listResponse': None, 'productListItemCount': None, 'productHeaderImageRejected': False,
-        'agentId': None, 'lastPlaybackProgress': 0, 'isDynamicReplyButtonsMsg': False, 'dynamicReplyButtons': None,
-        'buttonsResponse': None, 'selectedButtonId': None, 'headerType': None, 'nativeFlowName': None,
-        'nativeFlowButtons': None, 'interactiveHeader': None, 'interactiveType': None, 'interactivePayload': None,
-        'reactionParentKey': None, 'reactionText': None, 'reactionTimestamp': None, 'encReactionTargetMessageKey': None,
-        'encReactionEncIv': None, 'encReactionEncPayload': None, 'pinParentKey': None, 'pinMessageType': None,
-        'pinSenderTimestampMs': None, 'pinExpiryDuration': None, 'isMdHistoryMsg': False, 'stickerSentTs': 0,
-        'isAvatar': False, 'bizSource': None, 'requiresDirectConnection': False,
-        'chatId': {'server': 'c.us', 'user': '*********', '_serialized': '*******@c.us'}, 'fromMe': False,
-        'sender': {'id': {'server': 'c.us', 'user': '**********', '_serialized': '**********@c.us'},
-                   'name': '**********', 'shortName': '', 'pushname': '**********', 'type': 'in',
-                   'verifiedName': None, 'isBusiness': None, 'isEnterprise': None, 'isSmb': None, 'verifiedLevel': None,
-                   'privacyMode': None, 'statusMute': None, 'sectionHeader': None, 'labels': [],
-                   'isContactSyncCompleted': 1, 'forcedBusinessUpdateFromServer': None,
-                   'disappearingModeDuration': None, 'disappearingModeSettingTimestamp': None,
-                   'requestedPnTimestamp': None, 'formattedName': '010-289-46519', 'isHighLevelVerified': None,
-                   'isMe': False, 'isMyContact': True, 'isPSA': False, 'isUser': True, 'isVerified': None,
-                   'isWAContact': True, 'profilePicThumbObj': {
-                'eurl': 'https://pps.whatsapp.net/v/**********',
-                'id': {'server': 'c.us', 'user': '201028946519', '_serialized': '201028946519@c.us'},
-                'img': 'https://pps.whatsapp.net/v/t61.24694-24/**********',
-                'imgFull': 'https://pps.whatsapp.net/v/t61.24694-24/**********',
-                'raw': None, 'tag': '1591201851'}, 'msgs': None}, 'timestamp': 1687856231, 'content': '.',
-        'isGroupMsg': False, 'isLink': None, 'isMMS': None, 'isMedia': None, 'isNotification': None, 'isPSA': None,
-        'quotedMsgId': None, 'mediaData': {}}
-"""
 ```
