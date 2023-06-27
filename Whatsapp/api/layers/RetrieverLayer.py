@@ -137,8 +137,8 @@ class RetrieverLayer(SenderLayer):
         """
         return await self.page_evaluate("""({ chatId, includeMe, includeNotifications }) =>
         WAPI.getAllMessagesInChat(chatId, includeMe, includeNotifications)""",
-                                  {"chatId": chatId, "includeMe": includeMe,
-                                   "includeNotifications": includeNotifications})
+                                        {"chatId": chatId, "includeMe": includeMe,
+                                         "includeNotifications": includeNotifications})
 
     async def loadAndGetAllMessagesInChat(self, chatId, includeMe=False, includeNotifications=False):
         chatId = self.valid_chatId(chatId)
@@ -147,8 +147,8 @@ class RetrieverLayer(SenderLayer):
         """
         return await self.page_evaluate("""({ chatId, includeMe, includeNotifications }) =>
         WAPI.loadAndGetAllMessagesInChat(chatId, includeMe, includeNotifications)""",
-                                  {"chatId": chatId, "includeMe": includeMe,
-                                   "includeNotifications": includeNotifications})
+                                        {"chatId": chatId, "includeMe": includeMe,
+                                         "includeNotifications": includeNotifications})
 
     async def getChatIsOnline(self, chatId):
         chatId = self.valid_chatId(chatId)

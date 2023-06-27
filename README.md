@@ -1,5 +1,8 @@
 # WPP_Whatsapp
-WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python, which can be used to support the creation of any interaction, such as customer service, media sending, intelligence recognition based on phrases artificial and many other things, use your imagination         
+
+WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python, which can be used to support the creation of
+any interaction, such as customer service, media sending, intelligence recognition based on phrases artificial and many
+other things, use your imagination         
 WPP_Whatsapp: [WPPConnect](https://github.com/wppconnect-team/wppconnect) Converted to python, so Documentation is same
 
 <p align="center">
@@ -27,13 +30,15 @@ WPP_Whatsapp: [WPPConnect](https://github.com/wppconnect-team/wppconnect) Conver
 See more at <a href="https://wppconnect.io/wppconnect/classes/Whatsapp.html">WhatsApp methods</a>
 
 ## Installation
-Coming
 
+`pip install WPP_Whatsapp`
 
 ## Getting Started
+
 ### Sync
+
 ```
-from Whatsapp import Create
+from WPP_Whatsapp import Create
 
 
 self = Create(session="test")
@@ -41,9 +46,10 @@ self.async_to_sync(self.start())
 ```
 
 ### Async
+
 ```
 import asyncio
-from Whatsapp import Create
+from WPP_Whatsapp import Create
 
 
 async def main():
@@ -54,9 +60,11 @@ asyncio.run(main())
 ```
 
 ## Send Text
+
 ### Sync
+
 ```
-from Whatsapp import Create
+from WPP_Whatsapp import Create
 
 
 self = Create(session="test")
@@ -70,10 +78,12 @@ print(result)
 """{'id': 'true_**********@c.us_*************_out', 'ack': 3, 'sendMsgResult': {}}"""
 self.async_to_sync(self.client.close())
 ```
+
 ### Async
+
 ```
 import asyncio
-from Whatsapp import Create
+from WPP_Whatsapp import Create
 
 
 async def main():
@@ -102,7 +112,9 @@ self.client.onMessage(new_message)
 # wait new message
 self.client.loop.run_forever()
 ```
+
 output
+
 ```
  """
         {

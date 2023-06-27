@@ -2,12 +2,14 @@ import asyncio
 import os
 import traceback
 import types
+from time import sleep
 from typing import Optional
+
 import psutil as psutil
+
 from Whatsapp.api.Whatsapp import Whatsapp
 from Whatsapp.api.const import Logger
 from Whatsapp.controllers.browser import Browser
-from time import sleep
 
 
 class Create:
@@ -173,7 +175,7 @@ class Create:
             "status": self.statusFind_dict.get("status")
         }
 
-    def getQrcode(self)-> dict:
+    def getQrcode(self) -> dict:
         if self.state in ["UNPAIRED_IDLE"]:
             # need restart session
             return {"result": "error", **self.get_state()}

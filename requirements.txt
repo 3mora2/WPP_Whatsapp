@@ -1,7 +1,8 @@
-event-emitter-js==0.1.2
-greenlet==2.0.2
-playwright==1.35.0
-psutil==5.9.5
-pyee==9.0.4
-PyQRCode==1.2.1
-typing_extensions==4.6.3
+event-emitter-js
+greenlet
+Pillow
+playwright
+psutil
+pye
+PyQRCode
+typing_extensions

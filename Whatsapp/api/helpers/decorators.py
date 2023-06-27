@@ -1,4 +1,3 @@
-import asyncio
 import inspect
 from asyncio import ProactorEventLoop
 from types import FunctionType

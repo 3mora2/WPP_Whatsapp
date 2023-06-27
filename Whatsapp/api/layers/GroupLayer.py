@@ -37,7 +37,7 @@ class GroupLayer(RetrieverLayer):
 
     async def createGroup(self, groupName, contacts=[]):
         return await self.page_evaluate("({ groupName, contacts }) => WPP.group.create(groupName, contacts)",
-                                  {"groupName": groupName, "contacts": contacts})
+                                        {"groupName": groupName, "contacts": contacts})
 
     async def removeParticipant(self, groupId, participantId):
         groupId = self.valid_chatId(groupId)
@@ -65,4 +65,3 @@ class GroupLayer(RetrieverLayer):
         invite_code = invite_code.replace('https://', '')
         invite_code = invite_code.replace('http://', '')
         return await self.page_evaluate("(inviteCode) => WPP.group.joinGroup(inviteCode)", invite_code)
-

@@ -2,12 +2,14 @@ import asyncio
 import logging
 import os
 import traceback
-from datetime import datetime
 from asyncio import sleep
+from datetime import datetime
 from pathlib import Path
+
 import pyqrcode
 from playwright._impl import _api_types
 from playwright.async_api import Page, BrowserContext
+
 from Whatsapp.api.const import whatsappUrl
 
 

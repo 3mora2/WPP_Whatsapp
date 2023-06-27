@@ -1,5 +1,7 @@
 import asyncio
+
 from playwright.async_api import async_playwright, Playwright, BrowserContext, Page
+
 from Whatsapp.api.const import useragentOverride
 
 
@@ -9,7 +11,7 @@ class Browser:
     browser: "BrowserContext"
     page: "Page"
 
-    def __init__(self, session: str = "", user_data_dir: str = "", headless=False,*args, **kwargs):
+    def __init__(self, session: str = "", user_data_dir: str = "", headless=False, *args, **kwargs):
         self.session = session
         self.user_data_dir = user_data_dir
         self.loop = kwargs.get("loop")

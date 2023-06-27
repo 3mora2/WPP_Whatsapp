@@ -14,7 +14,7 @@ class ProfileLayer(StatusLayer):
         """
         chatId = self.valid_chatId(chatId)
         return await self.page_evaluate("(id, time, type) => WAPI.sendMute(id, time, type)",
-                                  {"id": chatId, "time": time, "type": type})
+                                        {"id": chatId, "time": time, "type": type})
 
     async def setProfileStatus(self, status):
         """

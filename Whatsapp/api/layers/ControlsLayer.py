@@ -25,7 +25,7 @@ class ControlsLayer(UILayer):
     async def archiveChat(self, chatId, option=True):
         chatId = self.valid_chatId(chatId)
         return await self.page_evaluate("({ chatId, option }) => WPP.chat.archive(chatId, option)",
-                                  {"chatId": chatId, "option": option})
+                                        {"chatId": chatId, "option": option})
 
     async def pinChat(self, chatId, option, nonExistent=False):
         chatId = self.valid_chatId(chatId)
@@ -33,8 +33,8 @@ class ControlsLayer(UILayer):
             await self.page_evaluate("({ chatId }) => WPP.chat.find(chatId)", chatId)
 
         return await self.page_evaluate("({ chatId, option }) => WPP.chat.pin(chatId, option)",
-                                  {"chatId": chatId, "option": option})
+                                        {"chatId": chatId, "option": option})
 
     async def starMessage(self, messagesId, star=True):
         await self.page_evaluate("({ messagesId, star }) => WAPI.starMessages(messagesId, star)",
-                           {"messagesId": messagesId, "star": star})
+                                 {"messagesId": messagesId, "star": star})

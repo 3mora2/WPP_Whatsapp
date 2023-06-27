@@ -10,4 +10,4 @@ class UILayer(GroupLayer):
     async def openChatAt(self, chatId, messageId):
         chatId = self.valid_chatId(chatId)
         return await self.page_evaluate("({chatId, messageId}) => WPP.chat.openChatAt(chatId, messageId)",
-                                  {"chatId": chatId, "messageId": messageId})
+                                        {"chatId": chatId, "messageId": messageId})
