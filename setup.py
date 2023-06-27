@@ -9,7 +9,7 @@ version = "0.0.1"
 setup(
     name="WPP_Whatsapp",
     version=version,
-    license="MIT License",
+    # license="MIT License",
     author="Ammar Alkotb",
     author_email="ammar.alkotb@gmail.com",
     description=description,

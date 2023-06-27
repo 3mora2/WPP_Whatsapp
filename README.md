@@ -1,9 +1,13 @@
 # WPP_Whatsapp
+<p align="center">
+  <a href="https://pypi.org/project/WPP-Whatsapp"><img alt="PyPI Version" src="https://img.shields.io/pypi/v/WPP-Whatsapp.svg?maxAge=86400" /></a>
+  <a href="https://pypi.org/project/WPP-Whatsapp"><img alt="Python Versions" src="https://img.shields.io/pypi/pyversions/WPP-Whatsapp.svg?maxAge=86400" /></a>
+</p>
 
 WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python, which can be used to support the creation of
 any interaction, such as customer service, media sending, intelligence recognition based on phrases artificial and many
 other things, use your imagination         
-WPP_Whatsapp: [WPPConnect](https://github.com/wppconnect-team/wppconnect) Converted to python, so Documentation is same
+WPP_Whatsapp > [WPPConnect](https://github.com/wppconnect-team/wppconnect) Converted to python, so Documentation is same
 
 <p align="center">
   <a href="https://wppconnect.io/wppconnect/pages/getting-started/basic-functions.html">Basic Function</a> •
