@@ -1,4 +1,4 @@
-from Whatsapp.api.layers.SenderLayer import SenderLayer
+from WPP_Whatsapp.api.layers.SenderLayer import SenderLayer
 
 
 class RetrieverLayer(SenderLayer):

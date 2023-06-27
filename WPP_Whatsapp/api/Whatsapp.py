@@ -1,7 +1,7 @@
 import asyncio
 
-from Whatsapp.api.const import defaultOptions, Logger
-from Whatsapp.api.layers.BusinessLayer import BusinessLayer
+from WPP_Whatsapp.api.const import defaultOptions, Logger
+from WPP_Whatsapp.api.layers.BusinessLayer import BusinessLayer
 
 
 class Whatsapp(BusinessLayer):

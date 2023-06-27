@@ -1,6 +1,6 @@
 from setuptools import find_packages
 from setuptools import setup
-from Whatsapp import __version__
+from WPP_Whatsapp import __version__
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
@@ -15,14 +15,14 @@ setup(
     author="Ammar Alkotb",
     author_email="ammar.alkotb@gmail.com",
     description=description,
-    packages=find_packages("Whatsapp"),
-    package_dir={"": "Whatsapp"},
+    packages=find_packages("WPP_Whatsapp"),
+    package_dir={"": "WPP_Whatsapp"},
     url="https://github.com/3mora2/WPP_Whatsapp",
     project_urls={"Bug Report": "https://github.com/3mora2/WPP_Whatsapp/issues/new"},
     install_requires=requirements,
     long_description=long_description,
     long_description_content_type="text/markdown",
-    # py_modules=["WPP_Whatsapp"],
+    py_modules=["WPP_Whatsapp"],
     classifiers=[
         # "License :: OSI Approved :: MIT License",
         "Intended Audience :: Developers",

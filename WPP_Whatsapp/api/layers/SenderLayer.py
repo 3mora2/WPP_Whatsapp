@@ -2,7 +2,7 @@ import base64
 import mimetypes
 import os
 
-from Whatsapp.api.layers.ListenerLayer import ListenerLayer
+from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 
 
 class SenderLayer(ListenerLayer):

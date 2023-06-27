@@ -10,7 +10,7 @@ import pyqrcode
 from playwright._impl import _api_types
 from playwright.async_api import Page, BrowserContext
 
-from Whatsapp.api.const import whatsappUrl
+from WPP_Whatsapp.api.const import whatsappUrl
 
 
 class HostLayer:

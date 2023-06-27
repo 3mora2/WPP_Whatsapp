@@ -1,4 +1,4 @@
-from Whatsapp.api.layers.GroupLayer import GroupLayer
+from WPP_Whatsapp.api.layers.GroupLayer import GroupLayer
 
 
 class UILayer(GroupLayer):

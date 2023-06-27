@@ -2,7 +2,7 @@ import asyncio
 
 from playwright.async_api import async_playwright, Playwright, BrowserContext, Page
 
-from Whatsapp.api.const import useragentOverride
+from WPP_Whatsapp.api.const import useragentOverride
 
 
 class Browser:

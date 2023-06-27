@@ -1,4 +1,4 @@
-from Whatsapp.api.layers.UILayer import UILayer
+from WPP_Whatsapp.api.layers.UILayer import UILayer
 
 
 class ControlsLayer(UILayer):

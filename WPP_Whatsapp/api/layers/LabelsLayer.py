@@ -1,4 +1,4 @@
-from Whatsapp.api.layers.CatalogLayer import CatalogLayer
+from WPP_Whatsapp.api.layers.CatalogLayer import CatalogLayer
 
 
 class LabelsLayer(CatalogLayer):

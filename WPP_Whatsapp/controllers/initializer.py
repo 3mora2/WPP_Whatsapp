@@ -7,9 +7,9 @@ from typing import Optional
 
 import psutil as psutil
 
-from Whatsapp.api.Whatsapp import Whatsapp
-from Whatsapp.api.const import Logger
-from Whatsapp.controllers.browser import Browser
+from WPP_Whatsapp.api.Whatsapp import Whatsapp
+from WPP_Whatsapp.api.const import Logger
+from WPP_Whatsapp.controllers.browser import Browser
 
 
 class Create:

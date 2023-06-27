@@ -1,4 +1,4 @@
-from Whatsapp.api.layers.RetrieverLayer import RetrieverLayer
+from WPP_Whatsapp.api.layers.RetrieverLayer import RetrieverLayer
 
 
 class GroupLayer(RetrieverLayer):

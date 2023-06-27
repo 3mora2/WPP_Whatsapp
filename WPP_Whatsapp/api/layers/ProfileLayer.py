@@ -1,4 +1,4 @@
-from Whatsapp.api.layers.StatusLayer import StatusLayer
+from WPP_Whatsapp.api.layers.StatusLayer import StatusLayer
 
 
 class ProfileLayer(StatusLayer):

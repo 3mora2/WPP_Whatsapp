@@ -1,4 +1,4 @@
-from Whatsapp import Create
+from WPP_Whatsapp import Create
 
 
 def catchQR(*args, **kwargs):
