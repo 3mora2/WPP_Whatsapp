@@ -1,5 +1,4 @@
-from event_emitter import EventEmitter
-
+from WPP_Whatsapp.event_emitter import EventEmitter
 from WPP_Whatsapp.api.layers.ProfileLayer import ProfileLayer
 
 OnMessage = 'onMessage'
