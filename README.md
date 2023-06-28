@@ -2,6 +2,7 @@
 <p align="center">
   <a href="https://pypi.org/project/WPP-Whatsapp"><img alt="PyPI Version" src="https://img.shields.io/pypi/v/WPP-Whatsapp.svg?maxAge=86400" /></a>
   <a href="https://pypi.org/project/WPP-Whatsapp"><img alt="Python Versions" src="https://img.shields.io/pypi/pyversions/WPP-Whatsapp.svg?maxAge=86400" /></a>
+  <a href="https://pypi.org/project/WPP-Whatsapp"><img alt="Python Versions" src="https://static.pepy.tech/personalized-badge/WPP-Whatsapp?period=total&units=international_system&left_color=gray&left_text=Downloads" /></a>
 </p>
 
 WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python, which can be used to support the creation of
@@ -116,13 +117,28 @@ async def main():
 asyncio.run(main())
 ```
 
-## Receive New Message
+## Receive New Message (Auto Replay)
 
 ```
-def new_message(message):
-    print(message)
+from WPP_Whatsapp import Create
+
+
+self = Create(session="test")
+self.async_to_sync(self.start())
+
+if self.state != 'CONNECTED':
+    raise Exception(self.state)
+    
+
+async def new_message(message):
+    global self
+    if message and not message.get("isGroupMsg"):
+        if "السلام عليكم" in message.get("body"):
+            chat_id = message.get("from")
+            message_id = message.get("id")
+            await self.client.reply(chat_id, "وعليكم السلام", message_id)
+
 
 self.client.onMessage(new_message)
-# wait new message
-self.client.loop.run_forever()
+self.loop.run_forever()
 ```

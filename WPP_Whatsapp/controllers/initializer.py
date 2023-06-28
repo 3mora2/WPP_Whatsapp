@@ -145,7 +145,7 @@ class Create:
         # user_data_dir = r"C:\Users\ammar\Whatsapp Pro\Profile-2-2022-09-21-20-21-23"
 
         if self.check_profile(self.user_data_dir):
-            raise Exception("- Current user_data_dir Is Opened", self.user_data_dir)
+            raise Exception("Current user_data_dir Is Opened", self.user_data_dir)
 
         self.Browser = Browser(self.session, self.user_data_dir, headless=self.headless, loop=self.loop)
         await self.Browser.initBrowser()

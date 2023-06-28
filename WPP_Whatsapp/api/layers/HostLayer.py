@@ -56,7 +56,6 @@ class HostLayer:
 
             elif "Cannot read properties of null" in error.message:
                 pass
-
             else:
                 raise error
 
