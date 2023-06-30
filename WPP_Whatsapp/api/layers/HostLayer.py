@@ -5,12 +5,10 @@ import traceback
 from asyncio import sleep
 from datetime import datetime
 from pathlib import Path
-
-import pyqrcode
 from playwright._impl import _api_types
 from playwright.async_api import Page, BrowserContext
-
 from WPP_Whatsapp.api.const import whatsappUrl
+from WPP_Whatsapp.api.helpers.function import asciiQr
 
 
 class HostLayer:
@@ -40,12 +38,8 @@ class HostLayer:
     Browser: "Browser"
 
     def __init__(self):
-        # self.session = session
-        # asyncio.set_event_loop(self.loop)
-
         super().__init__()
         self.__initialize()
-        # self.start()
 
     async def page_evaluate(self, expression, arg=None):
         try:
@@ -84,7 +78,6 @@ class HostLayer:
 
     def __initialize(self):
         self.page.on('close', self.on_close)
-
         self.page.on('load', self.on_load)
         self.isInitialized = True
 
@@ -129,24 +122,19 @@ class HostLayer:
         await self.__checkInChat()
 
     async def start(self):
-        try:
-            if self.isStarted:
-                return
+        if self.isStarted:
+            return
 
-            self.isStarted = True
-            # ToDo:
-            await self.initWhatsapp()
-            await self.page.expose_function('checkQrCode', self.__checkQrCode)
-            await self.page.expose_function('checkInChat', self.__checkInChat)
+        self.isStarted = True
+        # ToDo:
+        await self.initWhatsapp()
+        await self.page.expose_function('checkQrCode', self.__checkQrCode)
+        await self.page.expose_function('checkInChat', self.__checkInChat)
 
-            # ToDo:
-            # self.checkStartInterval = self.__setInterval(self.__checkStart, 5)
-            # self.page.on('close', lambda: print("close"))
-            # self.page.on('close', lambda: self.clearInterval(self.checkStartInterval))
-            return True
-        except:
-            # traceback.print_exc()
-            print("failed start")
+        # ToDo:
+        self.checkStartInterval = self.__setInterval(self.__checkStart, 10)
+        self.page.on('close', lambda: self.clearInterval(self.checkStartInterval))
+        return True
 
     async def initWhatsapp(self):
         try:
@@ -159,9 +147,7 @@ class HostLayer:
             traceback.print_exc()
 
     async def __checkStart(self):
-        # print("__checkStart")
         need_scan = await self.__needsToScan()
-        # print(need_scan)
 
     async def __checkQrCode(self):
         need_scan = await self.__needsToScan()
@@ -233,6 +219,7 @@ class HostLayer:
             self.autoCloseInterval = self.__setInterval(self.autoCloseIntervalHandel, 5)
 
     def __setInterval(self, func, interval, *args, **kwargs):
+        self.logger.debug(f'{self.session}: setInterval {func}')
         stopped = asyncio.Event()
         loop = kwargs.get('loop') or asyncio.get_event_loop()
 
@@ -245,16 +232,11 @@ class HostLayer:
         return stopped
 
     def clearInterval(self, Interval):
-        try:
-            if Interval:
-                Interval.set()
-                print("Interval", Interval.is_set())
-                # Interval.clear()
-        except:
-            traceback.print_exc()
+        self.logger.debug(f'{self.session}: clearInterval {Interval}')
+        if Interval:
+            Interval.set()
 
     async def autoCloseIntervalHandel(self):
-        # print("autoCloseIntervalHandel")
         if self.page.is_closed():
             self.cancelAutoClose()
             return
@@ -304,7 +286,7 @@ class HostLayer:
     async def waitForPageLoad(self):
         while not self.isInjected:
             await sleep(.2)
-            # print("waitForPageLoad")
+
         await self.page_wait_for_function("() => WPP.isReady")
 
     async def waitForLogin(self):
@@ -415,7 +397,8 @@ class HostLayer:
         return not await self.isAuthenticated()
 
     def asciiQr(self, code):
-        return pyqrcode.create(code).terminal(quiet_zone=1)
+        return asciiQr(code=code)
+        # return pyqrcode.create(code).terminal(quiet_zone=1)
 
     async def scrapeImg(self):
         click = await self.page_evaluate("""() => {
@@ -457,40 +440,35 @@ class HostLayer:
         return result if result else False
 
     async def inject_api(self):
-        # {"percent": int, "message": str}
-        try:
-            injected = await self.page_evaluate("""() => {
-                        return (typeof window.WAPI !== 'undefined' &&typeof window.Store !== 'undefined');}"""
-                                                )
-            if injected:
-                print("- already injected ")
-                return
+        injected = await self.page_evaluate("""() => {
+                    return (typeof window.WAPI !== 'undefined' &&typeof window.Store !== 'undefined');}"""
+                                            )
+        if injected:
+            self.logger.info(f'{self.session}: already injected')
+            return
 
-            print(injected)
-            await self.page_evaluate("() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3")
-            await self.page_wait_for_function("() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3")
-            await sleep(1)
-            await self.page.add_script_tag(
-                url="https://github.com/wppconnect-team/wa-js/releases/download/nightly/wppconnect-wa.js")
-            await self.page_wait_for_function("() => window.WPP?.isReady")
-            await self.page_evaluate("""() => {
-                                  WPP.chat.defaultSendMessageOptions.createChat = true;
-                                  WPP.conn.setKeepAlive(true);
-                                }""")
-            base_dir = Path(__file__).resolve().parent.parent.parent
-            await self.page.add_script_tag(path=os.path.join(base_dir, 'js_lib/wapi.js'))
-            await self._onLoadingScreen()
-            # Make sure WAPI is initialized
-            await self.page_wait_for_function("""() => {
-            return (typeof window.WAPI !== 'undefined' && typeof window.Store !== 'undefined' && window.WPP.isReady);
-            }""")
-            return True
-        except:
-            print("- failed Inject ")
-            traceback.print_exc()
+        self.logger.info(f'{self.session}: injected state: {injected}')
+        await self.page_evaluate("() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3")
+        await self.page_wait_for_function("() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3")
+        await sleep(1)
+        await self.page.add_script_tag(
+            url="https://github.com/wppconnect-team/wa-js/releases/download/nightly/wppconnect-wa.js")
+        await self.page_wait_for_function("() => window.WPP?.isReady")
+        await self.page_evaluate("""() => {
+                              WPP.chat.defaultSendMessageOptions.createChat = true;
+                              WPP.conn.setKeepAlive(true);
+                            }""")
+        base_dir = Path(__file__).resolve().parent.parent.parent
+        await self.page.add_script_tag(path=os.path.join(base_dir, 'js_lib/wapi.js'))
+        await self._onLoadingScreen()
+        # Make sure WAPI is initialized
+        await self.page_wait_for_function("""() => {
+        return (typeof window.WAPI !== 'undefined' && typeof window.Store !== 'undefined' && window.WPP.isReady);
+        }""")
+        return True
 
     def loadingScreen(self, percent, message):
-        print("loadingScreen", percent, message)
+        self.logger.info(f'{self.session}: loadingScreen: {percent}, {message}')
         if self.lastPercent != percent or self.lastPercentMessage != message:
             self.onLoadingScreen(percent, message)
             self.lastPercent = percent

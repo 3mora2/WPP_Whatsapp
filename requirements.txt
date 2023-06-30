@@ -7,3 +7,5 @@ pye==0.0.0
 pyee==11.0.0
 PyQRCode==1.2.1
 typing_extensions==4.6.3
+setuptools~=65.5.1
+segno~=1.5.2

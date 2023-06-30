@@ -1,18 +1,10 @@
 from WPP_Whatsapp import Create
+import logging
 
+logger = logging.getLogger(name="WPP_Whatsapp")
+logger.setLevel(logging.DEBUG)
 
-def catchQR(*args, **kwargs):
-    """
-    kwargs:{
-        "qrCode":"data:image/png;base64,",
-        "asciiQR":"",
-        "attempt":1,
-        "urlCode":"2@242",
-     }
-     """
-
-
-self = Create(session="test", catchQR=catchQR)
+self = Create(session="test")
 self.async_to_sync(self.start())
 
 if self.state != 'CONNECTED':
@@ -31,7 +23,6 @@ async def new_message(message):
             message_id = message.get("id")
             await self.client.reply(chat_id, "وعليكم السلام", message_id)
 
-
-self.client.onMessage(new_message)
+# self.client.onMessage(new_message)
 self.loop.run_forever()
 # self.async_to_sync(self.client.close())

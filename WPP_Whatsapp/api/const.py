@@ -41,9 +41,9 @@ chromiumArgs = [
 
 
 def defaultLogger():
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
+    logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s',
                         datefmt='%d-%b-%y %H:%M:%S')
-    logger = logging.getLogger()
+    logger = logging.getLogger(name="WPP_Whatsapp")
     return logger
 
 
