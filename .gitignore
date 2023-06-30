@@ -123,3 +123,4 @@ dmypy.json
 *.log
 tokens
 token
+*/tokens

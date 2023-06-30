@@ -21,43 +21,15 @@ class SenderLayer(ListenerLayer):
 
     async def sendText(self, to, content, options=None):
         """
-          /**
-           * Sends a text message to given chat
-           * @category Chat
-           * @param to chat id: xxxxx@us.c
-           * @param content text message
-           *
-           * @example
-           * ```javascript
-           * // Simple message
-           * client.sendText('<number>@c.us', 'A simple message');
-           *
-           * // With buttons
-           * client.sendText('<number>@c.us', 'WPPConnect message with buttons', {
-           *    useTemplateButtons: true, // False for legacy
-           *    buttons: [
-           *      {
-           *        url: 'https://wppconnect.io/',
-           *        text: 'WPPConnect Site'
-           *      },
-           *      {
-           *        phoneNumber: '+55 11 22334455',
-           *        text: 'Call me'
-           *      },
-           *      {
-           *        id: 'your custom id 1',
-           *        text: 'Some text'
-           *      },
-           *      {
-           *        id: 'another id 2',
-           *        text: 'Another text'
-           *      }
-           *    ],
-           *    title: 'Title text' // Optional
-           *    footer: 'Footer text' // Optional
-           * });
-           * ```
-           */
+           Sends a text message to given chat
+           @category Chat
+           @param to chat to: xxxxx@us.c
+           @param content text message
+           @param options dict
+           @example
+           // Simple message
+           client.sendText('<number>@c.us', 'A simple message')
+           :return: dict
         """
         if not options:
             options = {}
@@ -68,9 +40,7 @@ class SenderLayer(ListenerLayer):
                               waitForAck: true,
                             })""", {"to": to, "content": content, "options": options})
         self.logger.debug(f'{self.session}: Send Message {send_result=}')
-        # result = await self.page_evaluate("""async (messageId) => {
-        #                 return JSON.parse(JSON.stringify(await WAPI.getMessageById(messageId)));
-        #               }""", send_result.get("id"))
+
         return send_result
 
     async def sendMessageOptions(self, chat, content, options=None):
@@ -129,18 +99,19 @@ class SenderLayer(ListenerLayer):
 
     async def reply(self, to, content, quotedMsg):
         """
-
-        :param to:
-        :param content:
-        :param quotedMsg: @param quotedMsg Message id to reply to.
-        :return:
+            @param to chat to: xxxxx@us.c
+            @param content text message
+            @param quotedMsg: @param quotedMsg Message id to reply to.
+            @example
+           // Simple message
+           client.reply('<number>@c.us', 'A simple message', '<message-id>')
         """
         to = self.valid_chatId(to)
         result = await self.page_evaluate("""({ to, content, quotedMsg }) => {
                                     return WPP.chat.sendTextMessage(to, content, { quotedMsg });
                                   }""", {"to": to, "content": content, "quotedMsg": quotedMsg})
-        message = await self.page_evaluate("(messageId: any) => WAPI.getMessageById(messageId)", result.get("id"))
-        return message
+        # message = await self.page_evaluate("(messageId) => WAPI.getMessageById(messageId)", result.get("id"))
+        return result
 
     async def sendFile(self, to, pathOrBase64, nameOrOptions, caption):
         to = self.valid_chatId(to)

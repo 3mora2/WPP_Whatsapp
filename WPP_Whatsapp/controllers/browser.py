@@ -11,8 +11,7 @@ class Browser:
     browser: "BrowserContext"
     page: "Page"
 
-    def __init__(self, session: str = "", user_data_dir: str = "", headless=False, *args, **kwargs):
-        self.session = session
+    def __init__(self, user_data_dir: str = "", headless: bool = False, *args, **kwargs):
         self.user_data_dir = user_data_dir
         self.loop = kwargs.get("loop")
         if not self.loop:

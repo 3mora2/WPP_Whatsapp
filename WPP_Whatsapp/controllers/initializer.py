@@ -147,7 +147,7 @@ class Create:
         if self.check_profile(self.user_data_dir):
             raise Exception("Current user_data_dir Is Opened", self.user_data_dir)
 
-        self.Browser = Browser(self.session, self.user_data_dir, headless=self.headless, loop=self.loop)
+        self.Browser = Browser(user_data_dir=self.user_data_dir, headless=self.headless, loop=self.loop)
         await self.Browser.initBrowser()
         self.Browser.browser.on("disconnected", lambda: self.statusFind('browserClose', self.session))
 
@@ -204,7 +204,28 @@ class Create:
 
     async def setup(self):
         self.client.onStateChange(self._onStateChange)
-        # self.client.onAnyMessage(self.on_any_message)
 
-    def on_any_message(self, message):
-        print("int", message)
+    def send_text_message(self, to: str, content: str, options: dict = None) -> dict:
+        """
+           Sends a text message to given chat
+           @category Chat
+           @param to chat to: xxxxx@us.c
+           @param content text message
+           @param options dict
+           @example
+           // Simple message
+           client.sendText('<number>@c.us', 'A simple message')
+           :return: dict
+        """
+        return self.async_to_sync(self.client.sendText(to, content, options))
+
+    def reply_message(self, to: str, content: str, quotedMsg: str):
+        """
+            @param to chat to: xxxxx@us.c
+            @param content text message
+            @param quotedMsg: @param quotedMsg Message id to reply to.
+            @example
+           // Simple message
+           client.reply('<number>@c.us', 'A simple message', '<message-id>')
+        """
+        return self.async_to_sync(self.client.reply(to, content, quotedMsg))
