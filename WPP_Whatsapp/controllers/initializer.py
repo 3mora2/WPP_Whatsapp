@@ -19,7 +19,15 @@ class Create:
             statusFind: types.FunctionType = None, onLoadingScreen: types.FunctionType = None,
             onStateChange: types.FunctionType = None, waitForLogin: bool = True, logQR: bool = False,
             autoClose: int = 0, *args, **kwargs) -> None:
-
+        """
+        class Create:
+            custom class to open browser and start whatsapp
+            you can custom your class, you need only:
+                ThreadsafeBrowser = ThreadsafeBrowser(browser="chromium")
+                client = Whatsapp(session="test", ThreadsafeBrowser)
+                client.start()
+                client.waitForLogin()
+        """
         self.browserSessionToken = None
         self.waitLoginPromise = None
         self.client = None
