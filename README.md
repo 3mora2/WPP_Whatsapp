@@ -33,112 +33,75 @@ WPP_Whatsapp > [WPPConnect](https://github.com/wppconnect-team/wppconnect) Conve
 | **and much more**                                          | ✔ |
 
 See more at <a href="https://wppconnect.io/wppconnect/classes/Whatsapp.html">WhatsApp methods</a>
+## Getting Started
 
-## Installation
+### Installation
 
 installed with [pip](https://pip.pypa.io):
 ```commandline
-pip install WPP_Whatsapp
+pip install WPP_Whatsapp -U
 ```
 Alternatively, you can grab the latest source code from [GitHub](https://github.com/3mora2/WPP_Whatsapp):
 
 ```commandline
 git clone https://github.com/3mora2/WPP_Whatsapp.git
 cd WPP_Whatsapp
-pip install .
+pip install -U .
 ```
 
-## Getting Started
 
-### Sync
 
-```
+### Send Text
+
+```python
 from WPP_Whatsapp import Create
 
+# start client with your session name
+your_session_name = "test"
+creator = Create(session=your_session_name)
+client = creator.start()
+# Now scan Whatsapp Qrcode in browser
 
-self = Create(session="test")
-self.async_to_sync(self.start())
+# check state of login
+if creator.state != 'CONNECTED':
+    raise Exception(creator.state)
+
+phone_number = "201016708170"  # or "+201016708170"
+message = "hello from wpp"
+
+# Simple message
+result = client.sendText(phone_number, message)
 ```
 
-### Async
-
-```
-import asyncio
+### Receive Messages(Auto Replay)
+```python
 from WPP_Whatsapp import Create
 
+# start client with your session name
+your_session_name = "test"
+creator = Create(session=your_session_name)
+client = creator.start()
+# Now scan Whatsapp Qrcode in browser
 
-async def main():
-    self = Create(session="test")
-    client = await self.start()
-
-asyncio.run(main())
-```
-
-## Send Text
-
-### Sync
-
-```
-from WPP_Whatsapp import Create
+# check state of login
+if creator.state != 'CONNECTED':
+    raise Exception(creator.state)
 
 
-self = Create(session="test")
-self.async_to_sync(self.start())
-
-if self.state != 'CONNECTED':
-    raise Exception(self.state)
-# Pass Number with code of country, and message
-result = self.async_to_sync(self.client.sendText("201016708170", "hello from wpp"))
-print(result)
-"""{'id': 'true_**********@c.us_*************_out', 'ack': 3, 'sendMsgResult': {}}"""
-self.async_to_sync(self.client.close())
-```
-
-### Async
-
-```
-import asyncio
-from WPP_Whatsapp import Create
-
-
-async def main():
-    self = Create(session="test")
-    # Pass Session Name to Save whatsapp session
-    client = await self.start()
-    if self.state != 'CONNECTED':
-        raise Exception(self.state)
-    # Pass Number with code of country, and message
-    result = await client.sendText("201016708170", "hello from wpp")
-    print(result)
-    """{'id': 'true_**********@c.us_*************_out', 'ack': 3, 'sendMsgResult': {}}"""
-    await client.close()
-
-
-asyncio.run(main())
-```
-
-## Receive New Message (Auto Replay)
-
-```
-from WPP_Whatsapp import Create
-
-
-self = Create(session="test")
-self.async_to_sync(self.start())
-
-if self.state != 'CONNECTED':
-    raise Exception(self.state)
-    
-
-async def new_message(message):
-    global self
+def new_message(message):
+    global client
+    # Add your Code here
     if message and not message.get("isGroupMsg"):
+        chat_id = message.get("from")
+        message_id = message.get("id")
         if "السلام عليكم" in message.get("body"):
-            chat_id = message.get("from")
-            message_id = message.get("id")
-            await self.client.reply(chat_id, "وعليكم السلام", message_id)
+            client.reply(chat_id, "وعليكم السلام", message_id)
+        else:
+            client.reply(chat_id, "Welcome", message_id)
 
 
-self.client.onMessage(new_message)
-self.loop.run_forever()
+# Add Listen To New Message
+creator.client.onMessage(new_message)
 ```
+
+### <a href="https://github.com/3mora2/WPP_Whatsapp/tree/main/examples">For More Examples</a>

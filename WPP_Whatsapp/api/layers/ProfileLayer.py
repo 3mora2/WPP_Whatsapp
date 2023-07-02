@@ -2,7 +2,7 @@ from WPP_Whatsapp.api.layers.StatusLayer import StatusLayer
 
 
 class ProfileLayer(StatusLayer):
-    async def sendMute(self, chatId, time, type):
+    def sendMute(self, chatId, time, type):
         """
           /**
            * @category Chat
@@ -13,10 +13,10 @@ class ProfileLayer(StatusLayer):
            */
         """
         chatId = self.valid_chatId(chatId)
-        return await self.page_evaluate("(id, time, type) => WAPI.sendMute(id, time, type)",
+        return self.ThreadsafeBrowser.sync_page_evaluate("(id, time, type) => WAPI.sendMute(id, time, type)",
                                         {"id": chatId, "time": time, "type": type})
 
-    async def setProfileStatus(self, status):
+    def setProfileStatus(self, status):
         """
           /**
            * Sets current user profile status
@@ -24,11 +24,11 @@ class ProfileLayer(StatusLayer):
            * @param status
            */
         """
-        return await self.page_evaluate("""({ status }) => {
+        return self.ThreadsafeBrowser.sync_page_evaluate("""({ status }) => {
             WPP.profile.setMyStatus(status);
           }""", status)
 
-    async def setProfilePic(self, pathOrBase64, to):
+    def setProfilePic(self, pathOrBase64, to):
         pass
         # ToDO:
         # base64 = ''
@@ -46,5 +46,5 @@ class ProfileLayer(StatusLayer):
         #     print('Not an image, allowed formats png, jpeg and webp')
         #     return
 
-    async def setProfileName(self, name):
-        return await self.page_evaluate("({ name }) => {WAPI.setMyName(name);}", name)
+    def setProfileName(self, name):
+        return self.ThreadsafeBrowser.sync_page_evaluate("({ name }) => {WAPI.setMyName(name);}", name)

@@ -2,7 +2,7 @@ from WPP_Whatsapp.api.layers.CatalogLayer import CatalogLayer
 
 
 class LabelsLayer(CatalogLayer):
-    async def addNewLabel(self, name, options):
+    def addNewLabel(self, name, options):
         """
           /**
            * Create New Label
@@ -20,11 +20,11 @@ class LabelsLayer(CatalogLayer):
            * @param options options of label
            */
         """
-        return await self.page_evaluate("""({ name, options }) => {
+        return self.ThreadsafeBrowser.sync_page_evaluate("""({ name, options }) => {
         WPP.labels.addNewLabel(name, options);
       }""", {"name": name, "options": options})
 
-    async def addOrRemoveLabels(self, chatIds, options):
+    def addOrRemoveLabels(self, chatIds, options):
         """
           /**
            * Add or delete label of chatId
@@ -40,18 +40,18 @@ class LabelsLayer(CatalogLayer):
            * @param options options to remove or add
            */
         """
-        return await self.page_evaluate("""({ chatIds, options }) => {
+        return self.ThreadsafeBrowser.sync_page_evaluate("""({ chatIds, options }) => {
         WPP.labels.addOrRemoveLabels(chatIds, options);
       }""", {"chatIds": chatIds, "options": options})
 
-    async def getAllLabels(self):
-        return await self.page_evaluate("() => WPP.labels.getAllLabels()")
+    def getAllLabels(self):
+        return self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.labels.getAllLabels()")
 
-    async def getLabelById(self, Id):
-        return await self.page_evaluate("""({ id }) => {WPP.labels.getLabelById(id); }""", {"id": Id})
+    def getLabelById(self, Id):
+        return self.ThreadsafeBrowser.sync_page_evaluate("""({ id }) => {WPP.labels.getLabelById(id); }""", {"id": Id})
 
-    async def deleteAllLabels(self):
-        return await self.page_evaluate("""() => {WPP.labels.deleteAllLabels();}""")
+    def deleteAllLabels(self):
+        return self.ThreadsafeBrowser.sync_page_evaluate("""() => {WPP.labels.deleteAllLabels();}""")
 
-    async def deleteLabel(self, Id):
-        return await self.page_evaluate("""({ id }) => {WPP.labels.deleteLabel(id); }""", {"id": Id})
+    def deleteLabel(self, Id):
+        return self.ThreadsafeBrowser.sync_page_evaluate("""({ id }) => {WPP.labels.deleteLabel(id); }""", {"id": Id})

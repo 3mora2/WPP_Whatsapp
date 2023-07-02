@@ -36,7 +36,6 @@ class ListenerLayer(ProfileLayer):
     __listenerEmitter = EventEmitter()
 
     def __init__(self):
-        super().__init__()
         self.__listenerEmitter.max_listener = 0
         self.__listenerEmitter.on(onInterfaceChange, self.onInterfaceChange_)
         # ToDo:
@@ -67,13 +66,13 @@ class ListenerLayer(ProfileLayer):
         ]
 
         for func in functions:
-            has = await self.page_evaluate("(func) => typeof window[func] === 'function'", func)
+            has = await self.ThreadsafeBrowser.page_evaluate("(func) => typeof window[func] === 'function'", func)
             if not has:
                 self.logger.debug(f'{self.session}: Exposing {func} function')
                 handel_func = HandelFunc(func, self.session, self.logger, self.__listenerEmitter).handel_func
-                await self.page.expose_function(func, handel_func)
+                await self.ThreadsafeBrowser.expose_function(func, handel_func)
 
-        await self.page_evaluate("""() => {
+        await self.ThreadsafeBrowser.page_evaluate("""() => {
         try {
           if (!window['onMessage'].exposed) {
             WPP.on('chat.new_message', (msg) => {
@@ -343,10 +342,10 @@ class ListenerLayer(ProfileLayer):
            * @returns number of subscribed
            */
         """
-        self.page_evaluate("(id) => WAPI.subscribePresence(id)", id_)
+        await self.ThreadsafeBrowser.page_evaluate("(id) => WAPI.subscribePresence(id)", id_)
 
     async def unsubscribePresence(self, id_):
-        self.page_evaluate("(id) => WAPI.unsubscribePresence(id)", id_)
+        await self.ThreadsafeBrowser.page_evaluate("(id) => WAPI.unsubscribePresence(id)", id_)
 
     def onRevokedMessage(self, callback):
         """ """
