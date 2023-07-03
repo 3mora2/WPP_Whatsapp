@@ -60,10 +60,16 @@ class Create:
         self.autoClose = autoClose
         self.__kwargs = kwargs
 
-    def close(self):
-        if self.client:
-            self.client.close()
-            self.state = "CLOSED"
+    def __exit__(self, *args):
+        self.sync_close()
+
+    async def close(self):
+        await self.ThreadsafeBrowser.close()
+        self.state = "CLOSED"
+
+    def sync_close(self):
+        self.ThreadsafeBrowser.sync_close()
+        self.state = "CLOSED"
 
     def _onStateChange(self, state):
         if type(self.onStateChange) == types.FunctionType:
@@ -123,6 +129,9 @@ class Create:
 
         self.ThreadsafeBrowser = ThreadsafeBrowser(
             browser="chromium", install=False, user_data_dir=self.user_data_dir, **self.__kwargs)
+
+        self.ThreadsafeBrowser.page.on("close", self.close)
+        self.ThreadsafeBrowser.page.on("crash", self.close)
         self.ThreadsafeBrowser.browser.on("disconnected", lambda: self.statusFind('browserClose', self.session))
 
         self.client = Whatsapp(self.session, self.ThreadsafeBrowser, logQR=self.logQR,
@@ -130,7 +139,6 @@ class Create:
         self.client.catchQR = self.catchQR
         self.client.statusFind = self.statusFind
         self.client.onLoadingScreen = self.onLoadingScreen
-
         self.client.start()
 
         if self.waitForLogin:

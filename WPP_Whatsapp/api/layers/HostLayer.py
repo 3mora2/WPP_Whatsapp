@@ -522,5 +522,4 @@ class HostLayer:
         return chatId
 
     def close(self):
-        if not self.page.is_closed():
-            self.ThreadsafeBrowser.sync_close()
+        self.ThreadsafeBrowser.sync_close()

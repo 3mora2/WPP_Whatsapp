@@ -313,8 +313,11 @@ class ThreadsafeBrowser:
             await self.playwright.stop()
 
     def stop(self) -> None:
-        self.loop.call_soon_threadsafe(self.loop.stop)
-        self.thread.join()
+        try:
+            self.loop.call_soon_threadsafe(self.loop.stop)
+            self.thread.join()
+        except Exception as error:
+            print(error)
 
     def __enter__(self):
         return self
