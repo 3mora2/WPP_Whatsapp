@@ -3,13 +3,13 @@
 import inspect
 import os
 import typing
-from typing import Callable, Optional, TypeVar, Awaitable, Literal, ParamSpec, Concatenate
+from typing import Literal
 import asyncio
 import platform
 from threading import Thread, Event
 import psutil
 from playwright._impl import _api_types
-from playwright.async_api import async_playwright, Page, Browser, BrowserType
+from playwright.async_api import async_playwright, Browser, BrowserType
 from playwright_stealth import stealth_async
 from WPP_Whatsapp.PlaywrightSafeThread.browser.plawright_shim import run_playwright
 
@@ -17,11 +17,7 @@ UNIX = "windows" not in platform.system().lower()
 LTE_PY37 = platform.python_version_tuple()[:2] <= ("3", "7")
 
 SUPPORTED_BROWSERS = ("chromium", "firefox", "webkit")
-BrowserName = Literal[*SUPPORTED_BROWSERS]
-T = TypeVar("T")
-P = ParamSpec("P")
-PageCallable = Callable[Concatenate[Page, P], Awaitable[T]]
-BrowserCallable = Callable[Concatenate[Browser, P], Awaitable[T]]
+BrowserName = Literal["chromium", "firefox", "webkit"]
 
 
 class ThreadsafeBrowser:
@@ -207,9 +203,9 @@ class ThreadsafeBrowser:
 
         # NOTE: on unix python 3.7, child watching does not
         # work properly when asyncio is not running from the main thread
-        if UNIX and LTE_PY37:
-            from WPP_Whatsapp.PlaywrightSafeThread._future_.threaded_child_watcher import ThreadedChildWatcher
-            asyncio.set_child_watcher(ThreadedChildWatcher())
+        # if UNIX and LTE_PY37:
+        #     from WPP_Whatsapp.PlaywrightSafeThread._future_.threaded_child_watcher import ThreadedChildWatcher
+        #     asyncio.set_child_watcher(ThreadedChildWatcher())
 
         self._stealthy = stealthy
         self._browser_name = browser
