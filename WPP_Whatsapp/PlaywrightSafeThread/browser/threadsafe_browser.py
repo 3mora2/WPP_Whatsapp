@@ -203,9 +203,9 @@ class ThreadsafeBrowser:
 
         # NOTE: on unix python 3.7, child watching does not
         # work properly when asyncio is not running from the main thread
-        # if UNIX and LTE_PY37:
-        #     from WPP_Whatsapp.PlaywrightSafeThread._future_.threaded_child_watcher import ThreadedChildWatcher
-        #     asyncio.set_child_watcher(ThreadedChildWatcher())
+        if UNIX and LTE_PY37:
+            from WPP_Whatsapp.PlaywrightSafeThread.future_.threaded_child_watcher import ThreadedChildWatcher
+            asyncio.set_child_watcher(ThreadedChildWatcher())
 
         self._stealthy = stealthy
         self._browser_name = browser

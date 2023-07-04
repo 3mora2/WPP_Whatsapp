@@ -21,9 +21,6 @@ def _compute_returncode(status):
         return status
 
 
-
-
-
 class ThreadedChildWatcher(AbstractChildWatcher):
     """Threaded child watcher implementation.
 
