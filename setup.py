@@ -9,12 +9,11 @@ version = "0.1.0"
 setup(
     name="WPP_Whatsapp",
     version=version,
-    # license="MIT License",
+    license="MIT License",
     author="Ammar Alkotb",
     author_email="ammar.alkotb@gmail.com",
     description=description,
-    packages=find_packages("WPP_Whatsapp"),
-    package_dir={"": "WPP_Whatsapp"},
+    packages=find_packages("."),
     url="https://github.com/3mora2/WPP_Whatsapp",
     project_urls={"Bug Report": "https://github.com/3mora2/WPP_Whatsapp/issues/new"},
     install_requires=[
@@ -32,7 +31,7 @@ setup(
     long_description_content_type="text/markdown",
     py_modules=["WPP_Whatsapp"],
     classifiers=[
-        # "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: MIT License",
         "Intended Audience :: Developers",
         "Programming Language :: Python",
         "Topic :: Software Development :: Libraries :: Python Modules",
