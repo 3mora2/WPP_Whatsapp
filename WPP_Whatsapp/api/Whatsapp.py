@@ -1,10 +1,10 @@
 import asyncio
 import inspect
 
-from api.layers.HostLayer import HostLayer
+from WPP_Whatsapp.api.layers.HostLayer import HostLayer
 from WPP_Whatsapp.api.const import defaultOptions, Logger
 from WPP_Whatsapp.api.layers.BusinessLayer import BusinessLayer
-from api.layers.ListenerLayer import ListenerLayer
+from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 
 
 class Whatsapp(BusinessLayer):
