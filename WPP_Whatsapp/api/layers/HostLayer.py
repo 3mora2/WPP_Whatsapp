@@ -392,6 +392,7 @@ class HostLayer:
         # return pyqrcode.create(code).terminal(quiet_zone=1)
 
     async def scrapeImg(self):
+        await self.ThreadsafeBrowser.page_wait_for_function("()=>document.querySelector('canvas')?.closest")
         click = await self.ThreadsafeBrowser.page_evaluate("""() => {
               const selectorImg = document.querySelector('canvas');
               const selectorUrl = selectorImg.closest('[data-ref]');
@@ -456,7 +457,9 @@ class HostLayer:
                               WPP.conn.setKeepAlive(true);
                             }""")
         base_dir = Path(__file__).resolve().parent.parent.parent
-        await self.ThreadsafeBrowser.add_script_tag(path=os.path.join(base_dir, 'js_lib/wapi.js'))
+        await self.ThreadsafeBrowser.add_script_tag(path=os.path.join(base_dir, 'js_lib', 'wapi.js'))
+        # await self.ThreadsafeBrowser.add_script_tag(
+        #     url="https://raw.githubusercontent.com/3mora2/WPP_Whatsapp/main/WPP_Whatsapp/js_lib/wapi.js")
         await self._onLoadingScreen()
         # Make sure WAPI is initialized
         await self.ThreadsafeBrowser.page_wait_for_function("""() => {

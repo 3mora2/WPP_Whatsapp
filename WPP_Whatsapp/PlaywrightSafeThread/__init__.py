@@ -1,1 +1,1 @@
-from PlaywrightSafeThread.browser.threadsafe_browser import ThreadsafeBrowser
+from WPP_Whatsapp.PlaywrightSafeThread.browser.threadsafe_browser import ThreadsafeBrowser
