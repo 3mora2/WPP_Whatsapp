@@ -8,7 +8,7 @@ def catchQR(qrCode: str, asciiQR: str, attempt: int, urlCode: str):
     attempt:1,
     urlCode:"2@242",
     """
-    print(qrCode[:500])
+    print(qrCode)
     print(asciiQR)
     print(attempt)
     print(urlCode)
