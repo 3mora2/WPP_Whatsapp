@@ -1,7 +1,7 @@
 # WPP_Whatsapp
 <p align="center">
   <a href="https://pypi.org/project/WPP-Whatsapp"><img alt="PyPI Version" src="https://img.shields.io/pypi/v/WPP_Whatsapp.svg?maxAge=86400" /></a>
-  <a href="https://pypi.org/project/WPP-Whatsapp"><img alt="Python Versions" src="https://static.pepy.tech/personalized-badge/WPP_Whatsapp?period=total&units=international_system&left_color=gray&left_text=Downloads" /></a>
+  <a href="https://pypi.org/project/WPP-Whatsapp"><img alt="Python Versions" src="https://static.pepy.tech/personalized-badge/WPP_Whatsapp?period=total&units=international_system&left_color=gray&left_text=Downloads"/></a>
 </p>
 
 WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python, which can be used to support the creation of
@@ -13,6 +13,11 @@ WPP_Whatsapp > [WPPConnect](https://github.com/wppconnect-team/wppconnect) Conve
   <a href="https://wppconnect.io/wppconnect/pages/getting-started/basic-functions.html">Basic Function</a> •
   <a href="https://wppconnect.io/wppconnect/">Documentation</a>
 </p>
+
+
+## Online channels
+
+[![Telegram Group](https://img.shields.io/badge/Telegram-Group-32AFED?logo=telegram)](https://t.me/WPP_Whatsapp)
 
 ## Functions
 
