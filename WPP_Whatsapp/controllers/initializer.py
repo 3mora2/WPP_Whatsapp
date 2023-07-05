@@ -15,9 +15,9 @@ class Create:
 
     def __init__(
             self, session: str, user_data_dir='', folderNameToken="",
-            catchQR: types.FunctionType = None,
-            statusFind: types.FunctionType = None, onLoadingScreen: types.FunctionType = None,
-            onStateChange: types.FunctionType = None, waitForLogin: bool = True, logQR: bool = False,
+            catchQR=None,
+            statusFind=None, onLoadingScreen=None,
+            onStateChange=None, waitForLogin: bool = True, logQR: bool = False,
             autoClose: int = 0, *args, **kwargs) -> None:
         """
         class Create:
