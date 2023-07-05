@@ -49,11 +49,11 @@ class Create:
         self.loop = kwargs.get("loop") or asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
-        self.catchQR = catchQR if type(catchQR) == types.FunctionType else self.catchQR
-        self.statusFind = statusFind if type(statusFind) == types.FunctionType else self.statusFind
+        self.catchQR = catchQR if type(catchQR) in [types.FunctionType, types.MethodType] else self.catchQR
+        self.statusFind = statusFind if type(statusFind) in [types.FunctionType, types.MethodType] else self.statusFind
         self.onLoadingScreen = onLoadingScreen if type(
-            onLoadingScreen) == types.FunctionType else self.onLoadingScreen
-        self.onStateChange = onStateChange if type(onStateChange) == types.FunctionType else None
+            onLoadingScreen) in [types.FunctionType, types.MethodType] else self.onLoadingScreen
+        self.onStateChange = onStateChange if type(onStateChange) in [types.FunctionType, types.MethodType] else None
         self.logger = Logger
         self.waitForLogin = waitForLogin
         self.logQR = logQR
