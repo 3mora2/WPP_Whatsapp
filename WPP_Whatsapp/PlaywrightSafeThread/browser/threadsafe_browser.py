@@ -234,7 +234,7 @@ class ThreadsafeBrowser:
         self.loop = asyncio.new_event_loop()
         self.start_event = Event()
         self.thread = Thread(target=self.__thread_worker)
-
+        self.__check_open_dir = kwargs.get("check_open_dir", True)
         # Starting loop thread
         self.thread.start()
         self.start_event.wait()
@@ -255,7 +255,8 @@ class ThreadsafeBrowser:
         # directory as non-frozen one, e.g. by mangling PLAYWRIGHT_BROWSERS_PATH
         # or sys.frozen
         if self._browser_persistent_option.get("user_data_dir"):
-            self.check_profile(self._browser_persistent_option.get("user_data_dir"))
+            if self.__check_open_dir:
+                self.check_profile(self._browser_persistent_option.get("user_data_dir"))
             self.context = await browser_type.launch_persistent_context(**self._browser_persistent_option)
             self._browser = self.context.browser or self.context
         else:

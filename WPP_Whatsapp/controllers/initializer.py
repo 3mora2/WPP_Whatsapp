@@ -20,6 +20,8 @@ class Create:
             onStateChange=None, waitForLogin: bool = True, logQR: bool = False,
             autoClose: int = 0, *args, **kwargs) -> None:
         """
+        check_open_dir:bool
+
         class Create:
             custom class to open browser and start whatsapp
             you can custom your class, you need only:

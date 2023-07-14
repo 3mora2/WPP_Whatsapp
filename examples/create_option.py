@@ -18,4 +18,7 @@ creator = Create(session=your_session_name, folderNameToken="tokens")
 # Automatically closes the wppconnect only when scanning the QR code (default 60 seconds, if you want to turn it off, assign 0 or false)
 creator = Create(session=your_session_name, autoClose=0)
 
+#
+creator = Create(session=your_session_name, check_open_dir=False)
+
 
