@@ -14,7 +14,15 @@ class ProfileLayer(StatusLayer):
         """
         chatId = self.valid_chatId(chatId)
         return self.ThreadsafeBrowser.sync_page_evaluate("(id, time, type) => WAPI.sendMute(id, time, type)",
-                                        {"id": chatId, "time": time, "type": type})
+                                                         {"id": chatId, "time": time, "type": type})
+
+    def setTheme(self, type_):
+        """
+           * Change the theme
+           * @category Host
+           * @param string types "dark" or "light"
+        """
+        return self.ThreadsafeBrowser.sync_page_evaluate("(type_) => WAPI.setTheme(type_)", type_)
 
     def setProfileStatus(self, status):
         """
@@ -48,3 +56,6 @@ class ProfileLayer(StatusLayer):
 
     def setProfileName(self, name):
         return self.ThreadsafeBrowser.sync_page_evaluate("({ name }) => {WAPI.setMyName(name);}", name)
+
+    def removeMyProfilePicture(self):
+        return self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.profile.removeMyProfilePicture()")
