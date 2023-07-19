@@ -21,4 +21,5 @@ creator = Create(session=your_session_name, autoClose=0)
 #
 creator = Create(session=your_session_name, check_open_dir=False)
 
-
+# close browser profile if already running
+creator = Create(session=your_session_name, close_already_profile=True)

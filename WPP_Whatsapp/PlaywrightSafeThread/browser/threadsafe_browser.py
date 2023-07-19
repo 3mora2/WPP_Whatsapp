@@ -235,6 +235,7 @@ class ThreadsafeBrowser:
         self.start_event = Event()
         self.thread = Thread(target=self.__thread_worker)
         self.__check_open_dir = kwargs.get("check_open_dir", True)
+        self.__close_already_profile = kwargs.get("close_already_profile", True)
         # Starting loop thread
         self.thread.start()
         self.start_event.wait()
@@ -280,24 +281,33 @@ class ThreadsafeBrowser:
             await stealth_async(page)
         return page
 
-    @staticmethod
-    def check_profile(path):
-        path_old = set()
+    def check_profile(self, path):
+        path_old = dict()
         for proc in psutil.process_iter():
             if "chrome.exe" in proc.name():
                 cmd = proc.cmdline()
                 user = list(filter(lambda x: "--user-data-dir" in x, cmd))
                 if user:
-                    path_old.add(os.path.normpath(user[0].split("=")[-1]))
+                    _path = os.path.normpath(user[0].split("=")[-1])
+                    if _path not in path_old:
+                        path_old[_path] = []
+                    path_old[_path].append(proc)
 
             elif "firefox.exe" in proc.name():
                 cmd = proc.cmdline()
                 user = list(filter(lambda x: "-profile" in x, cmd))
                 if user:
-                    path_old.add(os.path.normpath(cmd[cmd.index(user[0]) + 1]))
+                    _path = os.path.normpath(cmd[cmd.index(user[0]) + 1])
+                    if _path not in path_old:
+                        path_old[_path] = []
+                    path_old[_path].append(proc)
 
         if os.path.normpath(path) in path_old:
-            raise Exception("Profile Already Open")
+            if self.__close_already_profile:
+                for proc in path_old[os.path.normpath(path)]:
+                    proc.kill()
+            else:
+                raise Exception("Profile Already Open")
 
     async def __stop_playwright(self) -> None:
         # NOTE: we need to make sure those were actually launched, in
