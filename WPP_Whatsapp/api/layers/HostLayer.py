@@ -115,7 +115,7 @@ class HostLayer:
         # ToDo: unregisterServiceWorker, setWhatsappVersion,
 
     async def __checkStart(self):
-        need_scan = await self.__needsToScan()
+        await self.__needsToScan()
 
     async def __checkQrCode(self):
         need_scan = await self.__needsToScan()
@@ -227,7 +227,7 @@ class HostLayer:
 
     def cancelAutoClose(self):
         self.clearInterval(self.autoCloseInterval)
-        self.autoCloseInterval = None
+        # self.autoCloseInterval = None
 
     async def __getQrCode(self):
         qr_result = await self.scrapeImg()

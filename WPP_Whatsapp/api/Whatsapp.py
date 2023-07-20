@@ -1,5 +1,3 @@
-import asyncio
-import inspect
 import threading
 import time
 
@@ -10,23 +8,24 @@ from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 
 
 class Whatsapp(BusinessLayer):
-    connected = None
+    interval: threading.Event
 
-    def __init__(self, session, threadsafe_browser, *args, **kwargs):
+    def __init__(self, session, threadsafe_browser, **kwargs):
+        self.connected = None
         self.options = {}
-        self.autoCloseInterval = None
+        # self.autoCloseInterval = None
         self.autoCloseCalled = False
         self.isInitialized = False
         self.isInjected = False
         self.isStarted = False
         self.isLogged = False
         self.isInChat = False
-        self.checkStartInterval = None
+        # self.checkStartInterval = None
         self.urlCode = ''
         self.status = ''
         self.attempt = 0
-        self.lastPercent = None
-        self.lastPercentMessage = None
+        self.lastPercent = ""
+        self.lastPercentMessage = ""
         self.session = session
         self.page = threadsafe_browser.page
         self.browser = threadsafe_browser.browser
@@ -35,17 +34,16 @@ class Whatsapp(BusinessLayer):
         self.logger = self.options.get("logger") or Logger
         self.logger.info(f'{self.session}: Initializing...')
         self.logQR = kwargs.get("logQR") or False
-        self.autoClose = kwargs.get("autoClose") or self.options.get("autoClose") or 0
+        self.autoClose = kwargs.get("autoClose") or self.options.get("autoClose") or 60
         HostLayer.__init__(self)
         ListenerLayer.__init__(self)
         self.handel()
 
     def handel(self):
-        self.interval = None
+        # self.interval = None
         if self.page:
+            self.interval = self.__setInterval(self.__intervalHandel, 60)
             self.page.on('close', lambda: self.clearInterval(self.interval))
-
-        self.interval = self.__setInterval(self.__intervalHandel, 60)
 
     @staticmethod
     def __setInterval(func, interval, *args, **kwargs):
@@ -55,6 +53,7 @@ class Whatsapp(BusinessLayer):
             while not stopped.is_set():
                 func()
                 time.sleep(interval)
+
         th = threading.Thread(target=_loop_)
         th.start()
         return stopped
@@ -68,7 +67,7 @@ class Whatsapp(BusinessLayer):
 
         if not newConnected:
             self.logger.info(f'{self.session}: Session Unpaired')
-            self.statusFind('desconnectedMobile', self.session)
+            self.statusFind('disconnectedMobile', self.session)
 
     async def afterPageScriptInjected(self):
         await self._afterPageScriptInjectedHost()
