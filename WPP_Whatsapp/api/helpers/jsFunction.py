@@ -1,17 +1,25 @@
-# async def setInterval():
+import asyncio
+
+# from threading import Thread, Event
+#
+#
+# def setInterval(func, interval, *args, **kwargs):
 #     stopped = Event()
 #
 #     async def loop():
-#         while not stopped.wait((time / 1000)):
+#         while not stopped.wait(interval):
 #             await func(*args)
 #
 #     Thread(target=loop).start()
 #     return stopped
+
+
 # def setInterval(func, interval, *args, **kwargs):
 #     stopped = asyncio.Event()
-#     loop = kwargs.get('loop')
+#     loop = kwargs.get('loop') or asyncio.get_event_loop()
 #
 #     async def loop_():
+#         print("__nn__")
 #         while not stopped.is_set():
 #             await func()
 #             await asyncio.sleep(interval)
@@ -19,6 +27,13 @@
 #     loop.create_task(loop_())
 #     return stopped
 
+
+
+# async def pprint_():
+#     print("ffffffffffffff")
+#
+#
+# d = setInterval(pprint_, 5)
 #
 # async def asetInterval(func, timeout, *args):
 #     print("setInterval")

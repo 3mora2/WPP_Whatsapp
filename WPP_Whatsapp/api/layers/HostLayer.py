@@ -1,7 +1,8 @@
 import asyncio
-import inspect
 import logging
 import os
+import threading
+import time
 from time import sleep
 from datetime import datetime
 from pathlib import Path
@@ -14,24 +15,26 @@ from WPP_Whatsapp.PlaywrightSafeThread import ThreadsafeBrowser
 class HostLayer:
     page: Page
     session: str
-    options = {}
     logger: logging
-    autoCloseInterval = None
-    autoCloseCalled = False
-    isInitialized = False
-    isInjected = False
-    isStarted = False
-    isLogged = False
-    isInChat = False
-    logQR = False
-    checkStartInterval = None
-    urlCode = ''
-    status = ''
-    attempt = 0
-    autoClose = 0
-    lastPercent = None
-    lastPercentMessage = None
     ThreadsafeBrowser: "ThreadsafeBrowser"
+    options: dict
+    autoCloseInterval: threading.Event
+    autoCloseCalled: bool
+    isInitialized: bool
+    isInjected: bool
+    isStarted: bool
+    isLogged: bool
+    isInChat: bool
+    urlCode: str
+    status: str
+    attempt: int
+    lastPercent: str
+    lastPercentMessage: str
+    session: str
+    autoClose: int
+    checkStartInterval: threading.Event
+    logQR: bool
+    remain: int
 
     def __init__(self):
         self.__initialize()
@@ -180,32 +183,29 @@ class HostLayer:
             if not self.page.is_closed():
                 self.ThreadsafeBrowser.sync_close()
 
-    def startAutoClose(self, time=None):
-        if not time:
-            time = self.autoClose
+    def startAutoClose(self, _time=None):
+        if not _time:
+            _time = self.autoClose
 
-        if time > 0 and not self.autoCloseInterval:
-            seconds = round(time / 1000)
+        if _time > 0 and not self.autoCloseInterval:
+            # seconds = round(time / 1000)
+            seconds = round(_time)
             self.logger.info(f'{self.session}: Auto close configured to {seconds}s')
             self.remain = seconds
 
             self.autoCloseInterval = self.__setInterval(self.autoCloseIntervalHandel, 5)
 
-    def __setInterval(self, func, interval, *args, **kwargs):
-        self.logger.debug(f'{self.session}: setInterval {func}')
-        stopped = asyncio.Event()
-        loop = kwargs.get('loop') or asyncio.get_event_loop()
+    @staticmethod
+    def __setInterval(func, interval, *args, **kwargs):
+        stopped = threading.Event()
 
-        async def loop_():
+        def _loop_():
             while not stopped.is_set():
-                if inspect.iscoroutinefunction(func):
-                    await func()
-                    await asyncio.sleep(interval)
-                else:
-                    func()
-                    await asyncio.sleep(interval)
+                func()
+                time.sleep(interval)
 
-        loop.create_task(loop_())
+        th = threading.Thread(target=_loop_)
+        th.start()
         return stopped
 
     def clearInterval(self, Interval):
@@ -217,12 +217,13 @@ class HostLayer:
         if self.page.is_closed():
             self.cancelAutoClose()
             return
+
         self.remain -= 1
         if self.remain % 10 == 0 or self.remain <= 5:
             self.logger.info(f'{self.session}: http => Auto close remain: {self.remain}s')
 
         if self.remain <= 0:
-            self.tryAutoClose()
+            self.sync_tryAutoClose()
 
     def cancelAutoClose(self):
         self.clearInterval(self.autoCloseInterval)
@@ -296,7 +297,7 @@ class HostLayer:
             self.logger.info(f'{self.session}: Authenticated')
             self.statusFind('isLogged', self.session)
         if authenticated is True:
-            # Reset the autoclose counter
+            # Reset the autoClose counter
             self.cancelAutoClose()
             #  Wait for interface update
             sleep(.2)
@@ -387,9 +388,9 @@ class HostLayer:
     def __sync_needsToScan(self):
         return not self.sync_isAuthenticated()
 
-    def asciiQr(self, code):
+    @staticmethod
+    def asciiQr(code):
         return asciiQr(code=code)
-        # return pyqrcode.create(code).terminal(quiet_zone=1)
 
     async def scrapeImg(self):
         await self.ThreadsafeBrowser.page_wait_for_function("()=>document.querySelector('canvas')?.closest")
