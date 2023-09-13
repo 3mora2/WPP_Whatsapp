@@ -1,14 +1,12 @@
 from setuptools import find_packages
 from setuptools import setup
 
-
 long_description = open("README.md", encoding="utf-8").read()
 description = ("WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python, which can be used to support "
                "the creation of any interaction, such as customer service, media sending, intelligence recognition "
                "based on phrases artificial and many other things, use your imagination")
 
-version = "0.1.4.1"
-
+version = "0.1.5.1"
 
 setup(
     name="WPP_Whatsapp",
