@@ -77,7 +77,7 @@ class Create:
         if type(self.onStateChange) == types.FunctionType:
             self.onStateChange(state)
         self.state = state
-        connected = self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.isRegistered()")
+        connected = self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.conn.isRegistered()")
         if not connected:
             sleep(2)
             if not self.waitLoginPromise:

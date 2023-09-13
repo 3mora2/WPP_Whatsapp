@@ -187,7 +187,7 @@ class HostLayer:
         if not _time:
             _time = self.autoClose
 
-        if _time > 0 and not self.autoCloseInterval:
+        if _time > 0 and (not hasattr(self, "autoCloseInterval") or not self.autoCloseInterval):
             # seconds = round(time / 1000)
             seconds = round(_time)
             self.logger.info(f'{self.session}: Auto close configured to {seconds}s')
