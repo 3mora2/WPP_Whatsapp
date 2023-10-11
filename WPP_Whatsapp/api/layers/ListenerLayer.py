@@ -49,20 +49,20 @@ class ListenerLayer(ProfileLayer):
         functions = [
             OnMessage,
             OnAnyMessage,
-            # onAck,
+            onAck,
             onNotificationMessage,
-            # onParticipantsChanged,
+            onParticipantsChanged,
             onStateChange,
-            # onStreamChange,
-            # onIncomingCall,
-            # onInterfaceChange,
-            # onPresenceChanged,
-            # onLiveLocation,
-            # 'onAddedToGroup',
-            # 'onIncomingCall',
-            # 'onRevokedMessage',
-            # 'onReactionMessage',
-            # 'onPollResponse'
+            onStreamChange,
+            onIncomingCall,
+            onInterfaceChange,
+            onPresenceChanged,
+            onLiveLocation,
+            'onAddedToGroup',
+            'onIncomingCall',
+            'onRevokedMessage',
+            'onReactionMessage',
+            'onPollResponse'
         ]
 
         for func in functions:

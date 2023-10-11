@@ -76,15 +76,15 @@ class Whatsapp(BusinessLayer):
         self.connected = is_authenticated
 
     def useHere(self):
-        return self.ThreadsafeBrowser.page_evaluate("() => WAPI.takeOver()")
+        return self.ThreadsafeBrowser.sync_page_evaluate("() => WAPI.takeOver()")
 
     async def logout(self):
         return self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.logout()")
 
-    async def getMessageById(self, messageId):
-        return self.ThreadsafeBrowser.page_evaluate("(messageId) => WAPI.getMessageById(messageId)", messageId)
+    def getMessageById(self, messageId):
+        return self.ThreadsafeBrowser.sync_page_evaluate("(messageId) => WAPI.getMessageById(messageId)", messageId)
 
-    async def getMessages(self, chatId, params=None):
+    def getMessages(self, chatId, params=None):
         """
         :param chatId:
         :param params: (count, id, direction)
@@ -93,9 +93,9 @@ class Whatsapp(BusinessLayer):
         if not params:
             params = {}
         chatId = self.valid_chatId(chatId)
-        return self.ThreadsafeBrowser.page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
+        return self.ThreadsafeBrowser.sync_page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
                                                     {"chatId": chatId, "params": params})
 
-    async def rejectCall(self, callId):
-        return self.ThreadsafeBrowser.page_evaluate(
+    def rejectCall(self, callId):
+        return self.ThreadsafeBrowser.sync_page_evaluate(
             "({callId}) => WPP.call.rejectCall(callId)", callId)
