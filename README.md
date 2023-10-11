@@ -47,10 +47,8 @@ pip install WPP_Whatsapp -U
 ```
 Alternatively, you can grab the latest source code from [GitHub](https://github.com/3mora2/WPP_Whatsapp):
 
-```commandline
-git clone https://github.com/3mora2/WPP_Whatsapp.git
-cd WPP_Whatsapp
-pip install -U .
+```
+pip install git+https://github.com/3mora2/WPP_Whatsapp
 ```
 
 
