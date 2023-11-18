@@ -6,7 +6,7 @@ logger.setLevel(logging.DEBUG)
 
 # start client with your session name
 your_session_name = "test"
-creator = Create(session=your_session_name)
+creator = Create(session=your_session_name, browser="firefox")
 client = creator.start()
 # Now scan Whatsapp Qrcode in browser
 

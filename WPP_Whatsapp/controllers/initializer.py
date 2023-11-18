@@ -3,6 +3,8 @@ import os
 import types
 from time import sleep
 from typing import Optional
+
+from WPP_Whatsapp.PlaywrightSafeThread.browser.threadsafe_browser import SUPPORTED_BROWSERS
 from WPP_Whatsapp.PlaywrightSafeThread import ThreadsafeBrowser
 
 from WPP_Whatsapp.api.Whatsapp import Whatsapp
@@ -124,13 +126,21 @@ class Create:
 
     def create(self) -> Whatsapp:
         self.state = "STARTING"
-        default = {"channel": "chrome", "no_viewport": True, "bypass_csp": True, "headless": False}
+        default = {
+            "no_viewport": True, "bypass_csp": True, "headless": False,
+            "browser": "chromium", "install": True,
+        }
+
         for key in default:
             if key not in self.__kwargs:
                 self.__kwargs[key] = default[key]
 
-        self.ThreadsafeBrowser = ThreadsafeBrowser(
-            browser="chromium", install=False, user_data_dir=self.user_data_dir, **self.__kwargs)
+        # Use Default channel as chrome
+        if self.__kwargs.get("browser") == "chrome" or self.__kwargs.get("browser") not in SUPPORTED_BROWSERS:
+            self.__kwargs["browser"] = "chromium"
+            self.__kwargs["channel"] = "chrome"
+
+        self.ThreadsafeBrowser = ThreadsafeBrowser(user_data_dir=self.user_data_dir, **self.__kwargs)
 
         self.ThreadsafeBrowser.page.on("close", self.close)
         self.ThreadsafeBrowser.page.on("crash", self.close)
