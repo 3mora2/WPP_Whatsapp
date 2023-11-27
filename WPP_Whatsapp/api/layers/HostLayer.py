@@ -105,7 +105,7 @@ class HostLayer:
         self.ThreadsafeBrowser.sync_expose_function('checkInChat', self.__checkInChat)
         # ToDo:
         # self.checkStartInterval = self.__setInterval(self.__checkStart, 10)
-        self.page.on('close', lambda: self.clearInterval(self.checkStartInterval))
+        # self.page.on('close', lambda: self.clearInterval(self.checkStartInterval))
         return True
 
     def initWhatsapp(self):
