@@ -312,6 +312,9 @@ class ThreadsafeBrowser:
     async def __stop_playwright(self) -> None:
         # NOTE: we need to make sure those were actually launched, in
         # case of a nasty race condition
+        if hasattr(self, "context"):
+            await self.context.close()
+
         if hasattr(self, "browser"):
             await self.browser.close()
 
@@ -320,11 +323,7 @@ class ThreadsafeBrowser:
             await self.playwright.stop()
 
     def stop(self) -> None:
-        try:
-            self.loop.call_soon_threadsafe(self.loop.stop)
-            self.thread.join()
-        except Exception as error:
-            print(error)
+        self.loop.call_soon_threadsafe(self.loop.stop)
 
     def __enter__(self):
         return self
@@ -382,14 +381,11 @@ class ThreadsafeBrowser:
         return self.run_threadsafe(self.page.add_script_tag, *args, **kwargs)
 
     async def close(self):
-        await self.page.close()
-        await self.context.close()
+        await self.__stop_playwright()
         self.stop()
 
     def sync_close(self):
-        self.run_threadsafe(self.page.close)
-        self.run_threadsafe(self.context.close)
-        self.stop()
+        self.run_threadsafe(self.close)
 
     def sleep(self, *args, **kwargs):
         self.run_threadsafe(asyncio.sleep, *args, **kwargs)
