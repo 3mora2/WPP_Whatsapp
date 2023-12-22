@@ -226,7 +226,8 @@ class HostLayer:
             self.sync_tryAutoClose()
 
     def cancelAutoClose(self):
-        self.clearInterval(self.autoCloseInterval)
+        if hasattr(self, "autoCloseInterval"):
+            self.clearInterval(self.autoCloseInterval)
         # self.autoCloseInterval = None
 
     async def __getQrCode(self):
