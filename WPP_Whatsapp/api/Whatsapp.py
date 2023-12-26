@@ -59,7 +59,8 @@ class Whatsapp(BusinessLayer):
         return stopped
 
     def __intervalHandel(self):
-        newConnected = self.ThreadsafeBrowser.sync_page_evaluate("() => WPP && WPP.conn.isRegistered()")
+        # Add window, when WPP not  create yet
+        newConnected = self.ThreadsafeBrowser.sync_page_evaluate("() => window.WPP && window.WPP.conn.isRegistered()")
 
         if newConnected is None or newConnected == self.connected:
             return
