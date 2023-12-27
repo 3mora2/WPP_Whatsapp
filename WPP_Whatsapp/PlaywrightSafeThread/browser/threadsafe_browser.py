@@ -347,9 +347,9 @@ class ThreadsafeBrowser:
     async def page_evaluate(self, expression: str, arg: typing.Optional[typing.Any] = None):
         return await self.page.evaluate(expression, arg)
 
-    def sync_page_evaluate(self, expression: str, arg: typing.Optional[typing.Any] = None):
+    def sync_page_evaluate(self, expression: str, arg: typing.Optional[typing.Any] = None, timeout_=60):
         try:
-            return self.run_threadsafe(self.page.evaluate, expression, arg)
+            return self.run_threadsafe(self.page.evaluate, expression, arg, timeout_=timeout_)
         except _api_types.Error as error:
             if "Execution context was destroyed, most likely because of a navigation" in error.message:
                 pass
@@ -396,9 +396,9 @@ class ThreadsafeBrowser:
     def sync_goto(self, *args, **kwargs):
         self.run_threadsafe(self.page.goto, *args, **kwargs)
 
-    def run_threadsafe(self, func, *args, **kwargs):
+    def run_threadsafe(self, func, *args, timeout_=60, **kwargs):
         future = asyncio.run_coroutine_threadsafe(
             func(*args, **kwargs), self.loop
         )
-        result = future.result(timeout=10)
+        result = future.result(timeout=timeout_)
         return result

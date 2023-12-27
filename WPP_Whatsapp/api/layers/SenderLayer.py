@@ -113,7 +113,7 @@ class SenderLayer(ListenerLayer):
         # message = self.ThreadsafeBrowser.sync_page_evaluate()("(messageId) => WAPI.getMessageById(messageId)", result.get("id"))
         return result
 
-    def sendFile(self, to, pathOrBase64, nameOrOptions, caption):
+    def sendFile(self, to, pathOrBase64, nameOrOptions, caption, timeout_=60):
         to = self.valid_chatId(to)
         options = {"type": 'auto-detect'}
         if type(nameOrOptions) is str:
@@ -142,7 +142,7 @@ class SenderLayer(ListenerLayer):
           id: result.id,
           sendMsgResult: await result.sendMsgResult,
         };
-      }""", {"to": to, "base64": _base64, "options": options})
+      }""", {"to": to, "base64": _base64, "options": options}, timeout_=timeout_)
 
     def sendContactVcard(self, to, contactsId, name):
         """
