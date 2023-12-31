@@ -522,7 +522,7 @@ class HostLayer:
     @staticmethod
     def valid_chatId(chatId):
         chatId = chatId.replace("+", "")
-        if chatId and (not chatId.endswith('@c.us') and not chatId.endswith('@g.us')):
+        if chatId and (not chatId.endswith('@c.us') and not chatId.endswith('@g.us') and not chatId.endswith('@newsletter')):
             chatId += '@g.us' if len(chatId) > 15 else '@c.us'
         return chatId
 
