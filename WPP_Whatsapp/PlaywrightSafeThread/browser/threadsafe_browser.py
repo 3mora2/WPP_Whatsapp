@@ -8,8 +8,7 @@ import asyncio
 import platform
 from threading import Thread, Event
 import psutil
-from playwright._impl import _api_types
-from playwright.async_api import async_playwright, Browser, BrowserType
+from playwright.async_api import async_playwright, Browser, BrowserType, Error
 from playwright_stealth import stealth_async
 from WPP_Whatsapp.PlaywrightSafeThread.browser.plawright_shim import run_playwright
 
@@ -350,7 +349,7 @@ class ThreadsafeBrowser:
     def sync_page_evaluate(self, expression: str, arg: typing.Optional[typing.Any] = None, timeout_=60):
         try:
             return self.run_threadsafe(self.page.evaluate, expression, arg, timeout_=timeout_)
-        except _api_types.Error as error:
+        except Error as error:
             if "Execution context was destroyed, most likely because of a navigation" in error.message:
                 pass
             elif "ReferenceError: WPP is not defined" in error.message:

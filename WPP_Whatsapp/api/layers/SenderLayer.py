@@ -18,6 +18,19 @@ class SenderLayer(ListenerLayer):
                     }""", {"chatId": chatId, "message": message})
         return result
 
+    async def sendText_(self, to, content, options=None):
+        if not options:
+            options = {}
+        to = self.valid_chatId(to)
+        send_result = await self.ThreadsafeBrowser.page_evaluate("""({ to, content, options }) =>
+                            WPP.chat.sendTextMessage(to, content, {
+                              ...options,
+                              waitForAck: true,
+                            })""", {"to": to, "content": content, "options": options})
+        self.logger.debug(f'{self.session}: Send Message {send_result=}')
+
+        return send_result
+
     def sendText(self, to, content, options=None):
         """
            Sends a text message to given chat
