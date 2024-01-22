@@ -174,3 +174,6 @@ class RetrieverLayer(SenderLayer):
 
     def getVotes(self, msgId):
         return self.ThreadsafeBrowser.sync_page_evaluate("(msgId) => WPP.chat.getVotes(msgId)", msgId)
+    
+    def getGrupos(self):
+        return self.ThreadsafeBrowser.sync_page_evaluate(""" () => WPP.whatsapp.ChatStore.filter((chat) => chat.isGroup)""", timeout_=20)
