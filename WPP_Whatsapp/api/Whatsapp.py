@@ -13,6 +13,11 @@ class Whatsapp(BusinessLayer):
     def __init__(self, session, threadsafe_browser, **kwargs):
         self.connected = None
         self.options = {}
+        self.options.update(defaultOptions)
+        for key, value in kwargs.items():
+            if key in self.options:
+                self.options[key] = value
+
         # self.autoCloseInterval = None
         self.autoCloseCalled = False
         self.isInitialized = False
@@ -30,7 +35,6 @@ class Whatsapp(BusinessLayer):
         self.page = threadsafe_browser.page
         self.browser = threadsafe_browser.browser
         self.ThreadsafeBrowser = threadsafe_browser
-        self.options.update(defaultOptions)
         self.logger = self.options.get("logger") or Logger
         self.logger.info(f'{self.session}: Initializing...')
         self.logQR = kwargs.get("logQR") or False
