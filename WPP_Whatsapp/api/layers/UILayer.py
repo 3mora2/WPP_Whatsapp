@@ -3,7 +3,33 @@ from WPP_Whatsapp.api.layers.GroupLayer import GroupLayer
 
 class UILayer(GroupLayer):
 
-    def openChat(self, chatId):
+    def openChat(self, chatId, timeout=60):
+        """
+        Opens given chat at last message (bottom)
+        Will fire natural workflow events of whatsapp web
+        @category UI
+        @param chatId
+        """
+        return self.ThreadsafeBrowser.run_threadsafe(self.openChat_, chatId, timeout_=timeout)
+
+    def openChatAt(self, chatId, messageId, timeout=60):
+        """
+        Opens chat at given message position
+        @category UI
+        @param chatId Chat id
+        @param messageId Message id (For example: '06D3AB3D0EEB9D077A3F9A3EFF4DD030')
+        """
+        return self.ThreadsafeBrowser.run_threadsafe(self.openChatAt_, chatId, messageId, timeout_=timeout)
+
+    def getActiveChat(self, timeout=60):
+        """
+        Return the current active chat
+        @category UI
+        """
+        return self.ThreadsafeBrowser.run_threadsafe(self.getActiveChat_,  timeout_=timeout)
+
+    ################################################
+    async def openChat_(self, chatId):
         """
         Opens given chat at last message (bottom)
         Will fire natural workflow events of whatsapp web
@@ -11,9 +37,9 @@ class UILayer(GroupLayer):
         @param chatId
         """
         chatId = self.valid_chatId(chatId)
-        return self.ThreadsafeBrowser.sync_page_evaluate("(chatId) => WPP.chat.openChatBottom(chatId)", chatId)
+        return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.chat.openChatBottom(chatId)", chatId)
 
-    def openChatAt(self, chatId, messageId):
+    async def openChatAt_(self, chatId, messageId):
         """
         Opens chat at given message position
         @category UI
@@ -21,12 +47,13 @@ class UILayer(GroupLayer):
         @param messageId Message id (For example: '06D3AB3D0EEB9D077A3F9A3EFF4DD030')
         """
         chatId = self.valid_chatId(chatId)
-        return self.ThreadsafeBrowser.sync_page_evaluate("({chatId, messageId}) => WPP.chat.openChatAt(chatId, messageId)",
-                                                    {"chatId": chatId, "messageId": messageId})
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({chatId, messageId}) => WPP.chat.openChatAt(chatId, messageId)",
+            {"chatId": chatId, "messageId": messageId})
 
-    def getActiveChat(self):
+    async def getActiveChat_(self):
         """
         Return the current active chat
         @category UI
         """
-        return self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.chat.getActiveChat()")
+        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.chat.getActiveChat()")
