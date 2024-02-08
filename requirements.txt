@@ -7,3 +7,4 @@ psutil
 pyee
 segno
 typing_extensions
+requests

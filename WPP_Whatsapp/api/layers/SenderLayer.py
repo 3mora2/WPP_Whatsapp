@@ -1,7 +1,9 @@
-import base64
+import base64 as base64_model
 import mimetypes
 import os
 from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
+from api.helpers.download_file import downloadFileToBase64
+from utils.ffmpeg import convertToMP4GIF
 
 
 class SenderLayer(ListenerLayer):
@@ -51,6 +53,14 @@ class SenderLayer(ListenerLayer):
     def sendFile(self, to, pathOrBase64, nameOrOptions, caption, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendFile_, to, pathOrBase64, nameOrOptions, caption, timeout_=timeout)
+
+    def sendVideoAsGif(self, to: str, filePath: str, filename: str = "", caption: str = "", timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.sendVideoAsGif_, to, filePath, filename, caption, timeout_=timeout)
+
+    def sendGif(self, to, filePath, filename="", caption="", timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.sendGif_, to, filePath, filename, caption, timeout_=timeout)
 
     def sendContactVcard(self, to, contactsId, name, timeout=60):
         """
@@ -263,6 +273,104 @@ class SenderLayer(ListenerLayer):
         };
       }""", {"to": to, "base64": _base64, "options": options})
 
+    async def sendVideoAsGif_(self, to: str, filePath: str, filename: str = "", caption: str = ""):
+        """
+          /**
+           * Sends a video to given chat as a gif, with caption or not
+           * @category Chat
+           * @param to Chat id
+           * @param filePath File path
+           * @param filename
+           * @param caption
+           */
+        """
+        base64_ = await downloadFileToBase64(filePath)
+
+        if not base64_:
+            base64_ = self.convert_to_base64(filePath)
+
+        if not base64_:
+            raise Exception(f'No such file or directory, open "{filePath}"')
+
+        if not filename:
+            filename = os.path.basename(filePath)
+
+        return await self.sendVideoAsGifFromBase64(to, base64_, filename, caption)
+
+    async def sendVideoAsGifFromBase64(self, to, base64, filename, caption="", quotedMessageId=""):
+        """
+          /**
+           * Sends a video to given chat as a gif, with caption or not, using base64
+           * @category Chat
+           * @param to chat id xxxxx@us.c
+           * @param base64 base64 data:video/xxx;base64,xxx
+           * @param filename string xxxxx
+           * @param caption string xxxxx
+           */
+        """
+
+        result = await self.ThreadsafeBrowser.page_evaluate(
+            """
+            async ({ to, base64, filename, caption, quotedMessageId }) => {
+                const result = await WPP.chat.sendFileMessage(to, base64, {
+                  type: 'video',
+                  isGif: true,
+                  filename,
+                  caption,
+                  quotedMsg: quotedMessageId,
+                  waitForAck: true,
+                });
+        
+                return {
+                  ack: result.ack,
+                  id: result.id,
+                  sendMsgResult: await result.sendMsgResult,
+                };
+              }
+      """,
+            {"to": to, "base64": base64, "filename": filename, "caption": caption, "quotedMessageId": quotedMessageId}
+        )
+        return result
+
+    async def sendGif_(self, to, filePath, filename="", caption=""):
+        """
+          /**
+           * Sends a video to given chat as a gif, with caption or not, using base64
+           * @category Chat
+           * @param to Chat id
+           * @param filePath File path
+           * @param filename
+           * @param caption
+           */
+
+        """
+        base64_ = await downloadFileToBase64(filePath)
+
+        if not base64_:
+            base64_ = self.convert_to_base64(filePath)
+
+        if not base64_:
+            raise Exception(f'No such file or directory, open "{filePath}"')
+        if not filename:
+            filename = os.path.basename(filePath)
+
+        return await self.sendGifFromBase64(to, base64_, filename, caption)
+
+    async def sendGifFromBase64(self, to, base64_, filename, caption=""):
+        """
+          /**
+           * Sends a video to given chat as a gif, with caption or not, using base64
+           * @category Chat
+           * @param to chat id xxxxx@us.c
+           * @param base64 base64 data:video/xxx;base64,xxx
+           * @param filename string xxxxx
+           * @param caption string xxxxx
+           */
+        """
+        base64_ = convertToMP4GIF(base64_)
+
+        return await self.sendVideoAsGifFromBase64(to, base64_, filename, caption)
+
     async def sendContactVcard_(self, to, contactsId, name):
         """
           /**
@@ -387,11 +495,13 @@ class SenderLayer(ListenerLayer):
         content_type = mimetypes.guess_type(path)[0]
         if not content_type:
             content_type = mimetypes_add.get(path.split(".")[-1], None)
+        if not content_type:
+            content_type = 'application/octet-stream'
         # filename = os.path.basename(path)
         with open(path, "rb") as image_file:
-            archive = base64.b64encode(image_file.read())
+            archive = base64_model.b64encode(image_file.read())
             archive = archive.decode("utf-8")
-
+        print(content_type)
         return "data:" + content_type + ";base64," + archive
 
     @staticmethod

@@ -7,7 +7,7 @@ from time import sleep
 from datetime import datetime
 from pathlib import Path
 from playwright.async_api import Page
-from WPP_Whatsapp.api.const import whatsappUrl
+from WPP_Whatsapp.api.const import whatsappUrl, Logger
 from WPP_Whatsapp.api.helpers.function import asciiQr
 from WPP_Whatsapp.PlaywrightSafeThread import ThreadsafeBrowser
 
@@ -248,11 +248,13 @@ class HostLayer:
             raise Exception('waitForInChat error: Session not started')
 
         if not self.isLogged:
+            Logger.info(f"not Logged")
             return False
 
         start = datetime.now()
         while not self.page.is_closed() and self.isLogged and not self.isInChat:
             if 0 < self.options.get("deviceSyncTimeout") <= (datetime.now() - start).seconds:
+                Logger.info(f"deviceSyncTimeout:{self.options.get('deviceSyncTimeout')} timeout")
                 return False
 
             sleep(1)
@@ -273,6 +275,7 @@ class HostLayer:
         self.waitForPageLoad()
         self.logger.info(f'{self.session}: http => Checking is logged...')
         authenticated = self.sync_isAuthenticated()
+        self.isLogged = authenticated
         self.logger.debug(f'{self.session}: http => {authenticated=}')
         self.startAutoClose()
         if authenticated is False:
@@ -310,7 +313,7 @@ class HostLayer:
                 self.logger.warn(f'{self.session}: http => Phone not connected')
                 self.statusFind('phoneNotConnected', self.session)
                 self.sync_tryAutoClose()
-                raise Exception("Phone not connected")
+                raise Exception(f"Phone not connected {self.isLogged=} {inChat=}")
             self.cancelAutoClose()
             return True
         if authenticated is False:
