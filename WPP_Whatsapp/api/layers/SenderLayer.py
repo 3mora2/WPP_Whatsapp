@@ -2,8 +2,8 @@ import base64 as base64_model
 import mimetypes
 import os
 from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
-from api.helpers.download_file import downloadFileToBase64
-from utils.ffmpeg import convertToMP4GIF
+from WPP_Whatsapp.api.helpers.download_file import downloadFileToBase64
+from WPP_Whatsapp.utils.ffmpeg import convertToMP4GIF
 
 
 class SenderLayer(ListenerLayer):

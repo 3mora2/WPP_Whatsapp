@@ -9,7 +9,7 @@ second_name = "second_session"
 
 def send_message(session, message, phone_number):
     print("start:", session)
-    Session[session] = Create(session=session, autoClose=0)
+    Session[session] = Create(session=session, autoClose=0, browser="firefox")
     client = Session[session].start()
     result = client.sendText(phone_number, message)
     print(result)
