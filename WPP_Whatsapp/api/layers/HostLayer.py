@@ -1,6 +1,9 @@
 import asyncio
 import logging
+import base64 as base64_model
+import mimetypes
 import os
+import re
 import threading
 import time
 from time import sleep
@@ -531,3 +534,39 @@ class HostLayer:
 
     def close(self):
         self.ThreadsafeBrowser.sync_close()
+
+    @staticmethod
+    def convert_to_base64(path):
+        mimetypes_add = {"webp": "image/webp"}
+        # mime = magic.Magic(mime=True)
+        # content_type = mime.from_file(path)
+        content_type = mimetypes.guess_type(path)[0]
+        if not content_type:
+            content_type = mimetypes_add.get(path.split(".")[-1], None)
+        if not content_type:
+            content_type = 'application/octet-stream'
+        # filename = os.path.basename(path)
+        with open(path, "rb") as image_file:
+            archive = base64_model.b64encode(image_file.read())
+            archive = archive.decode("utf-8")
+        print(content_type)
+        return "data:" + content_type + ";base64," + archive
+
+    def fileToBase64(self, path):
+        return self.convert_to_base64(path)
+    @staticmethod
+    def base64MimeType(encoded):
+        result = encoded.split(";base64")[0].split(":")[-1]
+        return result
+
+    @staticmethod
+    def base64MimeTypeV2(encoded: str):
+        result = None
+        if not isinstance(encoded, str):
+            return result
+
+        mime = re.match(r'data:([a-zA-Z0-9]+/[a-zA-Z0-9-.+]+).*,.*', encoded)
+        if mime and mime.group(1):
+            result = mime.group(1)
+
+        return result

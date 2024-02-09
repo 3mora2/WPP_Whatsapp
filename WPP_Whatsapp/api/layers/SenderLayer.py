@@ -1,5 +1,4 @@
-import base64 as base64_model
-import mimetypes
+
 import os
 from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 from WPP_Whatsapp.api.helpers.download_file import downloadFileToBase64
@@ -487,24 +486,3 @@ class SenderLayer(ListenerLayer):
                 WAPI.sendChatstate(chatState, chatId);
               }""", {"chatState": chatState, "chatId": chatId})
 
-    @staticmethod
-    def convert_to_base64(path):
-        mimetypes_add = {"webp": "image/webp"}
-        # mime = magic.Magic(mime=True)
-        # content_type = mime.from_file(path)
-        content_type = mimetypes.guess_type(path)[0]
-        if not content_type:
-            content_type = mimetypes_add.get(path.split(".")[-1], None)
-        if not content_type:
-            content_type = 'application/octet-stream'
-        # filename = os.path.basename(path)
-        with open(path, "rb") as image_file:
-            archive = base64_model.b64encode(image_file.read())
-            archive = archive.decode("utf-8")
-        print(content_type)
-        return "data:" + content_type + ";base64," + archive
-
-    @staticmethod
-    def base64MimeType(encoded):
-        result = encoded.split(";base64")[0].split(":")[-1]
-        return result
