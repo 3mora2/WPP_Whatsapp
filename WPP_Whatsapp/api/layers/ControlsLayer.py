@@ -3,38 +3,60 @@ from WPP_Whatsapp.api.layers.UILayer import UILayer
 
 class ControlsLayer(UILayer):
 
-    def unblockContact(self, contactId):
+    def unblockContact(self, contactId, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.unblockContact_, contactId, timeout_=timeout)
+
+    def blockContact(self, contactId, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.blockContact_, contactId, timeout_=timeout)
+
+    def markUnseenMessage(self, contactId, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.markUnseenMessage_, contactId, timeout_=timeout)
+
+    def deleteChat(self, chatId, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.deleteChat_, chatId, timeout_=timeout)
+
+    def archiveChat(self, chatId, option=True, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.archiveChat_, chatId, option, timeout_=timeout)
+
+    def pinChat(self, chatId, option, nonExistent=False, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.pinChat_, chatId, option, nonExistent, timeout_=timeout)
+
+    def starMessage(self, messagesId, star=True, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.starMessage_, messagesId, star, timeout_=timeout)
+
+    ######################################
+    async def unblockContact_(self, contactId):
         contactId = self.valid_chatId(contactId)
-        self.ThreadsafeBrowser.sync_page_evaluate("(contactId) => WPP.blocklist.unblockContact(contactId)", contactId)
+        await self.ThreadsafeBrowser.page_evaluate("(contactId) => WPP.blocklist.unblockContact(contactId)", contactId)
         return True
 
-    def blockContact(self, contactId):
+    async def blockContact_(self, contactId):
         contactId = self.valid_chatId(contactId)
-        self.ThreadsafeBrowser.sync_page_evaluate("(contactId) => WPP.blocklist.blockContact(contactId)", contactId)
+        await self.ThreadsafeBrowser.page_evaluate("(contactId) => WPP.blocklist.blockContact(contactId)", contactId)
         return True
 
-    def markUnseenMessage(self, contactId):
+    async def markUnseenMessage_(self, contactId):
         contactId = self.valid_chatId(contactId)
-        self.ThreadsafeBrowser.sync_page_evaluate("(contactId) => WPP.chat.markIsUnread(contactId)", contactId)
+        await self.ThreadsafeBrowser.page_evaluate("(contactId) => WPP.chat.markIsUnread(contactId)", contactId)
 
-    def deleteChat(self, chatId):
+    async def deleteChat_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        result = self.ThreadsafeBrowser.sync_page_evaluate("(chatId) => WPP.chat.delete(chatId)", chatId)
+        result = await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.chat.delete(chatId)", chatId)
         return result and result.get("status") == 200
 
-    def archiveChat(self, chatId, option=True):
+    async def archiveChat_(self, chatId, option=True):
         chatId = self.valid_chatId(chatId)
-        return self.ThreadsafeBrowser.sync_page_evaluate("({ chatId, option }) => WPP.chat.archive(chatId, option)",
+        return await self.ThreadsafeBrowser.page_evaluate("({ chatId, option }) => WPP.chat.archive(chatId, option)",
                                         {"chatId": chatId, "option": option})
 
-    def pinChat(self, chatId, option, nonExistent=False):
+    async def pinChat_(self, chatId, option, nonExistent=False):
         chatId = self.valid_chatId(chatId)
         if nonExistent:
-            self.ThreadsafeBrowser.sync_page_evaluate("({ chatId }) => WPP.chat.find(chatId)", chatId)
+            await self.ThreadsafeBrowser.page_evaluate("({ chatId }) => WPP.chat.find(chatId)", chatId)
 
-        return self.ThreadsafeBrowser.sync_page_evaluate("({ chatId, option }) => WPP.chat.pin(chatId, option)",
+        return await self.ThreadsafeBrowser.page_evaluate("({ chatId, option }) => WPP.chat.pin(chatId, option)",
                                         {"chatId": chatId, "option": option})
 
-    def starMessage(self, messagesId, star=True):
-        self.ThreadsafeBrowser.sync_page_evaluate("({ messagesId, star }) => WAPI.starMessages(messagesId, star)",
+    async def starMessage_(self, messagesId, star=True):
+        await self.ThreadsafeBrowser.page_evaluate("({ messagesId, star }) => WAPI.starMessages(messagesId, star)",
                                  {"messagesId": messagesId, "star": star})

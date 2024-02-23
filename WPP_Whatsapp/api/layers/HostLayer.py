@@ -1,13 +1,16 @@
 import asyncio
 import logging
+import base64 as base64_model
+import mimetypes
 import os
+import re
 import threading
 import time
 from time import sleep
 from datetime import datetime
 from pathlib import Path
 from playwright.async_api import Page
-from WPP_Whatsapp.api.const import whatsappUrl
+from WPP_Whatsapp.api.const import whatsappUrl, Logger
 from WPP_Whatsapp.api.helpers.function import asciiQr
 from WPP_Whatsapp.PlaywrightSafeThread import ThreadsafeBrowser
 
@@ -248,11 +251,13 @@ class HostLayer:
             raise Exception('waitForInChat error: Session not started')
 
         if not self.isLogged:
+            Logger.info(f"not Logged")
             return False
 
         start = datetime.now()
         while not self.page.is_closed() and self.isLogged and not self.isInChat:
             if 0 < self.options.get("deviceSyncTimeout") <= (datetime.now() - start).seconds:
+                Logger.info(f"deviceSyncTimeout:{self.options.get('deviceSyncTimeout')} timeout")
                 return False
 
             sleep(1)
@@ -273,6 +278,7 @@ class HostLayer:
         self.waitForPageLoad()
         self.logger.info(f'{self.session}: http => Checking is logged...')
         authenticated = self.sync_isAuthenticated()
+        self.isLogged = authenticated
         self.logger.debug(f'{self.session}: http => {authenticated=}')
         self.startAutoClose()
         if authenticated is False:
@@ -310,7 +316,7 @@ class HostLayer:
                 self.logger.warn(f'{self.session}: http => Phone not connected')
                 self.statusFind('phoneNotConnected', self.session)
                 self.sync_tryAutoClose()
-                raise Exception("Phone not connected")
+                raise Exception(f"Phone not connected {self.isLogged=} {inChat=}")
             self.cancelAutoClose()
             return True
         if authenticated is False:
@@ -528,3 +534,39 @@ class HostLayer:
 
     def close(self):
         self.ThreadsafeBrowser.sync_close()
+
+    @staticmethod
+    def convert_to_base64(path):
+        mimetypes_add = {"webp": "image/webp"}
+        # mime = magic.Magic(mime=True)
+        # content_type = mime.from_file(path)
+        content_type = mimetypes.guess_type(path)[0]
+        if not content_type:
+            content_type = mimetypes_add.get(path.split(".")[-1], None)
+        if not content_type:
+            content_type = 'application/octet-stream'
+        # filename = os.path.basename(path)
+        with open(path, "rb") as image_file:
+            archive = base64_model.b64encode(image_file.read())
+            archive = archive.decode("utf-8")
+        print(content_type)
+        return "data:" + content_type + ";base64," + archive
+
+    def fileToBase64(self, path):
+        return self.convert_to_base64(path)
+    @staticmethod
+    def base64MimeType(encoded):
+        result = encoded.split(";base64")[0].split(":")[-1]
+        return result
+
+    @staticmethod
+    def base64MimeTypeV2(encoded: str):
+        result = None
+        if not isinstance(encoded, str):
+            return result
+
+        mime = re.match(r'data:([a-zA-Z0-9]+/[a-zA-Z0-9-.+]+).*,.*', encoded)
+        if mime and mime.group(1):
+            result = mime.group(1)
+
+        return result

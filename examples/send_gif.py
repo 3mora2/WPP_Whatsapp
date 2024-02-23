@@ -15,20 +15,6 @@ client = creator.start()
 if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
-message = "hello from wpp"
 phone_number = "201016708170"  # or "+201016708170"
 
-# example
-# Simple message
-result = client.sendText(phone_number, message)
-# print(result)
-
-"""
-sendText:
-    Sends a text message to given chat
-    @category Chat
-    @param to chat id: xxxxx@us.c
-    @param content text message
-    @option dict
-    return dict -> {'id': 'true_**********@c.us_*************_out', 'ack': 3, 'sendMsgResult': {}}
-"""
+client.sendGif(phone_number, "https://sample-videos.com/video321/mp4/360/big_buck_bunny_360p_1mb.mp4")

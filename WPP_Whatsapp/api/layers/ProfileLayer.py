@@ -2,7 +2,39 @@ from WPP_Whatsapp.api.layers.StatusLayer import StatusLayer
 
 
 class ProfileLayer(StatusLayer):
-    def sendMute(self, chatId, time, type):
+    def sendMute(self, chatId, time, type_, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.sendMute_, chatId, time, type_, timeout_=timeout)
+
+    def setTheme(self, type_, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.setTheme_, type_, timeout_=timeout)
+
+    def setProfileStatus(self, status, timeout=60):
+        """
+          /**
+           * Sets current user profile status
+           * @category Profile
+           * @param status
+           */
+        """
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.setProfileStatus_, status, timeout_=timeout)
+
+    def setProfilePic(self, pathOrBase64, to, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.setProfilePic_, pathOrBase64, to, timeout_=timeout)
+
+    def setProfileName(self, name, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.setProfileName_, name, timeout_=timeout)
+
+    def removeMyProfilePicture(self, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.removeMyProfilePicture_, timeout_=timeout)
+
+    ##########################################
+    async def sendMute_(self, chatId, time, type):
         """
           /**
            * @category Chat
@@ -13,18 +45,18 @@ class ProfileLayer(StatusLayer):
            */
         """
         chatId = self.valid_chatId(chatId)
-        return self.ThreadsafeBrowser.sync_page_evaluate("(id, time, type) => WAPI.sendMute(id, time, type)",
-                                                         {"id": chatId, "time": time, "type": type})
+        return await self.ThreadsafeBrowser.page_evaluate("(id, time, type) => WAPI.sendMute(id, time, type)",
+                                                          {"id": chatId, "time": time, "type": type})
 
-    def setTheme(self, type_):
+    async def setTheme_(self, type_):
         """
            * Change the theme
            * @category Host
            * @param string types "dark" or "light"
         """
-        return self.ThreadsafeBrowser.sync_page_evaluate("(type_) => WAPI.setTheme(type_)", type_)
+        return await self.ThreadsafeBrowser.page_evaluate("(type_) => WAPI.setTheme(type_)", type_)
 
-    def setProfileStatus(self, status):
+    async def setProfileStatus_(self, status):
         """
           /**
            * Sets current user profile status
@@ -32,11 +64,11 @@ class ProfileLayer(StatusLayer):
            * @param status
            */
         """
-        return self.ThreadsafeBrowser.sync_page_evaluate("""({ status }) => {
+        return await self.ThreadsafeBrowser.page_evaluate("""({ status }) => {
             WPP.profile.setMyStatus(status);
           }""", status)
 
-    def setProfilePic(self, pathOrBase64, to):
+    async def setProfilePic_(self, pathOrBase64, to):
         pass
         # ToDO:
         # base64 = ''
@@ -54,8 +86,8 @@ class ProfileLayer(StatusLayer):
         #     print('Not an image, allowed formats png, jpeg and webp')
         #     return
 
-    def setProfileName(self, name):
-        return self.ThreadsafeBrowser.sync_page_evaluate("({ name }) => {WAPI.setMyName(name);}", name)
+    async def setProfileName_(self, name):
+        return await self.ThreadsafeBrowser.page_evaluate("({ name }) => {WAPI.setMyName(name);}", name)
 
-    def removeMyProfilePicture(self):
-        return self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.profile.removeMyProfilePicture()")
+    async def removeMyProfilePicture_(self):
+        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.profile.removeMyProfilePicture()")
