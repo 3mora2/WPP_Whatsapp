@@ -6,7 +6,7 @@ description = ("WPP_Whatsapp aim of exporting functions from WhatsApp Web to the
                "the creation of any interaction, such as customer service, media sending, intelligence recognition "
                "based on phrases artificial and many other things, use your imagination")
 
-version = "0.1.7"
+version = "0.1.8"
 
 setup(
     name="WPP_Whatsapp",

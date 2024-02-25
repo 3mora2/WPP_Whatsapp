@@ -24,6 +24,41 @@ class ControlsLayer(UILayer):
     def starMessage(self, messagesId, star=True, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.starMessage_, messagesId, star, timeout_=timeout)
 
+    def clearChat(self, chatId: str, keepStarred=True, timeout=60):
+        """
+          /**
+           * Deletes all messages of given chat
+           * @category Chat
+           * @param chatId
+           * @param keepStarred Keep starred messages
+           * @returns boolean
+           */
+        """
+        return self.ThreadsafeBrowser.run_threadsafe(self.clearChat_, chatId, keepStarred, timeout_=timeout)
+
+    def deleteMessage(self, chatId: str, messageId: list[str] | str, onlyLocal=False, deleteMediaInDevice=True,
+                      timeout=60):
+        """
+          /**
+           * Deletes message of given message id
+           * @category Chat
+           * @param chatId The chat id from which to delete the message.
+           * @param messageId The specific message id of the message to be deleted
+           * @param onlyLocal If it should only delete locally (message remains on the other recipienct's phone).
+            Defaults to false.
+           */
+        """
+        return self.ThreadsafeBrowser.run_threadsafe(self.deleteMessage_, chatId, messageId, onlyLocal,
+                                                     deleteMediaInDevice, timeout_=timeout)
+
+    async def editMessage(self, msgId: str, newText: str, options=None, timeout=60):
+        if options is None:
+            options = {}
+        return self.ThreadsafeBrowser.run_threadsafe(self.editMessage_, msgId, newText, options, timeout_=timeout)
+
+    async def setLimit(self, key, value: bool | int, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.setLimit_, key, value, timeout_=timeout)
+
     ######################################
     async def unblockContact_(self, contactId):
         contactId = self.valid_chatId(contactId)
@@ -47,7 +82,7 @@ class ControlsLayer(UILayer):
     async def archiveChat_(self, chatId, option=True):
         chatId = self.valid_chatId(chatId)
         return await self.ThreadsafeBrowser.page_evaluate("({ chatId, option }) => WPP.chat.archive(chatId, option)",
-                                        {"chatId": chatId, "option": option})
+                                                          {"chatId": chatId, "option": option})
 
     async def pinChat_(self, chatId, option, nonExistent=False):
         chatId = self.valid_chatId(chatId)
@@ -55,8 +90,66 @@ class ControlsLayer(UILayer):
             await self.ThreadsafeBrowser.page_evaluate("({ chatId }) => WPP.chat.find(chatId)", chatId)
 
         return await self.ThreadsafeBrowser.page_evaluate("({ chatId, option }) => WPP.chat.pin(chatId, option)",
-                                        {"chatId": chatId, "option": option})
+                                                          {"chatId": chatId, "option": option})
+
+    async def clearChat_(self, chatId: str, keepStarred=True):
+        """
+          /**
+           * Deletes all messages of given chat
+           * @category Chat
+           * @param chatId
+           * @param keepStarred Keep starred messages
+           * @returns boolean
+           */
+        """
+
+        result = await self.ThreadsafeBrowser.page_evaluate(
+            "({ chatId, keepStarred }) => WPP.chat.clear(chatId, keepStarred)",
+            {"chatId": chatId, "keepStarred": keepStarred})
+
+        return result.get("status") == 200
+
+    async def deleteMessage_(self, chatId: str, messageId: list[str] | str, onlyLocal=False, deleteMediaInDevice=True):
+        """
+          /**
+           * Deletes message of given message id
+           * @category Chat
+           * @param chatId The chat id from which to delete the message.
+           * @param messageId The specific message id of the message to be deleted
+           * @param onlyLocal If it should only delete locally (message remains on the other recipienct's phone).
+            Defaults to false.
+           */
+        """
+        await self.ThreadsafeBrowser.page_evaluate(
+            """({ chatId, messageId, onlyLocal, deleteMediaInDevice }) => WPP.chat.deleteMessage(
+            chatId,messageId,deleteMediaInDevice,!onlyLocal
+            )""",
+            {"chatId": chatId, "messageId": messageId, "onlyLocal": onlyLocal,
+             "deleteMediaInDevice": deleteMediaInDevice})
+        return True
+
+    async def editMessage_(self, msgId: str, newText: str, options=None):
+        if options is None:
+            options = {}
+        editResult = await self.ThreadsafeBrowser.page_evaluate(
+            "({ msgId, newText, options }) =>  WPP.chat.editMessage(msgId, newText, options)",
+            {"msgId": msgId, "newText": newText, "options": options}
+        )
+        result = await self.ThreadsafeBrowser.page_evaluate(
+            "async ({ messageId }) => { return JSON.parse(JSON.stringify(await WAPI.getMessageById(messageId)));}",
+            {"messageId": editResult.get("id")}
+        )
+        if result.get("body") != newText:
+            raise Exception(editResult)
+
+        return result
 
     async def starMessage_(self, messagesId, star=True):
-        await self.ThreadsafeBrowser.page_evaluate("({ messagesId, star }) => WAPI.starMessages(messagesId, star)",
-                                 {"messagesId": messagesId, "star": star})
+        return await self.ThreadsafeBrowser.page_evaluate("({ messagesId, star }) => WAPI.starMessages(messagesId, star)",
+                                                   {"messagesId": messagesId, "star": star})
+
+    async def setLimit_(self, key, value: bool | int):
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({ key, value }) => WPP.conn.setLimit(key as any, value)",
+            {"key": key, "value": value}
+        )

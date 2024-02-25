@@ -549,7 +549,7 @@ class HostLayer:
         with open(path, "rb") as image_file:
             archive = base64_model.b64encode(image_file.read())
             archive = archive.decode("utf-8")
-        print(content_type)
+
         return "data:" + content_type + ";base64," + archive
 
     def fileToBase64(self, path):
