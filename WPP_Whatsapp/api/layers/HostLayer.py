@@ -13,6 +13,7 @@ from playwright.async_api import Page
 from WPP_Whatsapp.api.const import whatsappUrl, Logger
 from WPP_Whatsapp.api.helpers.function import asciiQr
 from WPP_Whatsapp.PlaywrightSafeThread import ThreadsafeBrowser
+from WPP_Whatsapp.api.helpers.wa_version import getPageContent
 
 
 class HostLayer:
@@ -38,6 +39,7 @@ class HostLayer:
     checkStartInterval: threading.Event
     logQR: bool
     remain: int
+    version: str
 
     def __init__(self):
         self.__initialize()
@@ -111,12 +113,62 @@ class HostLayer:
         # self.page.on('close', lambda: self.clearInterval(self.checkStartInterval))
         return True
 
+    ############################### initWhatsapp ####################################################
     def initWhatsapp(self):
+        # await page.setUserAgent(useragentOverride);
+        # self.unregisterServiceWorker()
+        if self.version:
+            self.logger.info(f'{self.session}: Setting WhatsApp WEB version to {self.version}')
+            self.setWhatsappVersion(self.version)
         self.logger.info(f'{self.session}: Loading WhatsApp WEB')
         self.ThreadsafeBrowser.sync_goto(whatsappUrl, wait_until="domcontentloaded")
         self.logger.info(f'{self.session}: WhatsApp WEB loaded')
         # ToDo: unregisterServiceWorker, setWhatsappVersion,
 
+    def unregisterServiceWorker(self):
+        try:
+            self.ThreadsafeBrowser.sync_page_evaluate("""() => {
+                    // Remove existent service worker
+                    navigator.serviceWorker
+                      .getRegistrations()
+                      .then((registrations) => {
+                        for (let registration of registrations) {
+                          registration.unregister();
+                        }
+                      })
+                      .catch((err) => null);
+                
+                    // Disable service worker registration
+                    // @ts-ignore
+                    navigator.serviceWorker.register = new Promise(() => {});
+                
+                    setInterval(() => {
+                      window.onerror = console.error;
+                      window.onunhandledrejection = console.error;
+                    }, 500);
+                  }""")
+        except:
+            pass
+
+    def setWhatsappVersion(self, version):
+        body = ""
+        try:
+            body = getPageContent(version)
+        except:
+            Logger.exception("setWhatsappVersion")
+        if not body:
+            Logger.error(f"Version not available for {version}, using latest as fallback")
+            return
+
+        self.ThreadsafeBrowser.run_threadsafe(self.page.route, 'https://web.whatsapp.com/check-update',
+                                              lambda route: route.abort())
+        self.ThreadsafeBrowser.run_threadsafe(self.page.route, 'https://web.whatsapp.com/',
+                                              lambda route: route.fulfill(body=body))
+
+    async def __handel_request(self, ):
+        pass
+
+    #################################################################################################
     async def __checkStart(self):
         await self.__needsToScan()
 
@@ -528,7 +580,8 @@ class HostLayer:
     @staticmethod
     def valid_chatId(chatId):
         chatId = chatId.replace("+", "")
-        if chatId and (not chatId.endswith('@c.us') and not chatId.endswith('@g.us') and not chatId.endswith('@newsletter')):
+        if chatId and (
+                not chatId.endswith('@c.us') and not chatId.endswith('@g.us') and not chatId.endswith('@newsletter')):
             chatId += '@g.us' if len(chatId) > 15 else '@c.us'
         return chatId
 
@@ -554,6 +607,7 @@ class HostLayer:
 
     def fileToBase64(self, path):
         return self.convert_to_base64(path)
+
     @staticmethod
     def base64MimeType(encoded):
         result = encoded.split(";base64")[0].split(":")[-1]

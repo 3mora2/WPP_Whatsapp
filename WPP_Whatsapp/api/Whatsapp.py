@@ -10,7 +10,7 @@ from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 class Whatsapp(BusinessLayer):
     interval: threading.Event
 
-    def __init__(self, session, threadsafe_browser, **kwargs):
+    def __init__(self, session, threadsafe_browser, version=None, **kwargs):
         self.connected = None
         self.options = {}
         self.options.update(defaultOptions)
@@ -19,6 +19,7 @@ class Whatsapp(BusinessLayer):
                 self.options[key] = value
 
         # self.autoCloseInterval = None
+        self.version = version
         self.autoCloseCalled = False
         self.isInitialized = False
         self.isInjected = False
@@ -81,11 +82,10 @@ class Whatsapp(BusinessLayer):
         self.connected = is_authenticated
 
     def useHere(self, timeout=120):
-        return self.ThreadsafeBrowser.run_threadsafe(self.useHere_,  timeout_=timeout)
-
+        return self.ThreadsafeBrowser.run_threadsafe(self.useHere_, timeout_=timeout)
 
     def logout(self, timeout=120):
-        return self.ThreadsafeBrowser.run_threadsafe(self.logout_,  timeout_=timeout)
+        return self.ThreadsafeBrowser.run_threadsafe(self.logout_, timeout_=timeout)
 
     def getMessageById(self, messageId, timeout=120):
         return self.ThreadsafeBrowser.run_threadsafe(self.getMessageById_, messageId, timeout_=timeout)
@@ -121,7 +121,7 @@ class Whatsapp(BusinessLayer):
             params = {}
         chatId = self.valid_chatId(chatId)
         return await self.ThreadsafeBrowser.page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
-                                                    {"chatId": chatId, "params": params})
+                                                          {"chatId": chatId, "params": params})
 
     async def rejectCall_(self, callId):
         return await self.ThreadsafeBrowser.page_evaluate(

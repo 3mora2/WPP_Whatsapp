@@ -8,3 +8,4 @@ pyee
 segno
 typing_extensions
 requests
+node-semver

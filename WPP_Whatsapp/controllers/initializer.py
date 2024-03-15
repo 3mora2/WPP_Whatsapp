@@ -20,7 +20,7 @@ class Create:
             catchQR=None,
             statusFind=None, onLoadingScreen=None,
             onStateChange=None, waitForLogin: bool = True, logQR: bool = False,
-            autoClose: int = 0, *args, **kwargs) -> None:
+            autoClose: int = 0, version=None,*args, **kwargs) -> None:
         """
         check_open_dir:bool
         close_already_profile:bool
@@ -39,6 +39,7 @@ class Create:
         self.statusFind_dict = {}
         self.catchQR_dict = {}
         self.session = session
+        self.version = version
         self.user_data_dir = user_data_dir
         self.folderNameToken = (
                 folderNameToken or
@@ -147,7 +148,7 @@ class Create:
         self.ThreadsafeBrowser.browser.on("disconnected", lambda: self.statusFind('browserClose', self.session))
 
         self.client = Whatsapp(self.session, self.ThreadsafeBrowser, logQR=self.logQR,
-                               autoClose=self.autoClose)
+                               autoClose=self.autoClose, version=self.version)
         self.client.catchQR = self.catchQR
         self.client.statusFind = self.statusFind
         self.client.onLoadingScreen = self.onLoadingScreen
