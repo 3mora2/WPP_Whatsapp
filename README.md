@@ -9,11 +9,6 @@ any interaction, such as customer service, media sending, intelligence recogniti
 other things, use your imagination         
 WPP_Whatsapp > [WPPConnect](https://github.com/wppconnect-team/wppconnect) Converted to python, so Documentation is same
 
-<p align="center">
-  <a href="https://wppconnect.io/wppconnect/pages/getting-started/basic-functions.html">Basic Function</a> •
-  <a href="https://wppconnect.io/wppconnect/">Documentation</a>
-</p>
-
 
 ## Online channels
 
