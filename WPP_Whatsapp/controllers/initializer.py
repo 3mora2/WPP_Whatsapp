@@ -69,16 +69,18 @@ class Create:
         self.sync_close()
 
     async def close(self):
-        await self.ThreadsafeBrowser.close()
+        if hasattr(self, "ThreadsafeBrowser"):
+            await self.ThreadsafeBrowser.close()
         self._onStateChange("CLOSED")
 
     def sync_close(self):
-        self.ThreadsafeBrowser.sync_close()
+        if hasattr(self, "ThreadsafeBrowser"):
+            self.ThreadsafeBrowser.sync_close()
         self._onStateChange("CLOSED")
 
     def _onStateChange(self, state):
         self.state = state
-        if not self.ThreadsafeBrowser.page.is_closed():
+        if hasattr(self, "ThreadsafeBrowser") and not self.ThreadsafeBrowser.page.is_closed():
             connected = self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.conn.isRegistered()")
             if not connected:
                 sleep(2)
@@ -155,7 +157,7 @@ class Create:
         self.client.statusFind = self.statusFind
         self.client.onLoadingScreen = self.onLoadingScreen
         self.client.start()
-
+        self.client.onStateChange(self._onStateChange)
         if self.waitForLogin:
             is_logged = self.client.waitForLogin()
             if not is_logged:
@@ -200,4 +202,5 @@ class Create:
         Logger.info("onLoadingScreen", percent, message)
 
     def setup(self):
-        self.client.onStateChange(self._onStateChange)
+        pass
+
