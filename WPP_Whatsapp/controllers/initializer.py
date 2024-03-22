@@ -77,7 +77,7 @@ class Create:
         self.state = "CLOSED"
 
     def _onStateChange(self, state):
-        if type(self.onStateChange) == types.FunctionType:
+        if self.onStateChange:
             self.onStateChange(state)
         self.state = state
         connected = self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.conn.isRegistered()")
@@ -91,12 +91,12 @@ class Create:
             self.waitLoginPromise()
 
         if state == "CONNECTED":
-            print("Ready ....")
+            Logger.info("Ready ....")
 
         elif state in ["browserClose", 'serverClose']:
             self.state = "CLOSED"
             self.client = None
-            print("client.close - session.state: " + self.state)
+            Logger.info("client.close - session.state: " + self.state)
 
     def create_user_dir(self, new=False):
         user_dir = os.path.join(self.folderNameToken, self.session)
@@ -118,10 +118,10 @@ class Create:
             self.create()
 
         elif self.state in ["CONFLICT", "UNPAIRED", "UNLAUNCHED"]:
-            print("client.useHere()")
+            Logger.info("client.useHere()")
             self.client.useHere()
         else:
-            print(self.get_state())
+            Logger.info(self.get_state())
 
         return self.client
 
@@ -195,7 +195,7 @@ class Create:
         # print(session, status)
 
     def onLoadingScreen(self, percent, message):
-        print("onLoadingScreen", percent, message)
+        Logger.info("onLoadingScreen", percent, message)
 
     def setup(self):
         self.client.onStateChange(self._onStateChange)
