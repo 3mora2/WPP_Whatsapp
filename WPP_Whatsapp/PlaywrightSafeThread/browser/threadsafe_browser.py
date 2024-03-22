@@ -350,7 +350,7 @@ class ThreadsafeBrowser:
 
     def sync_page_evaluate(self, expression: str, arg: typing.Optional[typing.Any] = None, timeout_=60):
         try:
-            return self.run_threadsafe(self.page_evaluate, expression, arg, timeout_=timeout_)
+            return self.run_threadsafe(self.page.evaluate, expression, arg, timeout_=timeout_)
         except Error as error:
             if "Execution context was destroyed, most likely because of a navigation" in error.message:
                 pass
@@ -386,7 +386,8 @@ class ThreadsafeBrowser:
         self.stop()
 
     def sync_close(self):
-        self.run_threadsafe(self.close)
+        self.run_threadsafe(self.__stop_playwright)
+        self.stop()
 
     def sleep(self, *args, **kwargs):
         self.run_threadsafe(asyncio.sleep, *args, **kwargs)
