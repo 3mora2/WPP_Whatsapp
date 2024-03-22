@@ -70,25 +70,24 @@ class Create:
 
     async def close(self):
         await self.ThreadsafeBrowser.close()
-        self.state = "CLOSED"
+        self._onStateChange("CLOSED")
 
     def sync_close(self):
         self.ThreadsafeBrowser.sync_close()
-        self.state = "CLOSED"
+        self._onStateChange("CLOSED")
 
     def _onStateChange(self, state):
-        if self.onStateChange:
-            self.onStateChange(state)
         self.state = state
-        connected = self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.conn.isRegistered()")
-        if not connected:
-            sleep(2)
-            if not self.waitLoginPromise:
-                try:
-                    self.waitLoginPromise = self.client.waitForLogin
-                finally:
-                    self.waitLoginPromise = None
-            self.waitLoginPromise()
+        if not self.ThreadsafeBrowser.page.is_closed():
+            connected = self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.conn.isRegistered()")
+            if not connected:
+                sleep(2)
+                if not self.waitLoginPromise:
+                    try:
+                        self.waitLoginPromise = self.client.waitForLogin
+                    finally:
+                        self.waitLoginPromise = None
+                self.waitLoginPromise()
 
         if state == "CONNECTED":
             Logger.info("Ready ....")
@@ -97,6 +96,9 @@ class Create:
             self.state = "CLOSED"
             self.client = None
             Logger.info("client.close - session.state: " + self.state)
+
+        if self.onStateChange:
+            self.onStateChange(state)
 
     def create_user_dir(self, new=False):
         user_dir = os.path.join(self.folderNameToken, self.session)

@@ -350,7 +350,7 @@ class ThreadsafeBrowser:
 
     def sync_page_evaluate(self, expression: str, arg: typing.Optional[typing.Any] = None, timeout_=60):
         try:
-            return self.run_threadsafe(self.page.evaluate, expression, arg, timeout_=timeout_)
+            return self.run_threadsafe(self.page_evaluate, expression, arg, timeout_=timeout_)
         except Error as error:
             if "Execution context was destroyed, most likely because of a navigation" in error.message:
                 pass
