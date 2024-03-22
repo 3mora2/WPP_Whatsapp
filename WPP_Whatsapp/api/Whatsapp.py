@@ -48,7 +48,16 @@ class Whatsapp(BusinessLayer):
         # self.interval = None
         if self.page:
             self.interval = self.__setInterval(self.__intervalHandel, 60)
-            self.page.on('close', lambda: self.clearInterval(self.interval))
+            self.page.on('close', self.clear_all_interval)
+
+    def clear_all_interval(self, *args, **kwargs):
+        Logger.info("clear all intervals")
+        if hasattr(self, "interval"):
+            self.clearInterval(self.interval)
+        if hasattr(self, "autoCloseInterval"):
+            self.clearInterval(self.autoCloseInterval)
+        if hasattr(self, "checkStartInterval"):
+            self.clearInterval(self.checkStartInterval)
 
     @staticmethod
     def __setInterval(func, interval, *args, **kwargs):
