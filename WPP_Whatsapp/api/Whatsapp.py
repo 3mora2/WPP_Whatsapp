@@ -80,7 +80,6 @@ class Whatsapp(BusinessLayer):
             # Add window, when WPP not  create yet
             newConnected = await self.ThreadsafeBrowser.page_evaluate("() => window.WPP && window.WPP.conn.isRegistered()")
         except:
-            Logger.exception("__intervalHandel")
             newConnected = None
 
         if newConnected is None or newConnected == self.connected:

@@ -2,7 +2,7 @@ import asyncio
 import os
 import types
 from typing import Optional
-from WPP_Whatsapp.PlaywrightSafeThread.browser.threadsafe_browser import SUPPORTED_BROWSERS
+from WPP_Whatsapp.PlaywrightSafeThread import SUPPORTED_BROWSERS
 from WPP_Whatsapp.PlaywrightSafeThread import ThreadsafeBrowser
 from WPP_Whatsapp.api.Whatsapp import Whatsapp
 from WPP_Whatsapp.api.const import Logger
