@@ -16,3 +16,4 @@ if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
 print(client.getWAVersion())
+

@@ -313,15 +313,27 @@ class ThreadsafeBrowser:
     async def __stop_playwright(self) -> None:
         # NOTE: we need to make sure those were actually launched, in
         # case of a nasty race condition
-        # if hasattr(self, "context"):
-        #     await self.context.close()
-        #
-        # if hasattr(self, "browser"):
-        #     await self.browser.close()
-
-        # NOTE: this hangs without the proper child watcher
-        if hasattr(self, "playwright"):
-            await self.playwright.stop()
+        try:
+            if hasattr(self, "page") and not self.page.is_closed():
+                await self.page.close()
+        except:
+            pass
+        try:
+            if hasattr(self, "context"):
+                await self.context.close()
+        except:
+            pass
+        try:
+            if hasattr(self, "browser") and self.browser.is_connected():
+                await self.browser.close()
+        except:
+            pass
+        try:
+            # NOTE: this hangs without the proper child watcher
+            if hasattr(self, "playwright"):
+                await self.playwright.stop()
+        except:
+            pass
 
     def stop(self) -> None:
         self.loop.call_soon_threadsafe(self.loop.stop)
@@ -389,14 +401,17 @@ class ThreadsafeBrowser:
         self.run_threadsafe(self.__stop_playwright)
         self.stop()
 
-    def sleep(self, *args, **kwargs):
-        self.run_threadsafe(asyncio.sleep, *args, **kwargs)
+    def sleep(self, val, *args, **kwargs):
+        try:
+            self.run_threadsafe(asyncio.sleep, val, *args, **kwargs, timeout_=val if val > 5 else 5)
+        except:
+            pass
 
     async def goto(self, *args, **kwargs):
-        await self.page.goto(*args, **kwargs)
+        return await self.page.goto(*args, **kwargs)
 
     def sync_goto(self, *args, **kwargs):
-        self.run_threadsafe(self.page.goto, *args, **kwargs)
+        return self.run_threadsafe(self.page.goto, *args, **kwargs)
 
     def run_threadsafe(self, func, *args, timeout_=60, **kwargs):
         future = asyncio.run_coroutine_threadsafe(

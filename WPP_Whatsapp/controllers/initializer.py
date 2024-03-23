@@ -1,12 +1,9 @@
 import asyncio
 import os
 import types
-from time import sleep
 from typing import Optional
-
 from WPP_Whatsapp.PlaywrightSafeThread.browser.threadsafe_browser import SUPPORTED_BROWSERS
 from WPP_Whatsapp.PlaywrightSafeThread import ThreadsafeBrowser
-
 from WPP_Whatsapp.api.Whatsapp import Whatsapp
 from WPP_Whatsapp.api.const import Logger
 
@@ -20,7 +17,7 @@ class Create:
             catchQR=None,
             statusFind=None, onLoadingScreen=None,
             onStateChange=None, waitForLogin: bool = True, logQR: bool = False,
-            autoClose: int = 0, version=None,*args, **kwargs) -> None:
+            autoClose: int = 0, version=None, *args, **kwargs) -> None:
         """
         check_open_dir:bool
         close_already_profile:bool
@@ -83,13 +80,16 @@ class Create:
         if hasattr(self, "ThreadsafeBrowser") and not self.ThreadsafeBrowser.page.is_closed():
             connected = self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.conn.isRegistered()")
             if not connected:
-                sleep(2)
+                self.ThreadsafeBrowser.sleep(2)
                 if not self.waitLoginPromise:
                     try:
                         self.waitLoginPromise = self.client.waitForLogin
+                    except:
+                        Logger.exception("waitForLogin")
                     finally:
                         self.waitLoginPromise = None
-                self.waitLoginPromise()
+                if self.waitLoginPromise:
+                    self.waitLoginPromise()
 
         if state == "CONNECTED":
             Logger.info("Ready ....")
@@ -119,8 +119,7 @@ class Create:
 
     def start(self) -> "Whatsapp":
         if not self.state or self.state in ["CLOSED"]:
-            self.create()
-
+            self.create_sync()
         elif self.state in ["CONFLICT", "UNPAIRED", "UNLAUNCHED"]:
             Logger.info("client.useHere()")
             self.client.useHere()
@@ -129,7 +128,18 @@ class Create:
 
         return self.client
 
-    def create(self) -> Whatsapp:
+    async def start_(self) -> "Whatsapp":
+        if not self.state or self.state in ["CLOSED"]:
+            await self.create()
+        elif self.state in ["CONFLICT", "UNPAIRED", "UNLAUNCHED"]:
+            Logger.info("client.useHere()")
+            self.client.useHere()
+        else:
+            Logger.info(self.get_state())
+
+        return self.client
+
+    def create_sync(self) -> Whatsapp:
         self.state = "STARTING"
         default = {
             "no_viewport": True, "bypass_csp": True, "headless": False,
@@ -156,10 +166,49 @@ class Create:
         self.client.catchQR = self.catchQR
         self.client.statusFind = self.statusFind
         self.client.onLoadingScreen = self.onLoadingScreen
-        self.client.start()
+        self.ThreadsafeBrowser.run_threadsafe(self.client.start, timeout_=120)
         self.client.onStateChange(self._onStateChange)
         if self.waitForLogin:
             is_logged = self.client.waitForLogin()
+            if not is_logged:
+                raise Exception('Not Logged')
+            self.state = "CONNECTED"
+        self.setup()
+
+        return self.client
+
+    async def create(self) -> Whatsapp:
+        self.state = "STARTING"
+        default = {
+            "no_viewport": True, "bypass_csp": True, "headless": False,
+            "browser": "chromium", "install": True,
+        }
+
+        for key in default:
+            if key not in self.__kwargs:
+                self.__kwargs[key] = default[key]
+
+        # Use Default channel as chrome
+        if self.__kwargs.get("browser") == "chrome" or self.__kwargs.get("browser") not in SUPPORTED_BROWSERS:
+            self.__kwargs["browser"] = "chromium"
+            self.__kwargs["channel"] = "chrome"
+
+        self.ThreadsafeBrowser = ThreadsafeBrowser(user_data_dir=self.user_data_dir, **self.__kwargs)
+
+        self.ThreadsafeBrowser.page.on("close", self.close)
+        self.ThreadsafeBrowser.page.on("crash", self.close)
+        self.ThreadsafeBrowser.browser.on("disconnected", lambda: self.statusFind('browserClose', self.session))
+
+        self.client = Whatsapp(self.session, self.ThreadsafeBrowser, logQR=self.logQR,
+                               autoClose=self.autoClose, version=self.version)
+        self.client.catchQR = self.catchQR
+        self.client.statusFind = self.statusFind
+        self.client.onLoadingScreen = self.onLoadingScreen
+        await self.client.start()
+        # self.ThreadsafeBrowser.run_threadsafe(self.client.start, timeout_=120)
+        self.client.onStateChange(self._onStateChange)
+        if self.waitForLogin:
+            is_logged = await self.client.waitForLogin_()
             if not is_logged:
                 raise Exception('Not Logged')
             self.state = "CONNECTED"
@@ -203,4 +252,3 @@ class Create:
 
     def setup(self):
         pass
-

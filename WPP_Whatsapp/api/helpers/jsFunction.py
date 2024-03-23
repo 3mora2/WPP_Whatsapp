@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 
 # from threading import Thread, Event
 #
@@ -21,12 +22,12 @@ import asyncio
 #     async def loop_():
 #         print("__nn__")
 #         while not stopped.is_set():
-#             await func()
+#             await func(*args)
 #             await asyncio.sleep(interval)
+#         print("finish")
 #
-#     loop.create_task(loop_())
+#     loop. create_task(loop_())
 #     return stopped
-
 
 
 # async def pprint_():
@@ -58,11 +59,26 @@ import asyncio
 # def clearInterval(Interval):
 #     try:
 #         if Interval:
-#             Interval.stop()
-#             print("Interval", Interval.cancelled())
+#             Interval.set()
+#             print("Interval", Interval.is_set())
 #             # Interval.clear()
 #     except:
 #         traceback.print_exc()
+#
+#
+# async def print_i(i):
+#     print(i + 1, "print_i")
+#     await asyncio.sleep(1)
+#     print(i + 2, "print_i")
+
+
+# async def stop_All():
+#     clearInterval(intr)
+#     clearInterval(intr2)
+
+
+# intr = setInterval(print_i, 5, 1)
+# intr2 = setInterval(stop_All, 50, )
 
 
 from typing import Dict
@@ -82,3 +98,18 @@ class EventEmitter:
 
     def off(self, event_name, function):
         self._callbacks.get(event_name, []).remove(function)
+
+
+def setInterval(loop, func, interval, *args, **kwargs):
+    stopped = asyncio.Event()
+
+    async def loop_():
+        while not stopped.is_set():
+            if asyncio.iscoroutinefunction(func):
+                await func(*args, **kwargs)
+            else:
+                func(*args, **kwargs)
+            await asyncio.sleep(interval)
+
+    loop.create_task(loop_())
+    return stopped

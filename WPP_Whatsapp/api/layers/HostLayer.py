@@ -5,14 +5,13 @@ import mimetypes
 import os
 import re
 import threading
-import time
-from time import sleep
 from datetime import datetime
 from pathlib import Path
 from playwright.async_api import Page
 from WPP_Whatsapp.api.const import whatsappUrl, Logger
 from WPP_Whatsapp.api.helpers.function import asciiQr
 from WPP_Whatsapp.PlaywrightSafeThread import ThreadsafeBrowser
+from WPP_Whatsapp.api.helpers.jsFunction import setInterval
 from WPP_Whatsapp.api.helpers.wa_version import getPageContent
 
 
@@ -90,46 +89,52 @@ class HostLayer:
         else:
             self.logger.info(f'{self.session}: wapi.js failed')
 
-
     async def _afterPageScriptInjectedHost(self):
         version = await self.getWAVersion()
         self.logger.info(f'{self.session}: WhatsApp WEB version: {version}')
         version = await self.getWAJSVersion()
         self.logger.info(f'{self.session}: WA-JS version: {version}')
-        await self.ThreadsafeBrowser.page_evaluate("""() => {WPP.on('conn.auth_code_change', window.checkQrCode);}""")
-        await self.ThreadsafeBrowser.page_evaluate("""() => {WPP.on('conn.main_ready', window.checkInChat);}""")
+        try:
+            await self.ThreadsafeBrowser.page_evaluate("""() => {WPP.on('conn.auth_code_change', window.checkQrCode);}""")
+            await self.ThreadsafeBrowser.page_evaluate("""() => {WPP.on('conn.main_ready', window.checkInChat);}""")
+        except:
+            Logger.exception("window.checkQrCode")
         await self.__checkQrCode()
         await self.__checkInChat()
 
-    def start(self):
+    async def start(self):
         if self.isStarted:
             return
 
         self.isStarted = True
         # ToDo:
-        self.initWhatsapp()
-        self.ThreadsafeBrowser.sync_expose_function('checkQrCode', self.__checkQrCode)
-        self.ThreadsafeBrowser.sync_expose_function('checkInChat', self.__checkInChat)
+        await self.initWhatsapp()
+
+        await self.ThreadsafeBrowser.expose_function('checkQrCode', self.__checkQrCode)
+        await self.ThreadsafeBrowser.expose_function('checkInChat', self.__checkInChat)
         # ToDo:
-        # self.checkStartInterval = self.__setInterval(self.__checkStart, 10)
+        self.logger.info(f'{self.session}: setInterval__checkStart')
+        self.checkStartInterval = setInterval(self.loop, self.__checkStart, 10)
         # self.page.on('close', lambda: self.clearInterval(self.checkStartInterval))
         return True
 
     ############################### initWhatsapp ####################################################
-    def initWhatsapp(self):
+    async def initWhatsapp(self):
         # await page.setUserAgent(useragentOverride);
-        # self.unregisterServiceWorker()
+        # self.logger.info(f'{self.session}: unregisterServiceWorker')
+        # await self.unregisterServiceWorker()
         if self.version:
             self.logger.info(f'{self.session}: Setting WhatsApp WEB version to {self.version}')
-            self.setWhatsappVersion(self.version)
+            await self.setWhatsappVersion(self.version)
         self.logger.info(f'{self.session}: Loading WhatsApp WEB')
-        self.ThreadsafeBrowser.sync_goto(whatsappUrl, wait_until="domcontentloaded")
+        # TODO: Unkown Error
+        await self.ThreadsafeBrowser.goto(whatsappUrl, wait_until="domcontentloaded")
+        # self.ThreadsafeBrowser.sync_goto(whatsappUrl, wait_until="domcontentloaded")
         self.logger.info(f'{self.session}: WhatsApp WEB loaded')
-        # ToDo: unregisterServiceWorker, setWhatsappVersion,
 
-    def unregisterServiceWorker(self):
+    async def unregisterServiceWorker(self):
         try:
-            self.ThreadsafeBrowser.sync_page_evaluate("""() => {
+            await self.ThreadsafeBrowser.page_evaluate("""() => {
                     // Remove existent service worker
                     navigator.serviceWorker
                       .getRegistrations()
@@ -150,22 +155,20 @@ class HostLayer:
                     }, 500);
                   }""")
         except:
-            pass
+            Logger.exception("unregisterServiceWorker")
 
-    def setWhatsappVersion(self, version):
+    async def setWhatsappVersion(self, version):
         body = ""
         try:
-            body = getPageContent(version)
+            body = await getPageContent(version)
         except:
             Logger.exception("setWhatsappVersion")
         if not body:
             Logger.error(f"Version not available for {version}, using latest as fallback")
             return
 
-        self.ThreadsafeBrowser.run_threadsafe(self.page.route, 'https://web.whatsapp.com/check-update',
-                                              lambda route: route.abort())
-        self.ThreadsafeBrowser.run_threadsafe(self.page.route, 'https://web.whatsapp.com/',
-                                              lambda route: route.fulfill(body=body))
+        await self.page.route('https://web.whatsapp.com/check-update', lambda route: route.abort())
+        await self.page.route('https://web.whatsapp.com/', lambda route: route.fulfill(body=body))
 
     async def __handel_request(self, ):
         pass
@@ -221,7 +224,7 @@ class HostLayer:
             self.cancelAutoClose()
 
         if (self.autoClose > 0 or self.options.get(
-                "deviceSyncTimeout") > 0) and not self.autoCloseInterval and not self.page.is_closed():
+                "deviceSyncTimeout") > 0) and (not self.autoCloseInterval or self.autoCloseInterval.is_set()) and not self.page.is_closed():
             self.logger.info(f'{self.session}: Closing the page')
             self.autoCloseCalled = True
             self.statusFind('autocloseCalled', self.session)
@@ -233,7 +236,7 @@ class HostLayer:
             self.cancelAutoClose()
 
         if (self.autoClose > 0 or self.options.get(
-                "deviceSyncTimeout") > 0) and not self.autoCloseInterval and not self.page.is_closed():
+                "deviceSyncTimeout") > 0) and (not self.autoCloseInterval or self.autoCloseInterval.is_set()) and not self.page.is_closed():
             self.logger.info(f'{self.session}: Closing the page')
             self.autoCloseCalled = True
             self.statusFind('autocloseCalled', self.session)
@@ -250,27 +253,27 @@ class HostLayer:
             self.logger.info(f'{self.session}: Auto close configured to {seconds}s')
             self.remain = seconds
 
-            self.autoCloseInterval = self.__setInterval(self.autoCloseIntervalHandel, 5)
+            self.autoCloseInterval = setInterval(self.loop, self.autoCloseIntervalHandel, 5)
 
-    @staticmethod
-    def __setInterval(func, interval, *args, **kwargs):
-        stopped = threading.Event()
-
-        def _loop_():
-            while not stopped.is_set():
-                func()
-                time.sleep(interval)
-
-        th = threading.Thread(target=_loop_)
-        th.start()
-        return stopped
+    # @staticmethod
+    # def __setInterval(func, interval, *args, **kwargs):
+    #     stopped = threading.Event()
+    #
+    #     def _loop_():
+    #         while not stopped.is_set():
+    #             func()
+    #             time.sleep(interval)
+    #
+    #     th = threading.Thread(target=_loop_)
+    #     th.start()
+    #     return stopped
 
     def clearInterval(self, Interval):
         self.logger.debug(f'{self.session}: clearInterval {Interval}')
         if Interval:
             Interval.set()
 
-    def autoCloseIntervalHandel(self):
+    async def autoCloseIntervalHandel(self):
         if self.page.is_closed():
             self.cancelAutoClose()
             return
@@ -280,7 +283,8 @@ class HostLayer:
             self.logger.info(f'{self.session}: http => Auto close remain: {self.remain}s')
 
         if self.remain <= 0:
-            self.sync_tryAutoClose()
+            # Cant use wait, differance loop
+            await self.tryAutoClose()
 
     def cancelAutoClose(self):
         if hasattr(self, "autoCloseInterval"):
@@ -296,8 +300,17 @@ class HostLayer:
             raise Exception('waitForQrCodeScan error: Session not started')
         while not self.page.is_closed() and not self.isLogged:
             # sleep(200 / 1000)
-            self.ThreadsafeBrowser.sleep(200 / 1000)
+            self.ThreadsafeBrowser.sleep(0.2)
             needScan = self.__sync_needsToScan()
+            self.isLogged = not needScan
+
+    async def waitForQrCodeScan_(self):
+        if not self.isStarted:
+            raise Exception('waitForQrCodeScan error: Session not started')
+        while not self.page.is_closed() and not self.isLogged:
+            # sleep(200 / 1000)
+            await asyncio.sleep(200 / 1000)
+            needScan = await self.__needsToScan()
             self.isLogged = not needScan
 
     def waitForInChat(self):
@@ -314,9 +327,32 @@ class HostLayer:
                 Logger.info(f"deviceSyncTimeout:{self.options.get('deviceSyncTimeout')} timeout")
                 return False
 
-            sleep(1)
+            # TODO::
+            self.ThreadsafeBrowser.sleep(1)
 
             inChat = self.sync_isInsideChat()
+            self.isInChat = inChat
+
+        return self.isInChat
+
+    async def waitForInChat_(self):
+        if not self.isStarted:
+            raise Exception('waitForInChat error: Session not started')
+
+        if not self.isLogged:
+            Logger.info(f"not Logged")
+            return False
+
+        start = datetime.now()
+        while not self.page.is_closed() and self.isLogged and not self.isInChat:
+            if 0 < self.options.get("deviceSyncTimeout") <= (datetime.now() - start).seconds:
+                Logger.info(f"deviceSyncTimeout:{self.options.get('deviceSyncTimeout')} timeout")
+                return False
+
+            # TODO::
+            await asyncio.sleep(1)
+
+            inChat = await self.isInsideChat()
             self.isInChat = inChat
 
         return self.isInChat
@@ -325,9 +361,84 @@ class HostLayer:
         while not self.isInjected:
             if self.page.is_closed():
                 return
-            sleep(.2)
+            # TODO::
+            self.ThreadsafeBrowser.sleep(.2)
 
         self.ThreadsafeBrowser.sync_page_wait_for_function("() => WPP.isReady")
+
+    async def waitForPageLoad_(self):
+        while not self.isInjected:
+            if self.page.is_closed():
+                return
+            # TODO::
+            await asyncio.sleep(.2)
+
+        await self.ThreadsafeBrowser.page_wait_for_function("() => WPP.isReady")
+
+    async def waitForLogin_(self):
+        self.logger.info(f'{self.session}: http => Waiting page load')
+        await self.waitForPageLoad_()
+        self.logger.info(f'{self.session}: http => Checking is logged...')
+        authenticated = await self.isAuthenticated()
+        self.isLogged = authenticated
+        self.logger.debug(f'{self.session}: http => {authenticated=}')
+        self.startAutoClose()
+        if authenticated is False:
+            self.logger.info(f'{self.session}: http => Waiting for QRCode Scan...')
+            self.statusFind('notLogged', self.session)
+            await self.waitForQrCodeScan_()
+            self.logger.info(f'{self.session}: http => Checking QRCode status...')
+            # // Wait for interface update
+            # TODO::
+            await asyncio.sleep(.2)
+            authenticated = await self.isAuthenticated()
+            if authenticated is None:
+                self.logger.warn(f'{self.session}: Failed to authenticate')
+                self.statusFind('qrReadError', self.session)
+            elif authenticated:
+                self.logger.info(f'{self.session}: QRCode Success')
+                self.statusFind('qrReadSuccess', self.session)
+            else:
+                self.logger.warn(f'{self.session}: QRCode Fail')
+                self.statusFind('qrReadFail', self.session)
+                await self.tryAutoClose()
+                raise Exception('Failed to read the QRCode')
+        elif authenticated is True:
+            self.logger.info(f'{self.session}: Authenticated')
+            self.statusFind('isLogged', self.session)
+        if authenticated is True:
+            # Reset the autoClose counter
+            self.cancelAutoClose()
+            #  Wait for interface update
+            # TODO::
+            await asyncio.sleep(.2)
+            self.startAutoClose(self.options.get("deviceSyncTimeout"))
+
+            self.logger.info(f'{self.session}: http => Checking phone is connected...')
+            inChat = await self.waitForInChat_()
+            if not inChat:
+                self.logger.warn(f'{self.session}: http => Phone not connected')
+                self.statusFind('phoneNotConnected', self.session)
+                await self.tryAutoClose()
+                raise Exception(f"Phone not connected {self.isLogged=} {inChat=}")
+            self.cancelAutoClose()
+            return True
+        if authenticated is False:
+            await self.tryAutoClose()
+            self.logger.warn(f'{self.session}: Not logged')
+            raise Exception("Not logged")
+
+        await self.tryAutoClose()
+        if self.autoCloseCalled:
+            self.logger.error(f'{self.session}: Auto Close Called')
+            raise Exception("Auto Close Called")
+
+        if self.page.is_closed():
+            self.logger.error(f'{self.session}: Page Closed')
+            raise Exception("Page Closed")
+
+        self.logger.error(f'{self.session}: Unknow error')
+        raise Exception("Unknow error")
 
     def waitForLogin(self):
         self.logger.info(f'{self.session}: http => Waiting page load')
@@ -343,7 +454,8 @@ class HostLayer:
             self.waitForQrCodeScan()
             self.logger.info(f'{self.session}: http => Checking QRCode status...')
             # // Wait for interface update
-            sleep(.2)
+            # TODO::
+            self.ThreadsafeBrowser.sleep(.2)
             authenticated = self.sync_isAuthenticated()
             if authenticated is None:
                 self.logger.warn(f'{self.session}: Failed to authenticate')
@@ -363,7 +475,8 @@ class HostLayer:
             # Reset the autoClose counter
             self.cancelAutoClose()
             #  Wait for interface update
-            sleep(.2)
+            # TODO::
+            self.ThreadsafeBrowser.sleep(.2)
             self.startAutoClose(self.options.get("deviceSyncTimeout"))
 
             self.logger.info(f'{self.session}: http => Checking phone is connected...')

@@ -1,6 +1,8 @@
+import asyncio
 import threading
 import time
 
+from WPP_Whatsapp.api.helpers.jsFunction import setInterval
 from WPP_Whatsapp.api.layers.HostLayer import HostLayer
 from WPP_Whatsapp.api.const import defaultOptions, Logger
 from WPP_Whatsapp.api.layers.BusinessLayer import BusinessLayer
@@ -36,6 +38,7 @@ class Whatsapp(BusinessLayer):
         self.page = threadsafe_browser.page
         self.browser = threadsafe_browser.browser
         self.ThreadsafeBrowser = threadsafe_browser
+        self.loop = threadsafe_browser.loop
         self.logger = self.options.get("logger") or Logger
         self.logger.info(f'{self.session}: Initializing...')
         self.logQR = kwargs.get("logQR") or False
@@ -47,10 +50,10 @@ class Whatsapp(BusinessLayer):
     def handel(self):
         # self.interval = None
         if self.page:
-            self.interval = self.__setInterval(self.__intervalHandel, 60)
+            self.interval = setInterval(self.loop, self.__intervalHandel, 60)
             self.page.on('close', self.clear_all_interval)
 
-    def clear_all_interval(self, *args, **kwargs):
+    async def clear_all_interval(self, *args, **kwargs):
         Logger.info("clear all intervals")
         if hasattr(self, "interval"):
             self.clearInterval(self.interval)
@@ -59,24 +62,25 @@ class Whatsapp(BusinessLayer):
         if hasattr(self, "checkStartInterval"):
             self.clearInterval(self.checkStartInterval)
 
-    @staticmethod
-    def __setInterval(func, interval, *args, **kwargs):
-        stopped = threading.Event()
+    # @staticmethod
+    # def __setInterval(func, interval, *args, **kwargs):
+    #     stopped = threading.Event()
+    #
+    #     def _loop_():
+    #         while not stopped.is_set():
+    #             func()
+    #             time.sleep(interval)
+    #
+    #     th = threading.Thread(target=_loop_)
+    #     th.start()
+    #     return stopped
 
-        def _loop_():
-            while not stopped.is_set():
-                func()
-                time.sleep(interval)
-
-        th = threading.Thread(target=_loop_)
-        th.start()
-        return stopped
-
-    def __intervalHandel(self):
+    async def __intervalHandel(self):
         try:
             # Add window, when WPP not  create yet
-            newConnected = self.ThreadsafeBrowser.sync_page_evaluate("() => window.WPP && window.WPP.conn.isRegistered()")
+            newConnected = await self.ThreadsafeBrowser.page_evaluate("() => window.WPP && window.WPP.conn.isRegistered()")
         except:
+            Logger.exception("__intervalHandel")
             newConnected = None
 
         if newConnected is None or newConnected == self.connected:

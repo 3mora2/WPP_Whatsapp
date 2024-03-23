@@ -39,15 +39,9 @@ chromiumArgs = [
     '--disable-dev-shm-usage',
 ]
 
-
-def defaultLogger():
-    logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s',
-                        datefmt='%d-%b-%y %H:%M:%S')
-    logger = logging.getLogger(name="WPP_Whatsapp")
-    return logger
-
-
-Logger = defaultLogger()
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s',
+                    datefmt='%d-%b-%y %H:%M:%S')
+Logger = logging.getLogger(name="WPP_Whatsapp")
 
 defaultOptions = {
     "folderNameToken": r"E:\Projects\Python\_Libs_\tokens",
@@ -65,7 +59,7 @@ defaultOptions = {
     "deviceSyncTimeout": 180000,
     "createPathFileToken": True,
     "waitForLogin": True,
-    "logger": defaultLogger(),
+    "logger": Logger,
     "tokenStore": 'file',
     'whatsappVersion': '2.2326.x',
     'deviceName': False,
