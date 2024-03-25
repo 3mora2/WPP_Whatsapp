@@ -1,5 +1,5 @@
 from WPP_Whatsapp import Whatsapp
-from WPP_Whatsapp.PlaywrightSafeThread import ThreadsafeBrowser
+from WPP_Whatsapp import ThreadsafeBrowser
 
 session = "test"
 

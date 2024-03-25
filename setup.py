@@ -6,7 +6,7 @@ description = ("WPP_Whatsapp aim of exporting functions from WhatsApp Web to the
                "the creation of any interaction, such as customer service, media sending, intelligence recognition "
                "based on phrases artificial and many other things, use your imagination")
 
-version = "0.1.9.6"
+version = "0.2.0"
 
 setup(
     name="WPP_Whatsapp",
@@ -30,7 +30,7 @@ setup(
         "playwright-stealth",
         "node-semver",
         "aiohttp",
-        "PlaywrightSafeThread"
+        "PlaywrightSafeThread>=0.5.2.1"
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -41,7 +41,5 @@ setup(
         "Intended Audience :: Developers",
         "Programming Language :: Python",
         "Topic :: Software Development :: Libraries :: Python Modules",
-
     ],
-
 )

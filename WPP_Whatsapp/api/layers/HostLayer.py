@@ -10,7 +10,7 @@ from pathlib import Path
 from playwright.async_api import Page
 from WPP_Whatsapp.api.const import whatsappUrl, Logger
 from WPP_Whatsapp.api.helpers.function import asciiQr
-from WPP_Whatsapp.PlaywrightSafeThread import ThreadsafeBrowser
+from WPP_Whatsapp.controllers.browser import ThreadsafeBrowser
 from WPP_Whatsapp.api.helpers.jsFunction import setInterval
 from WPP_Whatsapp.api.helpers.wa_version import getPageContent
 
@@ -121,8 +121,8 @@ class HostLayer:
     ############################### initWhatsapp ####################################################
     async def initWhatsapp(self):
         # await page.setUserAgent(useragentOverride);
-        # self.logger.info(f'{self.session}: unregisterServiceWorker')
-        # await self.unregisterServiceWorker()
+        self.logger.info(f'{self.session}: unregisterServiceWorker')
+        await self.unregisterServiceWorker()
         if self.version:
             self.logger.info(f'{self.session}: Setting WhatsApp WEB version to {self.version}')
             await self.setWhatsappVersion(self.version)
@@ -135,6 +135,11 @@ class HostLayer:
     async def unregisterServiceWorker(self):
         try:
             await self.ThreadsafeBrowser.page_evaluate("""() => {
+                    setInterval(() => {
+                      window.onerror = console.error;
+                      window.onunhandledrejection = console.error;
+                    }, 500);
+                    
                     // Remove existent service worker
                     navigator.serviceWorker
                       .getRegistrations()
@@ -148,14 +153,9 @@ class HostLayer:
                     // Disable service worker registration
                     // @ts-ignore
                     navigator.serviceWorker.register = new Promise(() => {});
-                
-                    setInterval(() => {
-                      window.onerror = console.error;
-                      window.onunhandledrejection = console.error;
-                    }, 500);
                   }""")
         except:
-            Logger.exception("unregisterServiceWorker")
+            pass
 
     async def setWhatsappVersion(self, version):
         body = ""
@@ -364,7 +364,7 @@ class HostLayer:
             # TODO::
             self.ThreadsafeBrowser.sleep(.2)
 
-        self.ThreadsafeBrowser.sync_page_wait_for_function("() => WPP.isReady")
+        self.ThreadsafeBrowser.page_wait_for_function_sync("() => WPP.isReady")
 
     async def waitForPageLoad_(self):
         while not self.isInjected:
@@ -507,11 +507,11 @@ class HostLayer:
 
     def getHostDevice(self):
         """@returns Current host device details"""
-        return self.ThreadsafeBrowser.sync_page_evaluate("() => WAPI.getHost()")
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.getHost()")
 
     def getWid(self):
         """@returns Current wid connected"""
-        return self.ThreadsafeBrowser.sync_page_evaluate("() => WAPI.getWid()")
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.getWid()")
 
     async def getWAVersion(self):
         """Retrieves WA version"""
@@ -523,26 +523,26 @@ class HostLayer:
         return await self.ThreadsafeBrowser.page_evaluate("() => WPP.version")
 
     def getConnectionState(self):
-        return self.ThreadsafeBrowser.sync_page_evaluate("() => {return WPP.whatsapp.Socket.state;}")
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => {return WPP.whatsapp.Socket.state;}")
 
     def isConnected(self):
         """Retrieves if the phone is online. Please note that this may not be real time."""
-        return self.ThreadsafeBrowser.sync_page_evaluate("() => WAPI.isConnected()")
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.isConnected()")
 
     def isLoggedIn(self):
-        return self.ThreadsafeBrowser.sync_page_evaluate("() => WAPI.isLoggedIn()")
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.isLoggedIn()")
 
     def getBatteryLevel(self):
-        return self.ThreadsafeBrowser.sync_page_evaluate("() => WAPI.getBatteryLevel()")
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.getBatteryLevel()")
 
     def startPhoneWatchdog(self, interval=15000):
-        return self.ThreadsafeBrowser.sync_page_evaluate("(interval) => WAPI.startPhoneWatchdog(interval)", interval)
+        return self.ThreadsafeBrowser.page_evaluate_sync("(interval) => WAPI.startPhoneWatchdog(interval)", interval)
 
     def stopPhoneWatchdog(self):
-        return self.ThreadsafeBrowser.sync_page_evaluate("() => WAPI.stopPhoneWatchdog()")
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.stopPhoneWatchdog()")
 
     def isMultiDevice(self):
-        return self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.conn.isMultiDevice()")
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isMultiDevice()")
 
     async def isAuthenticated(self):
         try:
@@ -557,7 +557,7 @@ class HostLayer:
         try:
             if self.page.is_closed():
                 return False
-            return self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.conn.isRegistered()")
+            return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isRegistered()")
         except Exception as e:
             self.logger.debug(e)
             return False
@@ -613,7 +613,7 @@ class HostLayer:
         return result if result else False
 
     def sync_isInsideChat(self):
-        result = self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.conn.isMainReady()")
+        result = self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isMainReady()")
         return result if result else False
 
     async def inject_api(self):

@@ -1,42 +1,50 @@
 import asyncio
 
-from playwright.async_api import async_playwright, Playwright, BrowserContext, Page
+from PlaywrightSafeThread.browser.threadsafe_browser import ThreadsafeBrowser as Tb, BrowserName, SUPPORTED_BROWSERS, \
+    Logger
+from playwright.async_api import Error
 
-from WPP_Whatsapp.api.const import useragentOverride
 
+class ThreadsafeBrowser(Tb):
+    def __init__(
+            self,
+            no_context=False,
+            browser: BrowserName = "chromium",
+            stealthy: bool = False,
+            install: bool = False,
+            check_open_dir=True,
+            close_already_profile=True,
+            **kwargs
+    ) -> None:
+        super().__init__(no_context=no_context,
+                         browser=browser,
+                         stealthy=stealthy,
+                         install=install,
+                         check_open_dir=check_open_dir,
+                         close_already_profile=close_already_profile,
+                         **kwargs)
 
-class Browser:
-    session: str
-    playwright: "Playwright"
-    browser: "BrowserContext"
-    page: "Page"
+    def page_evaluate_sync(self, *args, timeout_=60, **kwargs, ):
+        try:
+            return super().page_evaluate_sync(*args, timeout_=60, **kwargs, )
+        except Error as error:
+            if "Execution context was destroyed, most likely because of a navigation" in error.message:
+                pass
+            elif "ReferenceError: WPP is not defined" in error.message:
+                pass
+            else:
+                raise error
 
-    def __init__(self, user_data_dir: str = "", headless: bool = False, *args, **kwargs):
-        self.user_data_dir = user_data_dir
-        self.loop = kwargs.get("loop")
-        if not self.loop:
-            raise Exception("Not Add Loop")
-        asyncio.set_event_loop(self.loop)
-        self.headless = headless
+    async def expose_function(self, *args, **kwargs, ):
+        return await super().expose_function(*args, **kwargs, )
 
-    async def initBrowser(self):
-        self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch_persistent_context(
-            self.user_data_dir, channel="chrome",
-            no_viewport=True,
-            headless=self.headless,
-            # args=chromiumArgs,
-            bypass_csp=True,
-            user_agent=useragentOverride
-        )
+    def sleep(self, val, timeout_=None):
+        try:
+            super().sleep(val, timeout_=timeout_)
+        except:
+            pass
 
-        self.page = self.browser.pages[0] if self.browser.pages else await self.browser.new_page()
-
-    async def page_evaluate(self, expression, arg=None):
-        return await self.page.evaluate(expression, arg)
-
-    async def page_wait_for_function(self, expression, arg=None, timeout=None, polling=None):
-        return await self.page.wait_for_function(expression, arg=arg, timeout=timeout, polling=polling)
-
-# if __name__ == '__main__':
-#     asyncio.run(Browser().initBrowser())
+    def run_threadsafe(self, func, *args, timeout_=120, **kwargs, ):
+        if not asyncio.iscoroutine(func):
+            func = func(*args, **kwargs)
+        return super().run_threadsafe(func, timeout_=timeout_)

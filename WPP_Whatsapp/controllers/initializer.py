@@ -2,8 +2,8 @@ import asyncio
 import os
 import types
 from typing import Optional
-from WPP_Whatsapp.PlaywrightSafeThread import SUPPORTED_BROWSERS
-from WPP_Whatsapp.PlaywrightSafeThread import ThreadsafeBrowser
+from WPP_Whatsapp.controllers.browser import SUPPORTED_BROWSERS
+from WPP_Whatsapp.controllers.browser import ThreadsafeBrowser
 from WPP_Whatsapp.api.Whatsapp import Whatsapp
 from WPP_Whatsapp.api.const import Logger
 
@@ -78,7 +78,7 @@ class Create:
     def _onStateChange(self, state):
         self.state = state
         if hasattr(self, "ThreadsafeBrowser") and not self.ThreadsafeBrowser.page.is_closed():
-            connected = self.ThreadsafeBrowser.sync_page_evaluate("() => WPP.conn.isRegistered()")
+            connected = self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isRegistered()")
             if not connected:
                 self.ThreadsafeBrowser.sleep(2)
                 if not self.waitLoginPromise:
