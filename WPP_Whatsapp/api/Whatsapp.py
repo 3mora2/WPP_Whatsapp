@@ -1,7 +1,4 @@
 import asyncio
-import threading
-import time
-
 from WPP_Whatsapp.api.helpers.jsFunction import setInterval
 from WPP_Whatsapp.api.layers.HostLayer import HostLayer
 from WPP_Whatsapp.api.const import defaultOptions, Logger
@@ -10,7 +7,7 @@ from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 
 
 class Whatsapp(BusinessLayer):
-    interval: threading.Event
+    interval: asyncio.Event
 
     def __init__(self, session, threadsafe_browser, version=None, **kwargs):
         self.connected = None
@@ -78,7 +75,7 @@ class Whatsapp(BusinessLayer):
     async def __intervalHandel(self):
         try:
             # Add window, when WPP not  create yet
-            newConnected = await self.ThreadsafeBrowser.page_evaluate("() => window.WPP && window.WPP.conn.isRegistered()")
+            newConnected = await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()")
         except:
             newConnected = None
 
@@ -94,7 +91,7 @@ class Whatsapp(BusinessLayer):
     async def afterPageScriptInjected(self):
         await self._afterPageScriptInjectedHost()
         await self._afterPageScriptInjectedListener()
-        is_authenticated = await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.isRegistered()")
+        is_authenticated = await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' &&  WPP.conn.isRegistered()")
         self.connected = is_authenticated
 
     def useHere(self, timeout=120):

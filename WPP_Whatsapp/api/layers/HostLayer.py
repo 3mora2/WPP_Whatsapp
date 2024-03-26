@@ -95,8 +95,8 @@ class HostLayer:
         version = await self.getWAJSVersion()
         self.logger.info(f'{self.session}: WA-JS version: {version}')
         try:
-            await self.ThreadsafeBrowser.page_evaluate("""() => {WPP.on('conn.auth_code_change', window.checkQrCode);}""")
-            await self.ThreadsafeBrowser.page_evaluate("""() => {WPP.on('conn.main_ready', window.checkInChat);}""")
+            await self.ThreadsafeBrowser.page_evaluate("() => {WPP.on('conn.auth_code_change', window.checkQrCode);}")
+            await self.ThreadsafeBrowser.page_evaluate("() => {WPP.on('conn.main_ready', window.checkInChat);}")
         except:
             Logger.exception("window.checkQrCode")
         await self.__checkQrCode()
@@ -548,7 +548,7 @@ class HostLayer:
         try:
             if self.page.is_closed():
                 return False
-            return await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.isRegistered()")
+            return await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' && WPP.conn.isRegistered()")
         except Exception as e:
             self.logger.debug(e)
             return False
@@ -557,7 +557,7 @@ class HostLayer:
         try:
             if self.page.is_closed():
                 return False
-            return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isRegistered()")
+            return self.ThreadsafeBrowser.page_evaluate_sync("() => typeof window.WPP !== 'undefined' && WPP.conn.isRegistered()")
         except Exception as e:
             self.logger.debug(e)
             return False
@@ -609,11 +609,11 @@ class HostLayer:
         return result
 
     async def isInsideChat(self):
-        result = await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.isMainReady()")
+        result = await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' && WPP.conn.isMainReady()")
         return result if result else False
 
     def sync_isInsideChat(self):
-        result = self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isMainReady()")
+        result = self.ThreadsafeBrowser.page_evaluate_sync("() => typeof window.WPP !== 'undefined' && window.WPP.conn.isMainReady()")
         return result if result else False
 
     async def inject_api(self):

@@ -1,4 +1,3 @@
-
 import os
 from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 from WPP_Whatsapp.api.helpers.download_file import downloadFileToBase64
@@ -130,8 +129,7 @@ class SenderLayer(ListenerLayer):
            * @category Chat
            */
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendListMessage_, to, options, timeout_=timeout)
+        return self.ThreadsafeBrowser.run_threadsafe(self.sendListMessage_(to, options), timeout_=timeout)
 
     def setChatState(self, chatId, chatState, timeout=60):
         """
@@ -465,10 +463,10 @@ class SenderLayer(ListenerLayer):
         sendResult = await self.ThreadsafeBrowser.page_evaluate(
             "({ to, options }) => WPP.chat.sendListMessage(to, options)",
             {"to": to, "options": options})
-        result = await self.ThreadsafeBrowser.page_evaluate("""async ({ messageId }) => {
-                        return JSON.parse(JSON.stringify(await WAPI.getMessageById(messageId)));
-                      }""", sendResult.get("id"))
-        return result
+        # result = await self.ThreadsafeBrowser.page_evaluate("""async ({ messageId }) => {
+        #                 return JSON.parse(JSON.stringify(await WAPI.getMessageById(messageId)));
+        #               }""", sendResult.get("id"))
+        return sendResult
 
     async def setChatState_(self, chatId, chatState):
         """
@@ -485,4 +483,3 @@ class SenderLayer(ListenerLayer):
         return await self.ThreadsafeBrowser.page_evaluate("""({ chatState, chatId }) => {
                 WAPI.sendChatstate(chatState, chatId);
               }""", {"chatState": chatState, "chatId": chatId})
-

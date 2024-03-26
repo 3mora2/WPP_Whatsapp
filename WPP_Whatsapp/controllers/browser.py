@@ -30,19 +30,22 @@ class ThreadsafeBrowser(Tb):
         except Error as error:
             if "Execution context was destroyed, most likely because of a navigation" in error.message:
                 pass
-            elif "ReferenceError: WPP is not defined" in error.message:
-                pass
+            # elif "ReferenceError: WPP is not defined" in error.message:
+            #     pass
             else:
                 raise error
 
     async def expose_function(self, *args, **kwargs, ):
+        # TODO:
         return await super().expose_function(*args, **kwargs, )
 
     def sleep(self, val, timeout_=None):
+        # TODO:: Change Loop
         try:
             super().sleep(val, timeout_=timeout_)
         except:
-            pass
+            Logger.exception("sleep")
+            Logger.info(self.loop.__dict__)
 
     def run_threadsafe(self, func, *args, timeout_=120, **kwargs, ):
         if not asyncio.iscoroutine(func):
