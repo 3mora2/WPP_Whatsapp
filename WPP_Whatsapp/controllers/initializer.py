@@ -5,7 +5,7 @@ from typing import Optional
 from WPP_Whatsapp.controllers.browser import SUPPORTED_BROWSERS
 from WPP_Whatsapp.controllers.browser import ThreadsafeBrowser
 from WPP_Whatsapp.api.Whatsapp import Whatsapp
-from WPP_Whatsapp.api.const import Logger
+from WPP_Whatsapp.api.const import Logger, useragentOverride
 
 
 class Create:
@@ -144,12 +144,13 @@ class Create:
         self.state = "STARTING"
         default = {
             "no_viewport": True, "bypass_csp": True, "headless": False,
-            "browser": "chromium", "install": True,
+            "browser": "chromium", "install": True, "user_agent": useragentOverride
         }
-
-        for key in default:
-            if key not in self.__kwargs:
-                self.__kwargs[key] = default[key]
+        default.update(self.__kwargs)
+        self.__kwargs = default
+        # for key in default:
+        #     if key not in self.__kwargs:
+        #         self.__kwargs[key] = default[key]
 
         # Use Default channel as chrome
         if self.__kwargs.get("browser") == "chrome" or self.__kwargs.get("browser") not in SUPPORTED_BROWSERS:

@@ -1,4 +1,11 @@
 import logging
+import os
+import tempfile
+
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s',
+                    datefmt='%d-%b-%y %H:%M:%S')
+Logger = logging.getLogger(name="WPP_Whatsapp")
+
 
 useragentOverride = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36'
 whatsappUrl = 'https://web.whatsapp.com'
@@ -39,12 +46,14 @@ chromiumArgs = [
     '--disable-dev-shm-usage',
 ]
 
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s',
-                    datefmt='%d-%b-%y %H:%M:%S')
-Logger = logging.getLogger(name="WPP_Whatsapp")
+
+TemporaryTokens = os.path.join(tempfile.gettempdir(), "Tokens")
+if not os.path.exists(TemporaryTokens):
+    os.mkdir(TemporaryTokens)
+
 
 defaultOptions = {
-    "folderNameToken": r"E:\Projects\Python\_Libs_\tokens",
+    "folderNameToken": TemporaryTokens,
     "headless": True,
     "devtools": False,
     "useChrome": True,
