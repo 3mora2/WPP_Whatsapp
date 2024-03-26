@@ -44,10 +44,9 @@ class ThreadsafeBrowser(Tb):
         try:
             super().sleep(val, timeout_=timeout_)
         except:
-            Logger.exception("sleep")
-            Logger.info(self.loop.__dict__)
+            pass
 
-    def run_threadsafe(self, func, *args, timeout_=120, **kwargs, ):
+    def run_threadsafe(self, func, *args, timeout_=120, **kwargs):
         if not asyncio.iscoroutine(func):
             func = func(*args, **kwargs)
         return super().run_threadsafe(func, timeout_=timeout_)

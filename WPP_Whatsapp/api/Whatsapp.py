@@ -9,7 +9,7 @@ from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 class Whatsapp(BusinessLayer):
     interval: asyncio.Event
 
-    def __init__(self, session, threadsafe_browser, version=None, **kwargs):
+    def __init__(self, session, threadsafe_browser, version=None, wa_js_version=None, **kwargs):
         self.connected = None
         self.options = {}
         self.options.update(defaultOptions)
@@ -19,6 +19,7 @@ class Whatsapp(BusinessLayer):
 
         # self.autoCloseInterval = None
         self.version = version
+        self.wa_js_version = wa_js_version
         self.autoCloseCalled = False
         self.isInitialized = False
         self.isInjected = False
@@ -75,7 +76,8 @@ class Whatsapp(BusinessLayer):
     async def __intervalHandel(self):
         try:
             # Add window, when WPP not  create yet
-            newConnected = await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()")
+            newConnected = await self.ThreadsafeBrowser.page_evaluate(
+                "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()")
         except:
             newConnected = None
 
@@ -91,7 +93,8 @@ class Whatsapp(BusinessLayer):
     async def afterPageScriptInjected(self):
         await self._afterPageScriptInjectedHost()
         await self._afterPageScriptInjectedListener()
-        is_authenticated = await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' &&  WPP.conn.isRegistered()")
+        is_authenticated = await self.ThreadsafeBrowser.page_evaluate(
+            "() => typeof window.WPP !== 'undefined' &&  WPP.conn.isRegistered()")
         self.connected = is_authenticated
 
     def useHere(self, timeout=120):

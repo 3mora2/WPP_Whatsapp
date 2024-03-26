@@ -12,7 +12,7 @@ from WPP_Whatsapp.api.const import whatsappUrl, Logger
 from WPP_Whatsapp.api.helpers.function import asciiQr
 from WPP_Whatsapp.controllers.browser import ThreadsafeBrowser
 from WPP_Whatsapp.api.helpers.jsFunction import setInterval
-from WPP_Whatsapp.api.helpers.wa_version import getPageContent
+from WPP_Whatsapp.api.helpers.wa_version import getPageContent, getWaJs
 
 
 class HostLayer:
@@ -39,6 +39,7 @@ class HostLayer:
     logQR: bool
     remain: int
     version: str
+    wa_js_version: str
 
     def __init__(self):
         self.__initialize()
@@ -639,8 +640,9 @@ class HostLayer:
             pass
         await asyncio.sleep(1)
         # TODO::
-        await self.ThreadsafeBrowser.add_script_tag(
-            url="https://github.com/wppconnect-team/wa-js/releases/download/nightly/wppconnect-wa.js")
+        # await self.ThreadsafeBrowser.add_script_tag(
+        #     url="https://github.com/wppconnect-team/wa-js/releases/download/nightly/wppconnect-wa.js")
+        await self.ThreadsafeBrowser.add_script_tag(** (await getWaJs(self.wa_js_version)))
         # await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP?.isReady")
         try:
             await self.ThreadsafeBrowser.page_evaluate("""() => {

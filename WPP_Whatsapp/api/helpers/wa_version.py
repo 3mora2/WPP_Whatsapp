@@ -1,3 +1,4 @@
+import asyncio
 import os
 from nodesemver import max_satisfying, _sorted, satisfies
 import requests
@@ -39,9 +40,37 @@ async def getPageContent(versionMatch=None, includePrerelease=True):
         if not max_version:
             raise ValueError(f"Version not available for {versionMatch}")
 
-        async with session.get(f"https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{max_version.raw}.html") as response:
+        async with session.get(
+                f"https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{max_version.raw}.html") as response:
             # Return the JSON content of the response using 'response.json()'
             if response.ok:
                 return await response.text()
 
+
+async def getWaJs(version=None):
+    nightly = "https://github.com/wppconnect-team/wa-js/releases/download/nightly/wppconnect-wa.js"
+    if version is None:
+        return {"url": nightly}
+
+    version = str(version)
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://api.github.com/repos/wppconnect-team/wa-js/releases") as response:
+            releases = await response.json()
+            tags = {
+                release.get("tag_name"): next(
+                    filter(lambda x: x.get("name") == "wppconnect-wa.js", release.get("assets", [])
+                           ), {}).get("browser_download_url")
+                for release in releases
+            }
+            nightly = tags.pop("nightly") if "nightly" in tags else nightly
+            if version == "nightly":
+                url = nightly
+            else:
+                max_version = max_satisfying(tags, version, include_prerelease=True)
+                if not max_version:
+                    max_version = max_satisfying(tags, "*", include_prerelease=True)
+                url = tags[max_version] if max_version else nightly
+    if not url:
+        url = nightly
+    return {"url": url}
 
