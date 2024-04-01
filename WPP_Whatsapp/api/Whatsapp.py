@@ -9,7 +9,7 @@ from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 class Whatsapp(BusinessLayer):
     interval: asyncio.Event
 
-    def __init__(self, session, threadsafe_browser, version=None, wa_js_version=None, **kwargs):
+    def __init__(self, session, threadsafe_browser, page, loop=None, version=None, wa_js_version=None, **kwargs):
         self.connected = None
         self.options = {}
         self.options.update(defaultOptions)
@@ -33,10 +33,12 @@ class Whatsapp(BusinessLayer):
         self.lastPercent = ""
         self.lastPercentMessage = ""
         self.session = session
-        self.page = threadsafe_browser.page
+
+        self.page = page
         self.browser = threadsafe_browser.browser
         self.ThreadsafeBrowser = threadsafe_browser
-        self.loop = threadsafe_browser.loop
+        self.loop = loop or self.ThreadsafeBrowser.loop
+
         self.logger = self.options.get("logger") or Logger
         self.logger.info(f'{self.session}: Initializing...')
         self.logQR = kwargs.get("logQR") or False
@@ -76,8 +78,9 @@ class Whatsapp(BusinessLayer):
     async def __intervalHandel(self):
         try:
             # Add window, when WPP not  create yet
-            newConnected = await self.ThreadsafeBrowser.page_evaluate(
-                "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()")
+            newConnected = await self.page_evaluate(
+                "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()"
+            )
         except:
             newConnected = None
 
@@ -93,7 +96,7 @@ class Whatsapp(BusinessLayer):
     async def afterPageScriptInjected(self):
         await self._afterPageScriptInjectedHost()
         await self._afterPageScriptInjectedListener()
-        is_authenticated = await self.ThreadsafeBrowser.page_evaluate(
+        is_authenticated = await self.page_evaluate(
             "() => typeof window.WPP !== 'undefined' &&  WPP.conn.isRegistered()")
         self.connected = is_authenticated
 
@@ -119,13 +122,13 @@ class Whatsapp(BusinessLayer):
 
     #############################
     async def useHere_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.takeOver()")
+        return await self.page_evaluate("() => WAPI.takeOver()")
 
     async def logout_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.logout()")
+        return await self.page_evaluate("() => WPP.conn.logout()")
 
     async def getMessageById_(self, messageId):
-        return await self.ThreadsafeBrowser.page_evaluate("(messageId) => WAPI.getMessageById(messageId)", messageId)
+        return await self.page_evaluate("(messageId) => WAPI.getMessageById(messageId)", messageId)
 
     async def getMessages_(self, chatId, params=None):
         """
@@ -136,9 +139,9 @@ class Whatsapp(BusinessLayer):
         if not params:
             params = {}
         chatId = self.valid_chatId(chatId)
-        return await self.ThreadsafeBrowser.page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
+        return await self.page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
                                                           {"chatId": chatId, "params": params})
 
     async def rejectCall_(self, callId):
-        return await self.ThreadsafeBrowser.page_evaluate(
+        return await self.page_evaluate(
             "({callId}) => WPP.call.rejectCall(callId)", callId)

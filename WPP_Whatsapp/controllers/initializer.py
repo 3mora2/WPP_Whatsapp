@@ -78,8 +78,9 @@ class Create:
 
     def _onStateChange(self, state):
         self.state = state
-        if hasattr(self, "ThreadsafeBrowser") and not self.ThreadsafeBrowser.page.is_closed():
-            connected = self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isRegistered()")
+        if hasattr(self, "ThreadsafeBrowser") and not self.client.page.is_closed():
+            # TODO::
+            connected = self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isRegistered()", page=self.client.page)
             if not connected:
                 self.ThreadsafeBrowser.sleep(2)
                 if not self.waitLoginPromise:
@@ -163,8 +164,11 @@ class Create:
         self.ThreadsafeBrowser.page.on("crash", self.close)
         self.ThreadsafeBrowser.browser.on("disconnected", lambda: self.statusFind('browserClose', self.session))
 
-        self.client = Whatsapp(self.session, self.ThreadsafeBrowser, logQR=self.logQR,
+        self.client = Whatsapp(self.session,
+                               threadsafe_browser=self.ThreadsafeBrowser, page=self.ThreadsafeBrowser.page,
+                               loop=self.loop, logQR=self.logQR,
                                autoClose=self.autoClose, version=self.version, wa_js_version=self.wa_js_version)
+
         self.client.catchQR = self.catchQR
         self.client.statusFind = self.statusFind
         self.client.onLoadingScreen = self.onLoadingScreen
@@ -201,8 +205,10 @@ class Create:
         self.ThreadsafeBrowser.page.on("crash", self.close)
         self.ThreadsafeBrowser.browser.on("disconnected", lambda: self.statusFind('browserClose', self.session))
 
-        self.client = Whatsapp(self.session, self.ThreadsafeBrowser, logQR=self.logQR,
-                               autoClose=self.autoClose, version=self.version)
+        self.client = Whatsapp(self.session,
+                               threadsafe_browser=self.ThreadsafeBrowser, page=self.ThreadsafeBrowser.page,
+                               loop=self.ThreadsafeBrowser.loop, logQR=self.logQR,
+                               autoClose=self.autoClose, version=self.version, wa_js_version=self.wa_js_version)
         self.client.catchQR = self.catchQR
         self.client.statusFind = self.statusFind
         self.client.onLoadingScreen = self.onLoadingScreen

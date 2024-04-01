@@ -107,7 +107,7 @@ class StatusLayer(LabelsLayer):
             error.code = 'invalid_image'
             raise error
 
-        return await self.ThreadsafeBrowser.page_evaluate(
+        return await self.page_evaluate(
             """({base64}) => WPP.status.sendImageStatus(base64);""",
             {"base64": base64}
         )
@@ -140,7 +140,7 @@ class StatusLayer(LabelsLayer):
             error.code = 'empty_file'
             raise error
 
-        return await self.ThreadsafeBrowser.page_evaluate(
+        return await self.page_evaluate(
             """({base64}) => WPP.status.sendVideoStatus(base64);""",
             {"base64": base64}
         )
@@ -158,7 +158,7 @@ class StatusLayer(LabelsLayer):
            * @param pathOrBase64 Path or base 64 image
            */
         """
-        return await self.ThreadsafeBrowser.page_evaluate(
+        return await self.page_evaluate(
             """({text, options}) => WPP.status.sendTextStatus(text, options);""",
             {"text": text, "options": options}
         )
@@ -175,7 +175,7 @@ class StatusLayer(LabelsLayer):
            * @param chatId Chat ID of contact
            * @param statusId ID of status msg
            */"""
-        return await self.ThreadsafeBrowser.page_evaluate(
+        return await self.page_evaluate(
             """({ chatId, statusId }) => WPP.status.sendReadStatus(chatId, statusId);""",
             {"chatId": chatId, "statusId": statusId}
         )

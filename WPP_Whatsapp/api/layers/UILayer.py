@@ -37,7 +37,7 @@ class UILayer(GroupLayer):
         @param chatId
         """
         chatId = self.valid_chatId(chatId)
-        return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.chat.openChatBottom(chatId)", chatId)
+        return await self.page_evaluate("(chatId) => WPP.chat.openChatBottom(chatId)", chatId)
 
     async def openChatAt_(self, chatId, messageId):
         """
@@ -47,7 +47,7 @@ class UILayer(GroupLayer):
         @param messageId Message id (For example: '06D3AB3D0EEB9D077A3F9A3EFF4DD030')
         """
         chatId = self.valid_chatId(chatId)
-        return await self.ThreadsafeBrowser.page_evaluate(
+        return await self.page_evaluate(
             "({chatId, messageId}) => WPP.chat.openChatAt(chatId, messageId)",
             {"chatId": chatId, "messageId": messageId})
 
@@ -56,4 +56,4 @@ class UILayer(GroupLayer):
         Return the current active chat
         @category UI
         """
-        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.chat.getActiveChat()")
+        return await self.page_evaluate("() => WPP.chat.getActiveChat()")

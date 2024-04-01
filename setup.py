@@ -30,7 +30,7 @@ setup(
         "playwright-stealth",
         "node-semver",
         "aiohttp",
-        "PlaywrightSafeThread>=0.5.2.1"
+        "PlaywrightSafeThread>=0.5.3"
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",

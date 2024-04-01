@@ -62,34 +62,34 @@ class ControlsLayer(UILayer):
     ######################################
     async def unblockContact_(self, contactId):
         contactId = self.valid_chatId(contactId)
-        await self.ThreadsafeBrowser.page_evaluate("(contactId) => WPP.blocklist.unblockContact(contactId)", contactId)
+        await self.page_evaluate("(contactId) => WPP.blocklist.unblockContact(contactId)", contactId)
         return True
 
     async def blockContact_(self, contactId):
         contactId = self.valid_chatId(contactId)
-        await self.ThreadsafeBrowser.page_evaluate("(contactId) => WPP.blocklist.blockContact(contactId)", contactId)
+        await self.page_evaluate("(contactId) => WPP.blocklist.blockContact(contactId)", contactId)
         return True
 
     async def markUnseenMessage_(self, contactId):
         contactId = self.valid_chatId(contactId)
-        await self.ThreadsafeBrowser.page_evaluate("(contactId) => WPP.chat.markIsUnread(contactId)", contactId)
+        await self.page_evaluate("(contactId) => WPP.chat.markIsUnread(contactId)", contactId)
 
     async def deleteChat_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        result = await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.chat.delete(chatId)", chatId)
+        result = await self.page_evaluate("(chatId) => WPP.chat.delete(chatId)", chatId)
         return result and result.get("status") == 200
 
     async def archiveChat_(self, chatId, option=True):
         chatId = self.valid_chatId(chatId)
-        return await self.ThreadsafeBrowser.page_evaluate("({ chatId, option }) => WPP.chat.archive(chatId, option)",
+        return await self.page_evaluate("({ chatId, option }) => WPP.chat.archive(chatId, option)",
                                                           {"chatId": chatId, "option": option})
 
     async def pinChat_(self, chatId, option, nonExistent=False):
         chatId = self.valid_chatId(chatId)
         if nonExistent:
-            await self.ThreadsafeBrowser.page_evaluate("({ chatId }) => WPP.chat.find(chatId)", chatId)
+            await self.page_evaluate("({ chatId }) => WPP.chat.find(chatId)", chatId)
 
-        return await self.ThreadsafeBrowser.page_evaluate("({ chatId, option }) => WPP.chat.pin(chatId, option)",
+        return await self.page_evaluate("({ chatId, option }) => WPP.chat.pin(chatId, option)",
                                                           {"chatId": chatId, "option": option})
 
     async def clearChat_(self, chatId: str, keepStarred=True):
@@ -103,7 +103,7 @@ class ControlsLayer(UILayer):
            */
         """
 
-        result = await self.ThreadsafeBrowser.page_evaluate(
+        result = await self.page_evaluate(
             "({ chatId, keepStarred }) => WPP.chat.clear(chatId, keepStarred)",
             {"chatId": chatId, "keepStarred": keepStarred})
 
@@ -120,7 +120,7 @@ class ControlsLayer(UILayer):
             Defaults to false.
            */
         """
-        await self.ThreadsafeBrowser.page_evaluate(
+        await self.page_evaluate(
             """({ chatId, messageId, onlyLocal, deleteMediaInDevice }) => WPP.chat.deleteMessage(
             chatId,messageId,deleteMediaInDevice,!onlyLocal
             )""",
@@ -131,11 +131,11 @@ class ControlsLayer(UILayer):
     async def editMessage_(self, msgId: str, newText: str, options=None):
         if options is None:
             options = {}
-        editResult = await self.ThreadsafeBrowser.page_evaluate(
+        editResult = await self.page_evaluate(
             "({ msgId, newText, options }) =>  WPP.chat.editMessage(msgId, newText, options)",
             {"msgId": msgId, "newText": newText, "options": options}
         )
-        result = await self.ThreadsafeBrowser.page_evaluate(
+        result = await self.page_evaluate(
             "async ({ messageId }) => { return JSON.parse(JSON.stringify(await WAPI.getMessageById(messageId)));}",
             {"messageId": editResult.get("id")}
         )
@@ -145,11 +145,11 @@ class ControlsLayer(UILayer):
         return result
 
     async def starMessage_(self, messagesId, star=True):
-        return await self.ThreadsafeBrowser.page_evaluate("({ messagesId, star }) => WAPI.starMessages(messagesId, star)",
+        return await self.page_evaluate("({ messagesId, star }) => WAPI.starMessages(messagesId, star)",
                                                    {"messagesId": messagesId, "star": star})
 
     async def setLimit_(self, key, value: bool | int):
-        return await self.ThreadsafeBrowser.page_evaluate(
+        return await self.page_evaluate(
             "({ key, value }) => WPP.conn.setLimit(key as any, value)",
             {"key": key, "value": value}
         )

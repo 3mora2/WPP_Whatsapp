@@ -45,7 +45,7 @@ class ProfileLayer(StatusLayer):
            */
         """
         chatId = self.valid_chatId(chatId)
-        return await self.ThreadsafeBrowser.page_evaluate("(id, time, type) => WAPI.sendMute(id, time, type)",
+        return await self.page_evaluate("(id, time, type) => WAPI.sendMute(id, time, type)",
                                                           {"id": chatId, "time": time, "type": type})
 
     async def setTheme_(self, type_):
@@ -54,7 +54,7 @@ class ProfileLayer(StatusLayer):
            * @category Host
            * @param string types "dark" or "light"
         """
-        return await self.ThreadsafeBrowser.page_evaluate("(type_) => WAPI.setTheme(type_)", type_)
+        return await self.page_evaluate("(type_) => WAPI.setTheme(type_)", type_)
 
     async def setProfileStatus_(self, status):
         """
@@ -64,7 +64,7 @@ class ProfileLayer(StatusLayer):
            * @param status
            */
         """
-        return await self.ThreadsafeBrowser.page_evaluate("""({ status }) => {
+        return await self.page_evaluate("""({ status }) => {
             WPP.profile.setMyStatus(status);
           }""", status)
 
@@ -87,7 +87,7 @@ class ProfileLayer(StatusLayer):
         #     return
 
     async def setProfileName_(self, name):
-        return await self.ThreadsafeBrowser.page_evaluate("({ name }) => {WAPI.setMyName(name);}", name)
+        return await self.page_evaluate("({ name }) => {WAPI.setMyName(name);}", name)
 
     async def removeMyProfilePicture_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.profile.removeMyProfilePicture()")
+        return await self.page_evaluate("() => WPP.profile.removeMyProfilePicture()")

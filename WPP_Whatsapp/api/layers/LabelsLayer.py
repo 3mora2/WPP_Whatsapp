@@ -45,7 +45,7 @@ class LabelsLayer(CatalogLayer):
            * @param options options of label
            */
         """
-        return await self.ThreadsafeBrowser.page_evaluate("""({ name, options }) => {
+        return await self.page_evaluate("""({ name, options }) => {
         WPP.labels.addNewLabel(name, options);
       }""", {"name": name, "options": options})
 
@@ -65,18 +65,18 @@ class LabelsLayer(CatalogLayer):
            * @param options options to remove or add
            */
         """
-        return await self.ThreadsafeBrowser.page_evaluate("""({ chatIds, options }) => {
+        return await self.page_evaluate("""({ chatIds, options }) => {
         WPP.labels.addOrRemoveLabels(chatIds, options);
       }""", {"chatIds": chatIds, "options": options})
 
     async def getAllLabels_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.labels.getAllLabels()")
+        return await self.page_evaluate("() => WPP.labels.getAllLabels()")
 
     async def getLabelById_(self, Id):
-        return await self.ThreadsafeBrowser.page_evaluate("""({ id }) => {WPP.labels.getLabelById(id); }""", {"id": Id})
+        return await self.page_evaluate("""({ id }) => {WPP.labels.getLabelById(id); }""", {"id": Id})
 
     async def deleteAllLabels_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("""() => {WPP.labels.deleteAllLabels();}""")
+        return await self.page_evaluate("""() => {WPP.labels.deleteAllLabels();}""")
 
     async def deleteLabel_(self, Id):
-        return await self.ThreadsafeBrowser.page_evaluate("""({ id }) => {WPP.labels.deleteLabel(id); }""", {"id": Id})
+        return await self.page_evaluate("""({ id }) => {WPP.labels.deleteLabel(id); }""", {"id": Id})

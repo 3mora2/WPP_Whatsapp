@@ -150,7 +150,7 @@ class SenderLayer(ListenerLayer):
     async def sendLinkPreview_(self, chatId, url, text=''):
         message = text if url in text else f"{text}\n{url}"
         chatId = self.valid_chatId(chatId)
-        result = await self.ThreadsafeBrowser.page_evaluate("""({ chatId, message }) => {
+        result = await self.page_evaluate("""({ chatId, message }) => {
                     return WPP.chat.sendTextMessage(chatId, message, { linkPreview: true });
                     }""", {"chatId": chatId, "message": message})
         return result
@@ -159,7 +159,7 @@ class SenderLayer(ListenerLayer):
         if not options:
             options = {}
         to = self.valid_chatId(to)
-        send_result = await self.ThreadsafeBrowser.page_evaluate("""({ to, content, options }) =>
+        send_result = await self.page_evaluate("""({ to, content, options }) =>
                             WPP.chat.sendTextMessage(to, content, {
                               ...options,
                               waitForAck: true,
@@ -171,10 +171,10 @@ class SenderLayer(ListenerLayer):
     async def sendMessageOptions_(self, chat, content, options=None):
         if not options:
             options = {}
-        message_id = await self.ThreadsafeBrowser.page_evaluate("""({ chat, content, options }) => {
+        message_id = await self.page_evaluate("""({ chat, content, options }) => {
         return WAPI.sendMessageOptions(chat, content, options);
       }""", {"chat": chat, "content": content, "options": options})
-        result = await self.ThreadsafeBrowser.page_evaluate("""(messageId) => WAPI.getMessageById(messageId)""",
+        result = await self.page_evaluate("""(messageId) => WAPI.getMessageById(messageId)""",
                                                             message_id)
         return result
 
@@ -196,7 +196,7 @@ class SenderLayer(ListenerLayer):
             raise Exception('Not an image, allowed formats png, jpeg and webp')
 
         # filename = filenameFromMimeType(filename, mimeType)
-        result = await self.ThreadsafeBrowser.page_evaluate("""async ({
+        result = await self.page_evaluate("""async ({
         to,
         base64,
         filename,
@@ -233,10 +233,10 @@ class SenderLayer(ListenerLayer):
            client.reply('<number>@c.us', 'A simple message', '<message-id>')
         """
         to = self.valid_chatId(to)
-        result = await self.ThreadsafeBrowser.page_evaluate("""({ to, content, quotedMsg }) => {
+        result = await self.page_evaluate("""({ to, content, quotedMsg }) => {
                                     return WPP.chat.sendTextMessage(to, content, { quotedMsg });
                                   }""", {"to": to, "content": content, "quotedMsg": quotedMsg})
-        # message = await self.ThreadsafeBrowser.page_evaluate()("(messageId) => WAPI.getMessageById(messageId)", result.get("id"))
+        # message = await self.page_evaluate()("(messageId) => WAPI.getMessageById(messageId)", result.get("id"))
         return result
 
     async def sendFile_(self, to, pathOrBase64, nameOrOptions, caption):
@@ -261,7 +261,7 @@ class SenderLayer(ListenerLayer):
         if not _base64:
             raise Exception("Empty or invalid file or base64")
 
-        return await self.ThreadsafeBrowser.page_evaluate("""async ({ to, base64, options }) => {
+        return await self.page_evaluate("""async ({ to, base64, options }) => {
         const result = await WPP.chat.sendFileMessage(to, base64, options);
         return {
           ack: result.ack,
@@ -306,7 +306,7 @@ class SenderLayer(ListenerLayer):
            */
         """
 
-        result = await self.ThreadsafeBrowser.page_evaluate(
+        result = await self.page_evaluate(
             """
             async ({ to, base64, filename, caption, quotedMessageId }) => {
                 const result = await WPP.chat.sendFileMessage(to, base64, {
@@ -378,7 +378,7 @@ class SenderLayer(ListenerLayer):
            */
         """
         to = self.valid_chatId(to)
-        return await self.ThreadsafeBrowser.page_evaluate("""({ to, contactsId, name }) => {
+        return await self.page_evaluate("""({ to, contactsId, name }) => {
         return WPP.chat.sendVCardContactMessage(to, {
           id: contactsId,
           name: name,
@@ -387,7 +387,7 @@ class SenderLayer(ListenerLayer):
 
     async def forwardMessages_(self, to, messages, skipMyMessages):
         to = self.valid_chatId(to)
-        return await self.ThreadsafeBrowser.page_evaluate("""({ to, messages, skipMyMessages }) =>
+        return await self.page_evaluate("""({ to, messages, skipMyMessages }) =>
         WAPI.forwardMessages(to, messages, skipMyMessages)""",
                                                           {"to": to, "messages": messages,
                                                            "skipMyMessages": skipMyMessages})
@@ -399,7 +399,7 @@ class SenderLayer(ListenerLayer):
             "lng": options.get("longitude"),
             "title": options.get("title"),
         }
-        return await self.ThreadsafeBrowser.page_evaluate("""async ({ to, options }) => {
+        return await self.page_evaluate("""async ({ to, options }) => {
         const result = await WPP.chat.sendLocationMessage(to, options);
 
         return {
@@ -411,20 +411,20 @@ class SenderLayer(ListenerLayer):
 
     async def sendSeen_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.chat.markIsRead(chatId)", chatId)
+        return await self.page_evaluate("(chatId) => WPP.chat.markIsRead(chatId)", chatId)
 
     async def startTyping_(self, to, duration=None):
         to = self.valid_chatId(to)
-        return await self.ThreadsafeBrowser.page_evaluate(
+        return await self.page_evaluate(
             "({ to, duration }) => WPP.chat.markIsComposing(to, duration)",
             {"to": to, "duration": duration})
 
     async def stopTyping_(self, to):
         to = self.valid_chatId(to)
-        return await self.ThreadsafeBrowser.page_evaluate("(to) => WPP.chat.markIsPaused(to)", to)
+        return await self.page_evaluate("(to) => WPP.chat.markIsPaused(to)", to)
 
     async def setOnlinePresence_(self, online=True):
-        return await self.ThreadsafeBrowser.page_evaluate("(online) => WPP.conn.markAvailable(online)", online)
+        return await self.page_evaluate("(online) => WPP.conn.markAvailable(online)", online)
 
     async def sendListMessage_(self, to, options):
         to = self.valid_chatId(to)
@@ -460,10 +460,10 @@ class SenderLayer(ListenerLayer):
            * @category Chat
            */
         """
-        sendResult = await self.ThreadsafeBrowser.page_evaluate(
+        sendResult = await self.page_evaluate(
             "({ to, options }) => WPP.chat.sendListMessage(to, options)",
             {"to": to, "options": options})
-        # result = await self.ThreadsafeBrowser.page_evaluate("""async ({ messageId }) => {
+        # result = await self.page_evaluate("""async ({ messageId }) => {
         #                 return JSON.parse(JSON.stringify(await WAPI.getMessageById(messageId)));
         #               }""", sendResult.get("id"))
         return sendResult
@@ -480,6 +480,6 @@ class SenderLayer(ListenerLayer):
            */
         """
         chatId = self.valid_chatId(chatId)
-        return await self.ThreadsafeBrowser.page_evaluate("""({ chatState, chatId }) => {
+        return await self.page_evaluate("""({ chatState, chatId }) => {
                 WAPI.sendChatstate(chatState, chatId);
               }""", {"chatState": chatState, "chatId": chatId})
