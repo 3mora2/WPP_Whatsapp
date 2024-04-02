@@ -4,7 +4,6 @@ import base64 as base64_model
 import mimetypes
 import os
 import re
-import threading
 from datetime import datetime
 from pathlib import Path
 from playwright.async_api import Page
@@ -21,7 +20,7 @@ class HostLayer:
     logger: logging
     ThreadsafeBrowser: "ThreadsafeBrowser"
     options: dict
-    autoCloseInterval: threading.Event
+    autoCloseInterval: asyncio.Event
     autoCloseCalled: bool
     isInitialized: bool
     isInjected: bool
@@ -35,7 +34,7 @@ class HostLayer:
     lastPercentMessage: str
     session: str
     autoClose: int
-    checkStartInterval: threading.Event
+    checkStartInterval: asyncio.Event
     logQR: bool
     remain: int
     version: str
@@ -132,7 +131,7 @@ class HostLayer:
         self.logger.info(f'{self.session}: setInterval__checkStart')
         self.checkStartInterval = setInterval(self.loop, self.__checkStart, 10)
         # self.page.on('close', lambda: self.clearInterval(self.checkStartInterval))
-        return True
+        # return True
 
     ############################### initWhatsapp ####################################################
     async def initWhatsapp(self):

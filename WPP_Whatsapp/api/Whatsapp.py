@@ -35,7 +35,6 @@ class Whatsapp(BusinessLayer):
         self.session = session
 
         self.page = page
-        self.browser = threadsafe_browser.browser
         self.ThreadsafeBrowser = threadsafe_browser
         self.loop = loop or self.ThreadsafeBrowser.loop
 
