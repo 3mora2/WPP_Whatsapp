@@ -106,10 +106,10 @@ class RetrieverLayer(SenderLayer):
     async def getSessionTokenBrowser_(self, removePath):
         # @returns obj [token]
         if removePath:
-            await self.page_evaluate("() => {window['pathSession'] = true;}")
+            await self.ThreadsafeBrowser.page_evaluate("() => {window['pathSession'] = true;}", page=self.page)
 
         if self.isMultiDevice():
-            return await self.page_evaluate("""() => {
+            return await self.ThreadsafeBrowser.page_evaluate("""() => {
           if (window.localStorage) {
             return {
               WABrowserId:
@@ -120,8 +120,8 @@ class RetrieverLayer(SenderLayer):
             };
           }
           return null;
-        }""")
-        return await self.page_evaluate("""() => {
+        }""", page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("""() => {
         if (window.localStorage) {
           return {
             WABrowserId: window.localStorage.getItem('WABrowserId'),
@@ -131,32 +131,32 @@ class RetrieverLayer(SenderLayer):
           };
         }
         return null;
-      }""")
+      }""", page=self.page)
 
     async def getTheme_(self):
         # @returns string light or dark
-        return await self.page_evaluate("() => WAPI.getTheme()")
+        return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getTheme()", page=self.page)
 
     async def getAllChats_(self, withNewMessageOnly=False):
         # @returns array of [Chat]
         if withNewMessageOnly:
-            return await self.page_evaluate("() => WAPI.getAllChatsWithNewMsg()")
+            return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getAllChatsWithNewMsg()", page=self.page)
 
-        return await self.page_evaluate("() => WAPI.getAllChats()")
+        return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getAllChats()", page=self.page)
 
     async def checkNumberStatus_(self, contactId):
         # @returns contact detial as promise
         contactId = self.valid_chatId(contactId)
-        return await self.page_evaluate("(contactId) => WAPI.checkNumberStatus(contactId)", contactId)
+        return await self.ThreadsafeBrowser.page_evaluate("(contactId) => WAPI.checkNumberStatus(contactId)", contactId, page=self.page)
 
     async def getAllChatsWithMessages_(self, withNewMessageOnly=False):
         # @returns array of [Chat]
-        return await self.page_evaluate("""(withNewMessageOnly: boolean) =>
-        WAPI.getAllChatsWithMessages(withNewMessageOnly)""", withNewMessageOnly)
+        return await self.ThreadsafeBrowser.page_evaluate("""(withNewMessageOnly: boolean) =>
+        WAPI.getAllChatsWithMessages(withNewMessageOnly)""", withNewMessageOnly, page=self.page)
 
     async def getAllGroups_(self, withNewMessagesOnly):
         # @returns array of groups
-        return await self.page_evaluate("""async ({ withNewMessagesOnly }) => {
+        return await self.ThreadsafeBrowser.page_evaluate("""async ({ withNewMessagesOnly }) => {
         const chats = await WPP.chat.list({
           onlyGroups: true,
           onlyWithUnreadMessage: withNewMessagesOnly,
@@ -167,11 +167,11 @@ class RetrieverLayer(SenderLayer):
         );
 
         return groups.map((g) => WAPI._serializeChatObj(g));
-      }""", withNewMessagesOnly)
+      }""", withNewMessagesOnly, page=self.page)
 
     async def getAllBroadcastList_(self):
         # @returns array of broadcast list
-        chats = await self.page_evaluate("""() => WAPI.getAllChats()""")
+        chats = await self.ThreadsafeBrowser.page_evaluate("""() => WAPI.getAllChats()""", page=self.page)
         if chats:
             return list(
                 filter(lambda x: x.get("isBroadcast") and x.get("id").get("_serialized") != 'status@broadcast', chats))
@@ -179,15 +179,15 @@ class RetrieverLayer(SenderLayer):
     async def getContact_(self, contactId):
         # @returns contact detial as promise
         contactId = self.valid_chatId(contactId)
-        return await self.page_evaluate("(contactId) => WAPI.getContact(contactId)", contactId)
+        return await self.ThreadsafeBrowser.page_evaluate("(contactId) => WAPI.getContact(contactId)", contactId, page=self.page)
 
     async def getAllContacts_(self):
         # @returns array of [Contact]
-        return await self.page_evaluate("() => WAPI.getAllContacts()")
+        return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getAllContacts()", page=self.page)
 
     async def getChatById_(self, contactId):
         contactId = self.valid_chatId(contactId)
-        return await self.page_evaluate("(contactId) => WAPI.getChatById(contactId)", contactId)
+        return await self.ThreadsafeBrowser.page_evaluate("(contactId) => WAPI.getChatById(contactId)", contactId, page=self.page)
 
     async def getChat_(self, contactId):
         contactId = self.valid_chatId(contactId)
@@ -196,40 +196,40 @@ class RetrieverLayer(SenderLayer):
     async def getProfilePicFromServer_(self, chatId):
         # @returns url of the chat picture or unasync defined if there is no picture for the chat.
         chatId = self.valid_chatId(chatId)
-        return await self.page_evaluate("(chatId) => WAPI._profilePicfunc(chatId)", chatId)
+        return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WAPI._profilePicfunc(chatId)", chatId, page=self.page)
 
     async def loadEarlierMessages_(self, contactId):
         contactId = self.valid_chatId(contactId)
-        return await self.page_evaluate("(contactId) => WAPI.loadEarlierMessages(contactId)",
-                                                          contactId)
+        return await self.ThreadsafeBrowser.page_evaluate("(contactId) => WAPI.loadEarlierMessages(contactId)",
+                                                          contactId, page=self.page)
 
     async def getStatus_(self, contactId):
         contactId = self.valid_chatId(contactId)
-        return await self.page_evaluate("""async (contactId) => {
+        return await self.ThreadsafeBrowser.page_evaluate("""async (contactId) => {
                                         const status = await WPP.contact.getStatus(contactId);
                                 
                                         return {
                                           id: contactId,
                                           status: (status as any)?.status || status,
                                         };
-                                      }""", contactId)
+                                      }""", contactId, page=self.page)
 
     async def getNumberProfile_(self, contactId):
         contactId = self.valid_chatId(contactId)
-        return await self.page_evaluate("(contactId) => WAPI.getNumberProfile(contactId)", contactId)
+        return await self.ThreadsafeBrowser.page_evaluate("(contactId) => WAPI.getNumberProfile(contactId)", contactId, page=self.page)
 
     async def getUnreadMessages_(self, includeMe, includeNotifications, useUnreadCount):
-        return await self.page_evaluate(
+        return await self.ThreadsafeBrowser.page_evaluate(
             """({ includeMe, includeNotifications, useUnreadCount }) =>
         WAPI.getUnreadMessages(includeMe, includeNotifications, useUnreadCount)""",
-            {"includeMe": includeMe, "includeNotifications": includeNotifications, "useUnreadCount": useUnreadCount})
+            {"includeMe": includeMe, "includeNotifications": includeNotifications, "useUnreadCount": useUnreadCount}, page=self.page)
 
     async def getAllUnreadMessages_(self):
-        return await self.page_evaluate("() => WAPI.getAllUnreadMessages()")
+        return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getAllUnreadMessages()", page=self.page)
 
     async def getAllNewMessages_(self):
         # @deprecated Use getAllUnreadMessages
-        return await self.page_evaluate("() => WAPI.getAllNewMessages()")
+        return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getAllNewMessages()", page=self.page)
 
     async def getAllMessagesInChat_(self, chatId, includeMe=False, includeNotifications=False):
         chatId = self.valid_chatId(chatId)
@@ -237,28 +237,28 @@ class RetrieverLayer(SenderLayer):
         * Retrieves all messages already loaded in a chat
         * For loading every message use loadAndGetAllMessagesInChat
         """
-        return await self.page_evaluate("""({ chatId, includeMe, includeNotifications }) =>
+        return await self.ThreadsafeBrowser.page_evaluate("""({ chatId, includeMe, includeNotifications }) =>
         WAPI.getAllMessagesInChat(chatId, includeMe, includeNotifications)""",
                                                           {"chatId": chatId, "includeMe": includeMe,
-                                                           "includeNotifications": includeNotifications})
+                                                           "includeNotifications": includeNotifications}, page=self.page)
 
     async def loadAndGetAllMessagesInChat_(self, chatId, includeMe=False, includeNotifications=False):
         chatId = self.valid_chatId(chatId)
         """
         * Loads and Retrieves all Messages in a chat
         """
-        return await self.page_evaluate("""({ chatId, includeMe, includeNotifications }) =>
+        return await self.ThreadsafeBrowser.page_evaluate("""({ chatId, includeMe, includeNotifications }) =>
         WAPI.loadAndGetAllMessagesInChat(chatId, includeMe, includeNotifications)""",
                                                           {"chatId": chatId, "includeMe": includeMe,
-                                                           "includeNotifications": includeNotifications})
+                                                           "includeNotifications": includeNotifications}, page=self.page)
 
     async def getChatIsOnline_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        return await self.page_evaluate("(chatId) => WAPI.getChatIsOnline(chatId)", chatId)
+        return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WAPI.getChatIsOnline(chatId)", chatId, page=self.page)
 
     async def getLastSeen_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        return await self.page_evaluate("(chatId) => WAPI.getLastSeen(chatId)", chatId)
+        return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WAPI.getLastSeen(chatId)", chatId, page=self.page)
 
     async def getPlatformFromMessage_(self, msgId):
         """
@@ -269,10 +269,10 @@ class RetrieverLayer(SenderLayer):
             * web
             * unknown
         """
-        return await self.page_evaluate("(msgId) => WPP.chat.getPlatformFromMessage(msgId)", msgId)
+        return await self.ThreadsafeBrowser.page_evaluate("(msgId) => WPP.chat.getPlatformFromMessage(msgId)", msgId, page=self.page)
 
     async def getReactions_(self, msgId):
-        return await self.page_evaluate("(msgId) => WPP.chat.getReactions(msgId)", msgId)
+        return await self.ThreadsafeBrowser.page_evaluate("(msgId) => WPP.chat.getReactions(msgId)", msgId, page=self.page)
 
     async def getVotes_(self, msgId):
-        return await self.page_evaluate("(msgId) => WPP.chat.getVotes(msgId)", msgId)
+        return await self.ThreadsafeBrowser.page_evaluate("(msgId) => WPP.chat.getVotes(msgId)", msgId, page=self.page)

@@ -66,13 +66,13 @@ class ListenerLayer(ProfileLayer):
         ]
 
         for func in functions:
-            has = await self.page_evaluate("(func) => typeof window[func] === 'function'", func)
+            has = await self.ThreadsafeBrowser.page_evaluate("(func) => typeof window[func] === 'function'", func, page=self.page)
             if not has:
                 self.logger.debug(f'{self.session}: Exposing {func} function')
                 handel_func = HandelFunc(func, self.session, self.logger, self.__listenerEmitter).handel_func
-                await self.expose_function(func, handel_func)
+                await self.ThreadsafeBrowser.expose_function(func, handel_func, page=self.page)
 
-        await self.page_evaluate("""() => {
+        await self.ThreadsafeBrowser.page_evaluate("""() => {
         try {
           if (!window['onMessage'].exposed) {
             WPP.on('chat.new_message', (msg) => {
@@ -241,7 +241,7 @@ class ListenerLayer(ProfileLayer):
           console.error(error);
         }
         */
-      }""")
+      }""", page=self.page)
 
     def __registerEvent(self, event, listener):
         """
@@ -342,10 +342,10 @@ class ListenerLayer(ProfileLayer):
            * @returns number of subscribed
            */
         """
-        await self.page_evaluate("(id) => WAPI.subscribePresence(id)", id_)
+        await self.ThreadsafeBrowser.page_evaluate("(id) => WAPI.subscribePresence(id)", id_, page=self.page)
 
     async def unsubscribePresence(self, id_):
-        await self.page_evaluate("(id) => WAPI.unsubscribePresence(id)", id_)
+        await self.ThreadsafeBrowser.page_evaluate("(id) => WAPI.unsubscribePresence(id)", id_, page=self.page)
 
     def onRevokedMessage(self, callback):
         """ """

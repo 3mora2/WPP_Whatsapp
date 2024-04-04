@@ -77,8 +77,8 @@ class Whatsapp(BusinessLayer):
     async def __intervalHandel(self):
         try:
             # Add window, when WPP not  create yet
-            newConnected = await self.page_evaluate(
-                "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()"
+            newConnected = await self.ThreadsafeBrowser.page_evaluate(
+                "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page
             )
         except:
             newConnected = None
@@ -95,8 +95,8 @@ class Whatsapp(BusinessLayer):
     async def afterPageScriptInjected(self):
         await self._afterPageScriptInjectedHost()
         await self._afterPageScriptInjectedListener()
-        is_authenticated = await self.page_evaluate(
-            "() => typeof window.WPP !== 'undefined' &&  WPP.conn.isRegistered()")
+        is_authenticated = await self.ThreadsafeBrowser.page_evaluate(
+            "() => typeof window.WPP !== 'undefined' &&  WPP.conn.isRegistered()", page=self.page)
         self.connected = is_authenticated
 
     def useHere(self, timeout=120):
@@ -121,13 +121,13 @@ class Whatsapp(BusinessLayer):
 
     #############################
     async def useHere_(self):
-        return await self.page_evaluate("() => WAPI.takeOver()")
+        return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.takeOver()", page=self.page)
 
     async def logout_(self):
-        return await self.page_evaluate("() => WPP.conn.logout()")
+        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.logout()", page=self.page)
 
     async def getMessageById_(self, messageId):
-        return await self.page_evaluate("(messageId) => WAPI.getMessageById(messageId)", messageId)
+        return await self.ThreadsafeBrowser.page_evaluate("(messageId) => WAPI.getMessageById(messageId)", messageId, page=self.page)
 
     async def getMessages_(self, chatId, params=None):
         """
@@ -138,9 +138,9 @@ class Whatsapp(BusinessLayer):
         if not params:
             params = {}
         chatId = self.valid_chatId(chatId)
-        return await self.page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
-                                                          {"chatId": chatId, "params": params})
+        return await self.ThreadsafeBrowser.page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
+                                                          {"chatId": chatId, "params": params}, page=self.page)
 
     async def rejectCall_(self, callId):
-        return await self.page_evaluate(
-            "({callId}) => WPP.call.rejectCall(callId)", callId)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({callId}) => WPP.call.rejectCall(callId)", callId, page=self.page)

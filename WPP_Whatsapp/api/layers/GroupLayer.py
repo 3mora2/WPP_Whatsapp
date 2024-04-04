@@ -38,12 +38,12 @@ class GroupLayer(RetrieverLayer):
     ##################################################################################
     async def leaveGroup_(self, groupId):
         groupId = self.valid_chatId(groupId)
-        return await self.page_evaluate("(groupId) => WPP.group.leave(groupId)", groupId)
+        return await self.ThreadsafeBrowser.page_evaluate("(groupId) => WPP.group.leave(groupId)", groupId, page=self.page)
 
     async def getGroupMembersIds_(self, groupId):
         groupId = self.valid_chatId(groupId)
-        return await self.page_evaluate("""(groupId) => Promise.resolve(WPP.group.getParticipants(groupId)).then(
-          (participants) => participants.map((p) => p.id))""", groupId)
+        return await self.ThreadsafeBrowser.page_evaluate("""(groupId) => Promise.resolve(WPP.group.getParticipants(groupId)).then(
+          (participants) => participants.map((p) => p.id))""", groupId, page=self.page)
 
     async def getGroupMembers_(self, groupId):
         groupId = self.valid_chatId(groupId)
@@ -52,13 +52,13 @@ class GroupLayer(RetrieverLayer):
 
     async def getGroupInviteLink_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        code = await self.page_evaluate("(chatId) => WPP.group.getInviteCode(chatId)", chatId)
+        code = await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.group.getInviteCode(chatId)", chatId, page=self.page)
 
         return f"https://chat.whatsapp.com/{code}" if code else None
 
     async def revokeGroupInviteLink_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        code = await self.page_evaluate("(chatId) => WPP.group.revokeInviteCode(chatId)", chatId)
+        code = await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.group.revokeInviteCode(chatId)", chatId, page=self.page)
 
         return f"https://chat.whatsapp.com/{code}" if code else None
 
@@ -67,29 +67,29 @@ class GroupLayer(RetrieverLayer):
         invite_code = invite_code.replace('invite/', '')
         invite_code = invite_code.replace('https://', '')
         invite_code = invite_code.replace('http://', '')
-        return await self.page_evaluate("(inviteCode) => WPP.group.getGroupInfoFromInviteCode(inviteCode)", invite_code)
+        return await self.ThreadsafeBrowser.page_evaluate("(inviteCode) => WPP.group.getGroupInfoFromInviteCode(inviteCode)", invite_code, page=self.page)
 
     async def createGroup_(self, groupName, contacts=[]):
-        return await self.page_evaluate("({ groupName, contacts }) => WPP.group.create(groupName, contacts)",
-                                        {"groupName": groupName, "contacts": contacts})
+        return await self.ThreadsafeBrowser.page_evaluate("({ groupName, contacts }) => WPP.group.create(groupName, contacts)",
+                                        {"groupName": groupName, "contacts": contacts}, page=self.page)
 
     async def removeParticipant_(self, groupId, participantId):
         groupId = self.valid_chatId(groupId)
-        await self.page_evaluate("""({ groupId, participantId }) =>
-        WPP.group.removeParticipants(groupId, participantId)""", {"groupId": groupId, "participantId": participantId})
+        await self.ThreadsafeBrowser.page_evaluate("""({ groupId, participantId }) =>
+        WPP.group.removeParticipants(groupId, participantId)""", {"groupId": groupId, "participantId": participantId}, page=self.page)
         return True
 
     async def addParticipant_(self, groupId, participantId):
         groupId = self.valid_chatId(groupId)
-        return await self.page_evaluate("""({ groupId, participantId }) =>
-        WPP.group.addParticipants(groupId, participantId)""", {"groupId": groupId, "participantId": participantId})
+        return await self.ThreadsafeBrowser.page_evaluate("""({ groupId, participantId }) =>
+        WPP.group.addParticipants(groupId, participantId)""", {"groupId": groupId, "participantId": participantId}, page=self.page)
 
     async def getGroupAdmins_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        participants = await self.page_evaluate("""(chatId) =>
+        participants = await self.ThreadsafeBrowser.page_evaluate("""(chatId) =>
         Promise.resolve(WPP.group.getParticipants(chatId)).then(
           (participants) => participants.map((p) => p.toJSON())
-        )""", chatId)
+        )""", chatId, page=self.page)
         # return [participant for participant in participants if participant.get("isAdmin")]
         return [participant.get("id") for participant in participants if participant.get("isAdmin")]
 
@@ -98,4 +98,4 @@ class GroupLayer(RetrieverLayer):
         invite_code = invite_code.replace('invite/', '')
         invite_code = invite_code.replace('https://', '')
         invite_code = invite_code.replace('http://', '')
-        return await self.page_evaluate("(inviteCode) => WPP.group.joinGroup(inviteCode)", invite_code)
+        return await self.ThreadsafeBrowser.page_evaluate("(inviteCode) => WPP.group.joinGroup(inviteCode)", invite_code, page=self.page)

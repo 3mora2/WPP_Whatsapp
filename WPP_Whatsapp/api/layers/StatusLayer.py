@@ -107,9 +107,9 @@ class StatusLayer(LabelsLayer):
             error.code = 'invalid_image'
             raise error
 
-        return await self.page_evaluate(
+        return await self.ThreadsafeBrowser.page_evaluate(
             """({base64}) => WPP.status.sendImageStatus(base64);""",
-            {"base64": base64}
+            {"base64": base64}, page=self.page
         )
 
     async def sendVideoStatus_(self, pathOrBase64: str):
@@ -140,9 +140,9 @@ class StatusLayer(LabelsLayer):
             error.code = 'empty_file'
             raise error
 
-        return await self.page_evaluate(
+        return await self.ThreadsafeBrowser.page_evaluate(
             """({base64}) => WPP.status.sendVideoStatus(base64);""",
-            {"base64": base64}
+            {"base64": base64}, page=self.page
         )
 
     async def sendTextStatus_(self, text: str, options: str):
@@ -158,9 +158,9 @@ class StatusLayer(LabelsLayer):
            * @param pathOrBase64 Path or base 64 image
            */
         """
-        return await self.page_evaluate(
+        return await self.ThreadsafeBrowser.page_evaluate(
             """({text, options}) => WPP.status.sendTextStatus(text, options);""",
-            {"text": text, "options": options}
+            {"text": text, "options": options}, page=self.page
         )
 
     async def sendReadStatus_(self, chatId: str, statusId: str):
@@ -175,7 +175,7 @@ class StatusLayer(LabelsLayer):
            * @param chatId Chat ID of contact
            * @param statusId ID of status msg
            */"""
-        return await self.page_evaluate(
+        return await self.ThreadsafeBrowser.page_evaluate(
             """({ chatId, statusId }) => WPP.status.sendReadStatus(chatId, statusId);""",
-            {"chatId": chatId, "statusId": statusId}
+            {"chatId": chatId, "statusId": statusId}, page=self.page
         )
