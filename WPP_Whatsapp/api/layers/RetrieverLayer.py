@@ -12,7 +12,7 @@ class RetrieverLayer(SenderLayer):
 
     def getAllChats(self, withNewMessageOnly=False, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
-            self.getAllChats_, self, withNewMessageOnly, timeout_=timeout)
+            self.getAllChats_, withNewMessageOnly, timeout_=timeout)
 
     def checkNumberStatus(self, contactId, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
@@ -22,7 +22,7 @@ class RetrieverLayer(SenderLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.getAllChatsWithMessages_, withNewMessageOnly, timeout_=timeout)
 
-    def getAllGroups(self, withNewMessagesOnly, timeout=60):
+    def getAllGroups(self, withNewMessagesOnly=False, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.getAllGroups_, withNewMessagesOnly, timeout_=timeout)
 

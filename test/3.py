@@ -2,7 +2,7 @@ import logging
 
 from WPP_Whatsapp import Create
 
-logger = logging.getLogger(name="WPP_Whatsapp")
+logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 def new_message(message):
@@ -31,7 +31,7 @@ if creator.state != 'CONNECTED':
 
 print('Starting!')
 
-# client.sendText('2010289465190', 'Testando docker')
+client.sendText('2010289465190', 'Testando docker')
 
 creator.client.onMessage(new_message)
 # creator.loop.run_forever()
