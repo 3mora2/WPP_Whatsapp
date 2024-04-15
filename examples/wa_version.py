@@ -1,3 +1,5 @@
+from time import sleep
+
 from WPP_Whatsapp import Create
 
 import logging
@@ -15,5 +17,6 @@ client = creator.start()
 if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
-print(client.getWAVersion())
+print(client.ThreadsafeBrowser.run_threadsafe(client.getWAVersion()))
 
+# print(client.ThreadsafeBrowser.page_evaluate_sync('() => WPP.chat.find("5786886765767@c.us").then((c)=>WAPI._serializeChatObj(c))'))

@@ -367,7 +367,7 @@ class HostLayer:
             # TODO::
             self.ThreadsafeBrowser.sleep(.2)
 
-        self.ThreadsafeBrowser.page_wait_for_function_sync("() => WPP.isReady", page=self.page)
+        self.ThreadsafeBrowser.page_wait_for_function_sync("() => window.WPP.isReady", page=self.page)
 
     async def waitForPageLoad_(self):
         while not self.isInjected:
@@ -376,7 +376,7 @@ class HostLayer:
             # TODO::
             await asyncio.sleep(.2)
 
-        await self.ThreadsafeBrowser.page_wait_for_function("() => WPP.isReady", page=self.page)
+        await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP.isReady", page=self.page)
 
     async def waitForLogin_(self):
         self.logger.info(f'{self.session}: http => Waiting page load')
@@ -522,11 +522,11 @@ class HostLayer:
         return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getWAVersion()", page=self.page)
 
     async def getWAJSVersion(self):
-        await self.ThreadsafeBrowser.page_wait_for_function("() => WPP.version", page=self.page)
-        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.version", page=self.page)
+        await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP.version", page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("() => window.WPP.version", page=self.page)
 
     def getConnectionState(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => {return WPP.whatsapp.Socket.state;}", page=self.page)
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => {return window.WPP.whatsapp.Socket.state;}", page=self.page)
 
     def isConnected(self):
         """Retrieves if the phone is online. Please note that this may not be real time."""
@@ -545,13 +545,13 @@ class HostLayer:
         return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.stopPhoneWatchdog()", page=self.page)
 
     def isMultiDevice(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isMultiDevice()", page=self.page)
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => window.WPP.conn.isMultiDevice()", page=self.page)
 
     async def isAuthenticated(self):
         try:
             if self.page.is_closed():
                 return False
-            return await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' && WPP.conn.isRegistered()", page=self.page)
+            return await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page)
         except Exception as e:
             self.logger.debug(e)
             return False
@@ -560,7 +560,7 @@ class HostLayer:
         try:
             if self.page.is_closed():
                 return False
-            return self.ThreadsafeBrowser.page_evaluate_sync("() => typeof window.WPP !== 'undefined' && WPP.conn.isRegistered()", page=self.page)
+            return self.ThreadsafeBrowser.page_evaluate_sync("() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page)
         except Exception as e:
             self.logger.debug(e)
             return False
@@ -612,7 +612,7 @@ class HostLayer:
         return result
 
     async def isInsideChat(self):
-        result = await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' && WPP.conn.isMainReady()", page=self.page)
+        result = await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' && window.WPP.conn.isMainReady()", page=self.page)
         return result if result else False
 
     def sync_isInsideChat(self):
@@ -638,7 +638,7 @@ class HostLayer:
             # await self.ThreadsafeBrowser.page_evaluate(
             #     "() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3", page=self.page)
             await self.ThreadsafeBrowser.page_wait_for_function(
-                "() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3", page=self.page)
+                "() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3", timeout=10000, page=self.page)
         except:
             pass
         await asyncio.sleep(0.1)
@@ -649,8 +649,8 @@ class HostLayer:
         # await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP?.isReady", page=self.page)
         try:
             await self.ThreadsafeBrowser.page_evaluate("""() => {
-                                  WPP.chat.defaultSendMessageOptions.createChat = true;
-                                  WPP.conn.setKeepAlive(true);
+                                  window.WPP.chat.defaultSendMessageOptions.createChat = true;
+                                  window.WPP.conn.setKeepAlive(true);
                                 }""", page=self.page)
         except:
             pass
@@ -662,7 +662,7 @@ class HostLayer:
         await self._onLoadingScreen()
 
         try:
-            self.logger.info(f'{self.session}: wait WPP.isReady')
+            self.logger.info(f'{self.session}: wait window.WPP.isReady')
             # Make sure WAPI is initialized
             await self.ThreadsafeBrowser.page_wait_for_function("""() => {
             return (typeof window.WAPI !== 'undefined' && typeof window.Store !== 'undefined' && window.WPP.isReady);
