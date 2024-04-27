@@ -18,7 +18,7 @@ class Whatsapp(BusinessLayer):
                 self.options[key] = value
 
         # self.autoCloseInterval = None
-        self.version = version
+        self.version = version or self.options.get('whatsappVersion')
         self.wa_js_version = wa_js_version
         self.autoCloseCalled = False
         self.isInitialized = False

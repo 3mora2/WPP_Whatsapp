@@ -77,7 +77,8 @@ class HostLayer:
             "poweredBy": self.options.get("poweredBy"),
         }
         self.logger.info(f'{self.session}: Start WPPConfig')
-        await self.ThreadsafeBrowser.page_evaluate("""(options) => {window.WPPConfig = options;}""", options, page=self.page)
+        await self.ThreadsafeBrowser.page_evaluate("""(options) => {window.WPPConfig = options;}""", options,
+                                                   page=self.page)
         # await self.page.page_evaluate("""(options) => {window.WPPConfig = options;}""", options)
         self.logger.info(f'{self.session}: WPPConfig')
         self.isInjected = False
@@ -96,8 +97,10 @@ class HostLayer:
         version = await self.getWAJSVersion()
         self.logger.info(f'{self.session}: WA-JS version: {version}')
         try:
-            await self.ThreadsafeBrowser.page_evaluate("() => {WPP.on('conn.auth_code_change', window.checkQrCode);}", page=self.page)
-            await self.ThreadsafeBrowser.page_evaluate("() => {WPP.on('conn.main_ready', window.checkInChat);}", page= self.page)
+            await self.ThreadsafeBrowser.page_evaluate("() => {WPP.on('conn.auth_code_change', window.checkQrCode);}",
+                                                       page=self.page)
+            await self.ThreadsafeBrowser.page_evaluate("() => {WPP.on('conn.main_ready', window.checkInChat);}",
+                                                       page=self.page)
         except:
             Logger.exception("window.checkQrCode")
         await self.__checkQrCode()
@@ -129,7 +132,9 @@ class HostLayer:
             await self.setWhatsappVersion(self.version)
         self.logger.info(f'{self.session}: Loading WhatsApp WEB')
         # TODO: Unkown Error
-        await self.ThreadsafeBrowser.goto(whatsappUrl, wait_until="domcontentloaded", page=self.page)
+        await self.ThreadsafeBrowser.goto(
+            whatsappUrl, wait_until="load", timeout=0, referer='https://whatsapp.com/', page=self.page
+        )
         # self.ThreadsafeBrowser.sync_goto(whatsappUrl, wait_until="domcontentloaded")
         self.logger.info(f'{self.session}: WhatsApp WEB loaded')
 
@@ -526,7 +531,8 @@ class HostLayer:
         return await self.ThreadsafeBrowser.page_evaluate("() => window.WPP.version", page=self.page)
 
     def getConnectionState(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => {return window.WPP.whatsapp.Socket.state;}", page=self.page)
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => {return window.WPP.whatsapp.Socket.state;}",
+                                                         page=self.page)
 
     def isConnected(self):
         """Retrieves if the phone is online. Please note that this may not be real time."""
@@ -539,7 +545,8 @@ class HostLayer:
         return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.getBatteryLevel()", page=self.page)
 
     def startPhoneWatchdog(self, interval=15000):
-        return self.ThreadsafeBrowser.page_evaluate_sync("(interval) => WAPI.startPhoneWatchdog(interval)", interval, page=self.page)
+        return self.ThreadsafeBrowser.page_evaluate_sync("(interval) => WAPI.startPhoneWatchdog(interval)", interval,
+                                                         page=self.page)
 
     def stopPhoneWatchdog(self):
         return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.stopPhoneWatchdog()", page=self.page)
@@ -551,7 +558,8 @@ class HostLayer:
         try:
             if self.page.is_closed():
                 return False
-            return await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page)
+            return await self.ThreadsafeBrowser.page_evaluate(
+                "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page)
         except Exception as e:
             self.logger.debug(e)
             return False
@@ -560,7 +568,8 @@ class HostLayer:
         try:
             if self.page.is_closed():
                 return False
-            return self.ThreadsafeBrowser.page_evaluate_sync("() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page)
+            return self.ThreadsafeBrowser.page_evaluate_sync(
+                "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page)
         except Exception as e:
             self.logger.debug(e)
             return False
@@ -576,7 +585,8 @@ class HostLayer:
         return asciiQr(code=code)
 
     async def scrapeImg(self):
-        await self.ThreadsafeBrowser.page_wait_for_function("()=>document.querySelector('canvas')?.closest", page=self.page)
+        await self.ThreadsafeBrowser.page_wait_for_function("()=>document.querySelector('canvas')?.closest",
+                                                            page=self.page)
         click = await self.ThreadsafeBrowser.page_evaluate("""() => {
               const selectorImg = document.querySelector('canvas');
               const selectorUrl = selectorImg.closest('[data-ref]');
@@ -612,11 +622,13 @@ class HostLayer:
         return result
 
     async def isInsideChat(self):
-        result = await self.ThreadsafeBrowser.page_evaluate("() => typeof window.WPP !== 'undefined' && window.WPP.conn.isMainReady()", page=self.page)
+        result = await self.ThreadsafeBrowser.page_evaluate(
+            "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isMainReady()", page=self.page)
         return result if result else False
 
     def sync_isInsideChat(self):
-        result = self.ThreadsafeBrowser.page_evaluate_sync("() => typeof window.WPP !== 'undefined' && window.WPP.conn.isMainReady()", page=self.page)
+        result = self.ThreadsafeBrowser.page_evaluate_sync(
+            "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isMainReady()", page=self.page)
         return result if result else False
 
     async def inject_api(self):
@@ -624,7 +636,7 @@ class HostLayer:
         try:
             injected = await self.ThreadsafeBrowser.page_evaluate("""() => {
                         return (typeof window.WAPI !== 'undefined' &&typeof window.Store !== 'undefined');}"""
-                                                , page=self.page)
+                                                                  , page=self.page)
         except:
             injected = False
 
@@ -716,10 +728,10 @@ class HostLayer:
                 subtree: true,
               });
             }""",
-                                 {
-                                     "PROGRESS": "//*[@id='app']/div/div/div[2]/progress",
-                                     "PROGRESS_MESSAGE": "//*[@id='app']/div/div/div[3]",
-                                 }, page=self.page)
+                                                   {
+                                                       "PROGRESS": "//*[@id='app']/div/div/div[2]/progress",
+                                                       "PROGRESS_MESSAGE": "//*[@id='app']/div/div/div[3]",
+                                                   }, page=self.page)
 
     @staticmethod
     def valid_chatId(chatId):

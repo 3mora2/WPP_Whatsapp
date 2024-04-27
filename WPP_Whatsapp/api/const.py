@@ -7,7 +7,8 @@ logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %
 Logger = logging.getLogger(name="WPP_Whatsapp")
 
 
-useragentOverride = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36'
+useragentOverride = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                     'Chrome/102.0.5005.63 Safari/537.36')
 whatsappUrl = 'https://web.whatsapp.com'
 chromiumArgs = [
     '--log-level=3',
@@ -70,7 +71,7 @@ defaultOptions = {
     "waitForLogin": True,
     "logger": Logger,
     "tokenStore": 'file',
-    'whatsappVersion': '2.2326.x',
+    'whatsappVersion': '2.2411.x',
     'deviceName': False,
     'linkPreviewApiServers': None,
     'disableGoogleAnalytics': True,

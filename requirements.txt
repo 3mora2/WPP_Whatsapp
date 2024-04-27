@@ -1,7 +1,7 @@
 event-emitter-js
 greenlet
 Pillow
-playwright
+playwright>=1.43.0
 playwright-stealth
 psutil
 pyee
@@ -10,4 +10,4 @@ typing_extensions
 requests
 node-semver
 aiohttp
-PlaywrightSafeThread>=0.5.3
+PlaywrightSafeThread>=0.5.4.1

@@ -1,5 +1,3 @@
-from time import sleep
-
 from WPP_Whatsapp import Create
 
 import logging
