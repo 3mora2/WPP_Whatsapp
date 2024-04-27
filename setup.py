@@ -6,7 +6,7 @@ description = ("WPP_Whatsapp aim of exporting functions from WhatsApp Web to the
                "the creation of any interaction, such as customer service, media sending, intelligence recognition "
                "based on phrases artificial and many other things, use your imagination")
 
-version = "0.2.2.1"
+version = "0.2.2.2"
 
 setup(
     name="WPP_Whatsapp",
@@ -21,7 +21,7 @@ setup(
     install_requires=[
         "event-emitter-js",
         "greenlet",
-        "playwright",
+        "playwright>=1.43.0",
         "Pillow",
         "psutil",
         "pyee",
@@ -30,7 +30,7 @@ setup(
         "playwright-stealth",
         "node-semver",
         "aiohttp",
-        "PlaywrightSafeThread>=0.5.3"
+        "PlaywrightSafeThread>=0.5.4.1"
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
