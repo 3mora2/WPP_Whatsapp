@@ -1,4 +1,6 @@
 from event_emitter import EventEmitter
+from playwright.async_api import Error
+
 from WPP_Whatsapp.api.layers.ProfileLayer import ProfileLayer
 
 OnMessage = 'onMessage'
@@ -66,11 +68,16 @@ class ListenerLayer(ProfileLayer):
         ]
 
         for func in functions:
-            has = await self.ThreadsafeBrowser.page_evaluate("(func) => typeof window[func] === 'function'", func, page=self.page)
+            has = await self.ThreadsafeBrowser.page_evaluate("(func) => typeof window[func] === 'function'", func,
+                                                             page=self.page)
             if not has:
                 self.logger.debug(f'{self.session}: Exposing {func} function')
                 handel_func = HandelFunc(func, self.session, self.logger, self.__listenerEmitter).handel_func
-                await self.ThreadsafeBrowser.expose_function(func, handel_func, page=self.page)
+                try:
+                    await self.ThreadsafeBrowser.expose_function(func, handel_func, page=self.page)
+                except Error as e:
+                    if "has been already registered" not in e.message:
+                        raise e
 
         await self.ThreadsafeBrowser.page_evaluate("""() => {
         try {
