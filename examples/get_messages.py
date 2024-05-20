@@ -16,3 +16,4 @@ phone_number = "201016708170"  # or "+201016708170"
 # messages = client.getMessages(phone_number)
 # messages = client. getGroupMembers("120363022378011811@g.us")
 # print(messages)
+# client.joinGroup("KOtrjvEwQk8DlDw8mv9IAE")

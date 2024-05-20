@@ -98,4 +98,4 @@ class GroupLayer(RetrieverLayer):
         invite_code = invite_code.replace('invite/', '')
         invite_code = invite_code.replace('https://', '')
         invite_code = invite_code.replace('http://', '')
-        return await self.ThreadsafeBrowser.page_evaluate("(inviteCode) => WPP.group.joinGroup(inviteCode)", invite_code, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("(inviteCode) => WPP.group.join(inviteCode)", invite_code, page=self.page)
