@@ -47,8 +47,8 @@ class GroupLayer(RetrieverLayer):
 
     async def getGroupMembers_(self, groupId):
         groupId = self.valid_chatId(groupId)
-        membersIds = self.getGroupMembersIds(groupId)
-        return [self.getContact(memberId.get("_serialized")) for memberId in membersIds]
+        membersIds = await self.getGroupMembersIds_(groupId)
+        return [await self.getContact_(memberId.get("_serialized")) for memberId in membersIds]
 
     async def getGroupInviteLink_(self, chatId):
         chatId = self.valid_chatId(chatId)

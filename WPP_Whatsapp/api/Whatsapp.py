@@ -114,10 +114,10 @@ class Whatsapp(BusinessLayer):
         :param params: (count, id, direction)
         :return:
         """
-        return self.ThreadsafeBrowser.run_threadsafe(self.getMessages_, chatId, params, timeout_=timeout)
+        return self.ThreadsafeBrowser.run_threadsafe(self.getMessages_( chatId, params), timeout_=timeout)
 
-    def rejectCall(self, callId, timeout=120):
-        return self.ThreadsafeBrowser.run_threadsafe(self.rejectCall_, callId, timeout_=timeout)
+    def rejectCall(self, callId="", timeout=120):
+        return self.ThreadsafeBrowser.run_threadsafe(self.rejectCall_( callId), timeout_=timeout)
 
     #############################
     async def useHere_(self):
@@ -141,6 +141,6 @@ class Whatsapp(BusinessLayer):
         return await self.ThreadsafeBrowser.page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
                                                           {"chatId": chatId, "params": params}, page=self.page)
 
-    async def rejectCall_(self, callId):
+    async def rejectCall_(self, callId=""):
         return await self.ThreadsafeBrowser.page_evaluate(
-            "({callId}) => WPP.call.rejectCall(callId)", callId, page=self.page)
+            "(callId) => WPP.call.rejectCall(callId)", callId, page=self.page)

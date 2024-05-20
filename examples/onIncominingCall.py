@@ -1,4 +1,8 @@
 from WPP_Whatsapp import Create
+import logging
+
+logger = logging.getLogger(name="WPP_Whatsapp")
+logger.setLevel(logging.DEBUG)
 
 # start client with your session name
 your_session_name = "test"
@@ -10,9 +14,11 @@ client = creator.start()
 if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
-phone_number = "201016708170"  # or "+201016708170"
 
-# example
-# messages = client.getMessages(phone_number)
-# messages = client. getGroupMembers("120363022378011811@g.us")
-# print(messages)
+def callback(*args, **kwargs):
+    print(args, kwargs)
+
+
+# Add Listen
+creator.client.onIncomingCall(callback)
+creator.loop.run_forever()
