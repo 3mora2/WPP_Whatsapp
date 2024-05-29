@@ -7,6 +7,7 @@ logger.setLevel(logging.DEBUG)
 # start client with your session name
 your_session_name = "test"
 creator = Create(session=your_session_name)
+
 client = creator.start()
 # Now scan Whatsapp Qrcode in browser
 
@@ -29,3 +30,4 @@ def new_message(message):
 
 # Add Listen To New Message
 creator.client.onMessage(new_message)
+creator.loop.run_forever()
