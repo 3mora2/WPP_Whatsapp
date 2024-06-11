@@ -187,7 +187,8 @@ class SenderLayer(ListenerLayer):
         else:
             raise Exception("Path Not Found")
 
-    async def sendImageFromBase64_(self, to, _base64, filename, caption, quotedMessageId, isViewOnce):
+    async def sendImageFromBase64_(self, to, _base64, filename, caption, quotedMessageId, isViewOnce,
+                                   mentionedList=None):
         mime_type = self.base64MimeType(_base64)
         if not mime_type:
             raise Exception("Not valid mimeType")
@@ -211,6 +212,8 @@ class SenderLayer(ListenerLayer):
           caption,
           quotedMsg: quotedMessageId,
           waitForAck: true,
+          detectMentioned: true,
+          mentionedList: mentionedList,
         }).catch((e) => {return e});
         
         return {
@@ -219,8 +222,15 @@ class SenderLayer(ListenerLayer):
           sendMsgResult: await result.sendMsgResult,
           error: result.message,
         };
-      }""", {"to": to, "base64": _base64, "filename": filename, "caption": caption, "quotedMessageId": quotedMessageId,
-             "isViewOnce": isViewOnce}, page=self.page)
+      }""", {
+            "to": to,
+            "base64": _base64,
+            "filename": filename,
+            "caption": caption,
+            "quotedMessageId": quotedMessageId,
+            "isViewOnce": isViewOnce,
+            "mentionedList": mentionedList
+        }, page=self.page)
         return result
 
     async def reply_(self, to, content, quotedMsg):
@@ -412,7 +422,8 @@ class SenderLayer(ListenerLayer):
 
     async def sendSeen_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.chat.markIsRead(chatId)", chatId, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.chat.markIsRead(chatId)", chatId,
+                                                          page=self.page)
 
     async def startTyping_(self, to, duration=None):
         to = self.valid_chatId(to)
@@ -425,7 +436,8 @@ class SenderLayer(ListenerLayer):
         return await self.ThreadsafeBrowser.page_evaluate("(to) => WPP.chat.markIsPaused(to)", to, page=self.page)
 
     async def setOnlinePresence_(self, online=True):
-        return await self.ThreadsafeBrowser.page_evaluate("(online) => WPP.conn.markAvailable(online)", online, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("(online) => WPP.conn.markAvailable(online)", online,
+                                                          page=self.page)
 
     async def sendListMessage_(self, to, options):
         to = self.valid_chatId(to)

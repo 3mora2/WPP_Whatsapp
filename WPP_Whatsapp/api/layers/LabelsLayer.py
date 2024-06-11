@@ -49,7 +49,7 @@ class LabelsLayer(CatalogLayer):
         WPP.labels.addNewLabel(name, options);
       }""", {"name": name, "options": options}, page=self.page)
 
-    async def addOrRemoveLabels_(self, chatIds, options):
+    async def addOrRemoveLabels_(self, chatIds: list, options: list[dict]):
         """
           /**
            * Add or delete label of chatId
@@ -58,7 +58,10 @@ class LabelsLayer(CatalogLayer):
            * @example
            * ```javascript
            * client.addOrRemoveLabels(['[number]@c.us','[number]@c.us'],
-           * [{labelId:'76', type:'add'},{labelId:'75', type:'remove'}]);
+           * [
+           *   { labelId:'76', type:'add' },
+           *   { labelId:'75', type:'remove' }
+           * ]);
            * //or
            * ```
            * @param chatIds ChatIds
@@ -73,10 +76,12 @@ class LabelsLayer(CatalogLayer):
         return await self.ThreadsafeBrowser.page_evaluate("() => WPP.labels.getAllLabels()", page=self.page)
 
     async def getLabelById_(self, Id):
-        return await self.ThreadsafeBrowser.page_evaluate("""({ id }) => {WPP.labels.getLabelById(id); }""", {"id": Id}, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("""({ id }) => {WPP.labels.getLabelById(id); }""", {"id": Id},
+                                                          page=self.page)
 
     async def deleteAllLabels_(self):
         return await self.ThreadsafeBrowser.page_evaluate("""() => {WPP.labels.deleteAllLabels();}""", page=self.page)
 
     async def deleteLabel_(self, Id):
-        return await self.ThreadsafeBrowser.page_evaluate("""({ id }) => {WPP.labels.deleteLabel(id); }""", {"id": Id}, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("""({ id }) => {WPP.labels.deleteLabel(id); }""", {"id": Id},
+                                                          page=self.page)

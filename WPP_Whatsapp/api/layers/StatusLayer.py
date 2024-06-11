@@ -3,7 +3,7 @@ from WPP_Whatsapp.api.helpers.download_file import downloadFileToBase64
 
 
 class StatusLayer(LabelsLayer):
-    def sendImageStatus(self, pathOrBase64: str, timeout=60):
+    def sendImageStatus(self, pathOrBase64: str, options: dict = {}, timeout=60):
         """
           /**
            * Send a image message to status stories
@@ -17,9 +17,9 @@ class StatusLayer(LabelsLayer):
            */
         """
         return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendImageStatus_, pathOrBase64, timeout_=timeout)
+            self.sendImageStatus_, pathOrBase64, options, timeout_=timeout)
 
-    def sendVideoStatus(self, pathOrBase64: str, timeout=60):
+    def sendVideoStatus(self, pathOrBase64: str, options: dict = {}, timeout=60):
         """
           /**
            * Send a video message to status stories
@@ -33,7 +33,7 @@ class StatusLayer(LabelsLayer):
            */
         """
         return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendVideoStatus_, pathOrBase64, timeout_=timeout)
+            self.sendVideoStatus_, pathOrBase64, options, timeout_=timeout)
 
     def sendTextStatus(self, text: str, options: dict = {}, timeout=60):
         """
@@ -67,7 +67,7 @@ class StatusLayer(LabelsLayer):
             self.sendReadStatus_, chatId, statusId, timeout_=timeout)
 
     ##########################################################################
-    async def sendImageStatus_(self, pathOrBase64: str):
+    async def sendImageStatus_(self, pathOrBase64: str, options={}):
         """
           /**
            * Send a image message to status stories
@@ -76,6 +76,12 @@ class StatusLayer(LabelsLayer):
            * @example
            * ```javascript
            * client.sendImageStatus('data:image/jpeg;base64,<a long base64 file...>');
+           * ```
+           *
+           * @example
+           * ```javascript
+           * // Send with caption
+           * client.sendImageStatus('data:image/jpeg;base64,<a long base64 file...>', { caption: 'example test' } );
            * ```
            * @param pathOrBase64 Path or base 64 image
            */
@@ -108,11 +114,11 @@ class StatusLayer(LabelsLayer):
             raise error
 
         return await self.ThreadsafeBrowser.page_evaluate(
-            """({base64}) => WPP.status.sendImageStatus(base64);""",
-            {"base64": base64}, page=self.page
+            """({base64, options}) => WPP.status.sendImageStatus(base64, options);""",
+            {"base64": base64, "options": options}, page=self.page
         )
 
-    async def sendVideoStatus_(self, pathOrBase64: str):
+    async def sendVideoStatus_(self, pathOrBase64: str, options={}):
         """
           /**
            * Send a video message to status stories
@@ -121,6 +127,11 @@ class StatusLayer(LabelsLayer):
            * @example
            * ```javascript
            * client.sendVideoStatus('data:video/mp4;base64,<a long base64 file...>');
+           * ```
+           * @example
+           * ```javascript
+           * // Send with caption
+           * client.sendVideoStatus('data:video/mp4;base64,<a long base64 file...>', { caption: 'example test' } );
            * ```
            * @param pathOrBase64 Path or base 64 image
            */
@@ -141,8 +152,8 @@ class StatusLayer(LabelsLayer):
             raise error
 
         return await self.ThreadsafeBrowser.page_evaluate(
-            """({base64}) => WPP.status.sendVideoStatus(base64);""",
-            {"base64": base64}, page=self.page
+            """({base64, options}) => WPP.status.sendVideoStatus(base64, options);""",
+            {"base64": base64, "options": options}, page=self.page
         )
 
     async def sendTextStatus_(self, text: str, options: str):

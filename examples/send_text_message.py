@@ -20,7 +20,7 @@ phone_number = "201016708170"  # or "+201016708170"
 
 # example
 # Simple message
-result = client.sendText(phone_number, message)
+# result = client.sendText(phone_number, message)
 # print(result)
 
 """
