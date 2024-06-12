@@ -18,7 +18,7 @@ class Whatsapp(BusinessLayer):
                 self.options[key] = value
 
         # self.autoCloseInterval = None
-        self.version = version # or self.options.get('whatsappVersion')
+        self.version = version  # or self.options.get('whatsappVersion')
         self.wa_js_version = wa_js_version
         self.autoCloseCalled = False
         self.isInitialized = False
@@ -99,6 +99,14 @@ class Whatsapp(BusinessLayer):
             "() => typeof window.WPP !== 'undefined' &&  WPP.conn.isRegistered()", page=self.page)
         self.connected = is_authenticated
 
+    def downloadFile(self, data: str, timeout=120):
+        return self.ThreadsafeBrowser.run_threadsafe(self.downloadFile_, data, timeout_=timeout)
+
+    def downloadMedia(self, messageId: str | dict, timeout=120):
+        return self.ThreadsafeBrowser.run_threadsafe(self.downloadMedia_, messageId, timeout_=timeout)
+    def takeScreenshot(self, timeout_=120, **kwargs):
+        return self.ThreadsafeBrowser.run_threadsafe(self.takeScreenshot_,**kwargs, timeout_=timeout_)
+
     def useHere(self, timeout=120):
         return self.ThreadsafeBrowser.run_threadsafe(self.useHere_, timeout_=timeout)
 
@@ -114,12 +122,44 @@ class Whatsapp(BusinessLayer):
         :param params: (count, id, direction)
         :return:
         """
-        return self.ThreadsafeBrowser.run_threadsafe(self.getMessages_( chatId, params), timeout_=timeout)
+        return self.ThreadsafeBrowser.run_threadsafe(self.getMessages_(chatId, params), timeout_=timeout)
 
     def rejectCall(self, callId="", timeout=120):
-        return self.ThreadsafeBrowser.run_threadsafe(self.rejectCall_( callId), timeout_=timeout)
+        return self.ThreadsafeBrowser.run_threadsafe(self.rejectCall_(callId), timeout_=timeout)
 
     #############################
+    async def downloadFile_(self, data: str):
+        """
+          /**
+           * Decrypts message file
+           * @param data Message object
+           * @returns Decrypted file buffer (null otherwise)
+           */
+        """
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "(data) => WAPI.downloadFile(data)", data,
+            page=self.page)
+
+    async def downloadMedia_(self, messageId: str | dict):
+        """
+          /**
+           * Download and returns the media content in base64 format
+           * @param messageId Message ou id
+           * @returns Base64 of media
+           */
+        """
+        if not isinstance(messageId, str):
+            messageId = messageId.get("id")
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "async (messageId) => WPP.util.blobToBase64(await WPP.chat.downloadMedia(messageId))", messageId,
+            page=self.page)
+    async def takeScreenshot_(self, **kwargs):
+        return await self.ThreadsafeBrowser.create_task(
+            self.page.screenshot(**kwargs)
+        )
+
+
+
     async def useHere_(self):
         return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.takeOver()", page=self.page)
 
@@ -127,7 +167,8 @@ class Whatsapp(BusinessLayer):
         return await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.logout()", page=self.page)
 
     async def getMessageById_(self, messageId):
-        return await self.ThreadsafeBrowser.page_evaluate("(messageId) => WAPI.getMessageById(messageId)", messageId, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("(messageId) => WAPI.getMessageById(messageId)", messageId,
+                                                          page=self.page)
 
     async def getMessages_(self, chatId, params=None):
         """
