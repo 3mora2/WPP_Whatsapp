@@ -645,15 +645,15 @@ class HostLayer:
             return
 
         self.logger.info(f'{self.session}: injected state: {injected}')
-        self.logger.info(f'{self.session}: wait for load webpackChunkwhatsapp_web_client')
-        try:
-            # await self.ThreadsafeBrowser.page_evaluate(
-            #     "() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3", page=self.page)
-            await self.ThreadsafeBrowser.page_wait_for_function(
-                "() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3", timeout=10000, page=self.page)
-        except:
-            pass
-        await asyncio.sleep(0.1)
+        # self.logger.info(f'{self.session}: wait for load webpackChunkwhatsapp_web_client')
+        # try:
+        #     # await self.ThreadsafeBrowser.page_evaluate(
+        #     #     "() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3", page=self.page)
+        #     await self.ThreadsafeBrowser.page_wait_for_function(
+        #         "() => (window?.webpackChunkwhatsapp_web_client?.length || 0) > 3", timeout=10000, page=self.page)
+        # except:
+        #     pass
+        # await asyncio.sleep(0.1)
         self.logger.info(f'{self.session}: inject wppconnect-wa.js')
         # await self.ThreadsafeBrowser.add_script_tag(
         #     url="https://github.com/wppconnect-team/wa-js/releases/download/nightly/wppconnect-wa.js")
@@ -672,15 +672,15 @@ class HostLayer:
         # await self.ThreadsafeBrowser.add_script_tag(
         #     url="https://raw.githubusercontent.com/3mora2/WPP_Whatsapp/main/WPP_Whatsapp/js_lib/wapi.js")
         await self._onLoadingScreen()
+        self.logger.info(f'{self.session}: wait window.WPP.isReady')
 
-        try:
-            self.logger.info(f'{self.session}: wait window.WPP.isReady')
-            # Make sure WAPI is initialized
-            await self.ThreadsafeBrowser.page_wait_for_function("""() => {
-            return (typeof window.WAPI !== 'undefined' && typeof window.Store !== 'undefined' && window.WPP.isReady);
-            }""", page=self.page)
-        except:
-            pass
+        # try:
+        #     # Make sure WAPI is initialized
+        #     await self.ThreadsafeBrowser.page_wait_for_function("""() => {
+        #     return (typeof window.WAPI !== 'undefined' && typeof window.Store !== 'undefined' && window.WPP.isReady);
+        #     }""", page=self.page)
+        # except:
+        #     pass
         return True
 
     def loadingScreen(self, percent, message):
