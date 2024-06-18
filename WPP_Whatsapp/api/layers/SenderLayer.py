@@ -180,12 +180,21 @@ class SenderLayer(ListenerLayer):
 
     async def sendImage_(self, to, filePath, filename="", caption="", quotedMessageId=None, isViewOnce=None):
         to = self.valid_chatId(to)
-        if filePath and os.path.exists(filePath):
-            _base64 = self.convert_to_base64(filePath)
-            filename = os.path.basename(filePath) if not filename else filename
-            return await self.sendImageFromBase64_(to, _base64, filename, caption, quotedMessageId, isViewOnce)
-        else:
-            raise Exception("Path Not Found")
+        _base64 = await downloadFileToBase64(filePath, [
+            'image/gif',
+            'image/png',
+            'image/jpg',
+            'image/jpeg',
+            'image/webp',
+        ])
+        if not _base64:
+            if filePath and os.path.exists(filePath):
+                _base64 = self.fileToBase64(filePath)
+            else:
+                raise Exception("Path Not Found")
+
+        filename = os.path.basename(filePath) if not filename else filename
+        return await self.sendImageFromBase64_(to, _base64, filename, caption, quotedMessageId, isViewOnce)
 
     async def sendImageFromBase64_(self, to, _base64, filename, caption, quotedMessageId, isViewOnce,
                                    mentionedList=None):
@@ -204,6 +213,7 @@ class SenderLayer(ListenerLayer):
         caption,
         quotedMessageId,
         isViewOnce,
+        mentionedList,
       }) => {
         const result = await WPP.chat.sendFileMessage(to, base64, {
           type: 'image',
@@ -263,8 +273,10 @@ class SenderLayer(ListenerLayer):
         if pathOrBase64.startswith('data:'):
             _base64 = pathOrBase64
         else:
-            if pathOrBase64 and os.path.exists(pathOrBase64):
-                _base64 = self.convert_to_base64(pathOrBase64)
+            _base64 = await downloadFileToBase64(pathOrBase64)
+            if not _base64:
+                if pathOrBase64 and os.path.exists(pathOrBase64):
+                    _base64 = self.fileToBase64(pathOrBase64)
 
             if not options.get("filename"):
                 options["filename"] = os.path.basename(pathOrBase64)

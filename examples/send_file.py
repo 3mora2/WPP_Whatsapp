@@ -11,7 +11,8 @@ if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
 message = "hello from wpp"
-filePath="path/to/file"
+filePath="https://images.unsplash.com/photo-1466442929976-97f336a657be"
+# filePath=r"C:\Users\ammar\Downloads\12.jpg"
 phone_number = "201016708170"  # or "+201016708170"
 
 # example

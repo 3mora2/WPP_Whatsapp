@@ -32,4 +32,3 @@ sendText:
     @option dict
     return dict -> {'id': 'true_**********@c.us_*************_out', 'ack': 3, 'sendMsgResult': {}}
 """
-client.takeScreenshot()

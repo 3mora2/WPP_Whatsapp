@@ -585,8 +585,11 @@ class HostLayer:
         return asciiQr(code=code)
 
     async def scrapeImg(self):
-        await self.ThreadsafeBrowser.page_wait_for_function("()=>document.querySelector('canvas')?.closest",
-                                                            page=self.page)
+        try:
+            await self.ThreadsafeBrowser.page_wait_for_function("()=>document.querySelector('canvas')?.closest",
+                                                                page=self.page)
+        except:
+            pass
         click = await self.ThreadsafeBrowser.page_evaluate("""() => {
               const selectorImg = document.querySelector('canvas');
               const selectorUrl = selectorImg.closest('[data-ref]');
