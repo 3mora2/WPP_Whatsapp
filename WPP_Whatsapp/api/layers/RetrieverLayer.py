@@ -147,28 +147,29 @@ class RetrieverLayer(SenderLayer):
     async def checkNumberStatus_(self, contactId):
         # @returns contact detial as promise
         contactId = self.valid_chatId(contactId)
-        # return await self.ThreadsafeBrowser.page_evaluate("(contactId) => WAPI.checkNumberStatus(contactId)", contactId, page=self.page)
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            "(contactId) => WPP.contact.queryExists(contactId)",
-            contactId, page=self.page)
-        if not result:
-            return {
-                "id": contactId,
-                "isBusiness": False,
-                "canReceiveMessage": False,
-                "numberExists": False,
-                "status": 404,
-                "result": result
-            }
-        else:
-            return {
-                "id": result.get("wid"),
-                "isBusiness": result.get("biz"),
-                "canReceiveMessage": True,
-                "numberExists": True,
-                "status": 200,
-                "result": result
-            }
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "(contactId) => WAPI.checkNumberStatus(contactId)", contactId, page=self.page)
+        # result = await self.ThreadsafeBrowser.page_evaluate(
+        #     "(contactId) => WPP.contact.queryExists(contactId)",
+        #     contactId, page=self.page)
+        # if not result:
+        #     return {
+        #         "id": contactId,
+        #         "isBusiness": False,
+        #         "canReceiveMessage": False,
+        #         "numberExists": False,
+        #         "status": 404,
+        #         "result": result
+        #     }
+        # else:
+        #     return {
+        #         "id": result.get("wid"),
+        #         "isBusiness": result.get("biz"),
+        #         "canReceiveMessage": True,
+        #         "numberExists": True,
+        #         "status": 200,
+        #         "result": result
+        #     }
 
     async def getAllChatsWithMessages_(self, withNewMessageOnly=False):
         # @returns array of [Chat]

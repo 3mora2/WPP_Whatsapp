@@ -6,6 +6,8 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
+from typing import Callable
+
 from playwright.async_api import Page
 from WPP_Whatsapp.api.const import whatsappUrl, Logger
 from WPP_Whatsapp.api.helpers.function import asciiQr
@@ -40,8 +42,11 @@ class HostLayer:
     version: str
     wa_js_version: str
     loop: object
+    catchLinkCode: Callable[[str], None] = None
 
     def __init__(self):
+        self.isInChat = False
+        self.isLogged = False
         self.__initialize()
 
     def catchQR(self, **kwargs):
@@ -103,8 +108,18 @@ class HostLayer:
                                                        page=self.page)
         except:
             Logger.exception("window.checkQrCode")
-        await self.__checkQrCode()
-        await self.__checkInChat()
+
+        self.logger.info(f'{self.session}: Wait First selector (INTRO_IMG, INTRO_QRCODE)')
+        INTRO_IMG_SELECTOR = '[data-icon=\'search\']'
+        INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas'
+        result = await self.ThreadsafeBrowser.wait_for_first_selectors(INTRO_IMG_SELECTOR, INTRO_QRCODE_SELECTOR)
+        needAuthentication = True if result == INTRO_QRCODE_SELECTOR else False
+
+        self.logger.info(f'{self.session}: {needAuthentication=}')
+        if needAuthentication:
+            await self.__checkQrCode()
+        else:
+            await self.__checkInChat()
 
     async def start(self):
         if self.isStarted:
@@ -118,8 +133,9 @@ class HostLayer:
         await self.ThreadsafeBrowser.expose_function('checkInChat', self.__checkInChat, page=self.page)
         # ToDo:
         self.logger.info(f'{self.session}: setInterval__checkStart')
+        # Clear in whatsapp
         self.checkStartInterval = setInterval(self.loop, self.__checkStart, 10)
-        # self.page.on('close', lambda: self.clearInterval(self.checkStartInterval))
+
         # return True
 
     ############################### initWhatsapp ####################################################
@@ -185,7 +201,8 @@ class HostLayer:
 
     async def __checkQrCode(self):
         need_scan = await self.__needsToScan()
-        self.isLogged = not need_scan
+        Logger.info(f"{self.session}: __checkQrCode {need_scan=}")
+        self.isLogged = not need_scan if need_scan is not None else need_scan
         if not need_scan:
             self.attempt = 0
             return
@@ -215,6 +232,20 @@ class HostLayer:
             attempt=self.attempt,
             urlCode=result.get("urlCode")
         )
+
+    async def __loginByCode(self, phone: str):
+        code = self.ThreadsafeBrowser.page_evaluate("""async ({ phone }) => {
+        return JSON.parse(
+          JSON.stringify(await WPP.conn.genLinkDeviceCodeForPhoneNumber(phone))
+        );
+          }""", {"phone": phone})
+
+        if self.logQR:
+            Logger.info(f'Waiting for Login By Code (Code: {code})\n')
+        else:
+            Logger.info("Waiting for Login By Code")
+        if self.catchLinkCode:
+            self.catchLinkCode(code)
 
     async def __checkInChat(self):
         in_chat = await self.isInsideChat()
@@ -300,8 +331,12 @@ class HostLayer:
         # self.autoCloseInterval = None
 
     async def __getQrCode(self):
-        qr_result = await self.scrapeImg()
-        return qr_result
+        try:
+            qr_result = await self.scrapeImg()
+            return qr_result
+        except:
+            Logger.exception("__getQrCode")
+            return
 
     def waitForQrCodeScan(self):
         if not self.isStarted:
@@ -372,7 +407,8 @@ class HostLayer:
             # TODO::
             self.ThreadsafeBrowser.sleep(.2)
 
-        self.ThreadsafeBrowser.page_wait_for_function_sync("() => window.WPP.isReady", page=self.page)
+        self.ThreadsafeBrowser.page_wait_for_function_sync("() => window.WPP.isReady", timeout=120 * 1000,
+                                                           page=self.page)
 
     async def waitForPageLoad_(self):
         while not self.isInjected:
@@ -381,7 +417,7 @@ class HostLayer:
             # TODO::
             await asyncio.sleep(.2)
 
-        await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP.isReady", page=self.page)
+        await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP.isReady", timeout=120 * 1000, page=self.page)
 
     async def waitForLogin_(self):
         self.logger.info(f'{self.session}: http => Waiting page load')
@@ -557,12 +593,12 @@ class HostLayer:
     async def isAuthenticated(self):
         try:
             if self.page.is_closed():
-                return False
+                return None
             return await self.ThreadsafeBrowser.page_evaluate(
                 "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page)
         except Exception as e:
             self.logger.debug(e)
-            return False
+            return None
 
     def sync_isAuthenticated(self):
         try:
@@ -575,7 +611,8 @@ class HostLayer:
             return False
 
     async def __needsToScan(self):
-        return not await self.isAuthenticated()
+        rs = await self.isAuthenticated()
+        return not rs if rs is not None else rs
 
     def __sync_needsToScan(self):
         return not self.sync_isAuthenticated()
@@ -634,6 +671,15 @@ class HostLayer:
             "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isMainReady()", page=self.page)
         return result if result else False
 
+    # /**
+    #  * Returns the version of WhatsApp Web currently being run
+    #  * @returns {Promise<string>}
+    #  */
+    async def getWWebVersion(self):
+        return await self.ThreadsafeBrowser.page_evaluate("""() => {
+            return window.Debug.VERSION;
+        }""")
+
     async def inject_api(self):
         self.logger.debug(f'{self.session}: start inject')
         try:
@@ -648,6 +694,17 @@ class HostLayer:
             return
 
         self.logger.info(f'{self.session}: injected state: {injected}')
+
+        await self.ThreadsafeBrowser.page_wait_for_function('window.Debug?.VERSION != undefined')
+        # TODO::
+        # version = await self.getWWebVersion()
+        # isCometOrAbove = int(version.split('.')[1]) >= 3000
+        # Logger.info(f"version {version}, {isCometOrAbove=}")
+        # if isCometOrAbove:
+        #     await self.ThreadsafeBrowser.page_evaluate(ExposeAuthStore, page=self.pupPage)
+        # else:
+        #     await self.ThreadsafeBrowser.page_evaluate(ExposeLegacyAuthStore, ModuleRaid, page=self.pupPage)
+
         # self.logger.info(f'{self.session}: wait for load webpackChunkwhatsapp_web_client')
         # try:
         #     # await self.ThreadsafeBrowser.page_evaluate(

@@ -415,6 +415,29 @@ class SenderLayer(ListenerLayer):
                                                           {"to": to, "messages": messages,
                                                            "skipMyMessages": skipMyMessages}, page=self.page)
 
+    async def sendImageAsStickerGif_(self, to: str,pathOrBase64: str,options={}):
+        """
+          /**
+           * Generates sticker from the provided animated gif image and sends it (Send image as animated sticker)
+           *
+           * @example
+           * ```javascript
+           * client.sendImageAsStickerGif('000000000000@c.us', 'base64....');
+           * ```
+           *
+           * @example
+           * Send Sticker with reply
+           * ```javascript
+           * client.sendImageAsStickerGif('000000000000@c.us', 'base64....', {
+           *     quotedMsg: 'msgId',
+           * });
+           * ```
+           * @category Chat
+           * @param pathOrBase64 image path imageBase64 A valid gif image is required. You can also send via http/https (http://www.website.com/img.gif)
+           * @param to chatId '000000000000@c.us'
+           */
+        """
+        ...
     async def sendLocation_(self, to, options):
         to = self.valid_chatId(to)
         options = {
