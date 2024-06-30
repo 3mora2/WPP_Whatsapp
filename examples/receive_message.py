@@ -1,12 +1,12 @@
 from WPP_Whatsapp import Create
 import logging
 
-logger = logging.getLogger(name="WPP_Whatsapp")
+logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 # start client with your session name
 your_session_name = "test"
-creator = Create(session=your_session_name)
+creator = Create(session=your_session_name,)
 
 client = creator.start()
 # Now scan Whatsapp Qrcode in browser
@@ -27,6 +27,14 @@ def new_message(message):
         else:
             client.reply(chat_id, "Welcome", message_id)
 
+
+
+# creator.client.ThreadsafeBrowser.page_evaluate_sync("""
+#  // Resolvenndo bug 'TypeError: i.Wid.isStatusV3 is not a function'
+#     if(!WPP.whatsapp.Wid.isStatusV3) {
+#       WPP.whatsapp.Wid.isStatusV3 = () => false
+#     }
+# """)
 
 # Add Listen To New Message
 creator.client.onMessage(new_message)

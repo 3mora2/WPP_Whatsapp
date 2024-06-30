@@ -57,7 +57,7 @@ class ThreadsafeBrowser(Tb):
             try:
                 await self.page.wait_for_selector(selector, timeout=timeout)
                 return selector
-            except playwright._impl._errors.TimeoutError:
+            except :
                 return
 
         tasks = [self.loop.create_task(wa(selector)) for selector in selectors]
