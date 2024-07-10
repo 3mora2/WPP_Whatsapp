@@ -72,3 +72,4 @@ class ThreadsafeBrowser(Tb):
                 self.loop.call_soon_threadsafe(p.cancel)
 
             return task_done.result()
+

@@ -41,7 +41,7 @@ options = {
     "title": 'Title text',  # Optional
     "footer": 'Footer text'  # Optional
 }
-phone_number = "201016708170"  # or "+201016708170"
+phone_number = "***********"  # or "+***********"
 message = 'WPPConnect message with buttons'
 # example
 # Simple message

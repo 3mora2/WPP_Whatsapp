@@ -72,9 +72,13 @@ class SenderLayer(ListenerLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendContactVcard_, to, contactsId, name, timeout_=timeout)
 
-    def forwardMessages(self, to, messages, skipMyMessages, timeout=60):
+    def forwardMessages(self, toChatId: str, msgId: str | list[str], options={}, timeout=60):
+        # options = {
+        #     "displayCaptionText": bool;
+        # "multicast": bool;
+        # }
         return self.ThreadsafeBrowser.run_threadsafe(
-            self.forwardMessages_, to, messages, skipMyMessages, timeout_=timeout)
+            self.forwardMessages_, toChatId, msgId, options, timeout_=timeout)
 
     def sendLocation(self, to, options, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
@@ -408,14 +412,22 @@ class SenderLayer(ListenerLayer):
         });
       }""", {"to": to, "contactsId": contactsId, "name": name}, page=self.page)
 
-    async def forwardMessages_(self, to, messages, skipMyMessages):
-        to = self.valid_chatId(to)
-        return await self.ThreadsafeBrowser.page_evaluate("""({ to, messages, skipMyMessages }) =>
-        WAPI.forwardMessages(to, messages, skipMyMessages)""",
-                                                          {"to": to, "messages": messages,
-                                                           "skipMyMessages": skipMyMessages}, page=self.page)
+    async def forwardMessages_(self, toChatId: str, msgId: str | list[str], options={}):
+        # {
+        #     displayCaptionText?: boolean;
+        # multicast?: boolean;
+        # }
+        toChatId = self.valid_chatId(toChatId)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            """({ toChatId, msgId, options }) =>WPP.chat.forwardMessage(toChatId, msgId, options)""",
+                                                          {"toChatId": toChatId, "msgId": msgId,
+                                                           "options": options}, page=self.page)
+        # return await self.ThreadsafeBrowser.page_evaluate("""({ to, messages, skipMyMessages }) =>
+        # WAPI.forwardMessages(to, messages, skipMyMessages)""",
+        #                                                   {"to": to, "messages": messages,
+        #                                                    "skipMyMessages": skipMyMessages}, page=self.page)
 
-    async def sendImageAsStickerGif_(self, to: str,pathOrBase64: str,options={}):
+    async def sendImageAsStickerGif_(self, to: str, pathOrBase64: str, options={}):
         """
           /**
            * Generates sticker from the provided animated gif image and sends it (Send image as animated sticker)
@@ -438,6 +450,7 @@ class SenderLayer(ListenerLayer):
            */
         """
         ...
+
     async def sendLocation_(self, to, options):
         to = self.valid_chatId(to)
         options = {

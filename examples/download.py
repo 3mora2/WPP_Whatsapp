@@ -15,7 +15,7 @@ client = creator.start()
 if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
-message_id = "true_120363021849652757@g.us_3EB03B7A114A44955D2DBC_201016708170@c.us"
+message_id = "true_120363021849652757@g.us_3EB03B7A114A44955D2DBC_***********@c.us"
 
 media = client.downloadMedia(message_id)
 # OR

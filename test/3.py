@@ -31,7 +31,7 @@ if creator.state != 'CONNECTED':
 
 print('Starting!')
 
-client.sendText('2010289465190', 'Testando docker')
+client.sendText('***********0', 'Testando docker')
 
 creator.client.onMessage(new_message)
 # creator.loop.run_forever()

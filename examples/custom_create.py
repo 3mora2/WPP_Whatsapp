@@ -18,7 +18,7 @@ if not is_logged:
 
 # send message
 message = "hello from wpp"
-phone_number = "201016708170"  # or "+201016708170"
+phone_number = "***********"  # or "+***********"
 result = client.sendText(phone_number, message)
 print(result)
 

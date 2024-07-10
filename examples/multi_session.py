@@ -16,7 +16,7 @@ def send_message(session, message, phone_number):
     Session[session].close()
 
 
-th1 = threading.Thread(target=send_message, args=(first_name, "hello from wpp", "201016708170"))
+th1 = threading.Thread(target=send_message, args=(first_name, "hello from wpp", "***********"))
 th1.start()
-th2 = threading.Thread(target=send_message, args=(second_name, "hello from wpp", "201016708170"))
+th2 = threading.Thread(target=send_message, args=(second_name, "hello from wpp", "***********"))
 th2.start()

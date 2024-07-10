@@ -16,13 +16,13 @@ if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
 message = "hello from wpp"
-phone_number = "201016708170"  # or "+201016708170"
+phone_number = "***********"  # or "+***********"
 
 # example
 # Simple message
 # result = client.sendText(phone_number, message)
 # print(result)
-
+# client.forwardMessages("***********@c.us", 'true_***********@c.us_3EB07B4EABBAB75F0BD08A_out')
 """
 sendText:
     Sends a text message to given chat

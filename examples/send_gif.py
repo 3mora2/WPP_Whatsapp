@@ -15,6 +15,6 @@ client = creator.start()
 if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
-phone_number = "201016708170"  # or "+201016708170"
+phone_number = "***********"  # or "+***********"
 
 client.sendGif(phone_number, "https://sample-videos.com/video321/mp4/360/big_buck_bunny_360p_1mb.mp4")
