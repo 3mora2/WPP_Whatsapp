@@ -1,39 +1,40 @@
+try:
+    from WPP_Whatsapp import Create
+except (ModuleNotFoundError, ImportError):
+    import sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from WPP_Whatsapp import Create
+
 import logging
 
-from WPP_Whatsapp import Create
-
-logger = logging.getLogger()
+logger = logging.getLogger(name="WPP_Whatsapp")
 logger.setLevel(logging.DEBUG)
 
-def new_message(message):
-    global client
-    if message:
-        mensagem = message.get('body')
-        chat_id = message.get('from')
-
-        # Extract user ID and message content
-        usuario_id = message.get('chatId')['user']
-
-        print(usuario_id, mensagem)
-
-        if usuario_id == 'mynumber':
-            client.sendText(chat_id, "Here's what you said:" + mensagem)
-
-
-
+# start client with your session name
 your_session_name = "test"
-creator = Create(session=your_session_name, browser='chrome')
+creator = Create(session=your_session_name, browser="firefox")
 client = creator.start()
+# Now scan Whatsapp Qrcode in browser
 
 # check state of login
 if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
-print('Starting!')
+message = "hello from wpp"
+phone_number = "***********"  # or "+***********"
 
-client.sendText('***********0', 'Testando docker')
-
-creator.client.onMessage(new_message)
-# creator.loop.run_forever()
-# while True:
-#     pass
+creator.sync_close()
+# example
+# Simple message
+# result = client.sendText(phone_number, message)
+# print(result)
+# client.forwardMessages("***********@c.us", 'true_***********@c.us_3EB07B4EABBAB75F0BD08A_out')
+"""
+sendText:
+    Sends a text message to given chat
+    @category Chat
+    @param to chat id: xxxxx@us.c
+    @param content text message
+    @option dict
+    return dict -> {'id': 'true_**********@c.us_*************_out', 'ack': 3, 'sendMsgResult': {}}
+"""

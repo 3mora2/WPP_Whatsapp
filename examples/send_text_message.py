@@ -18,6 +18,7 @@ if creator.state != 'CONNECTED':
 message = "hello from wpp"
 phone_number = "***********"  # or "+***********"
 
+creator.sync_close()
 # example
 # Simple message
 # result = client.sendText(phone_number, message)

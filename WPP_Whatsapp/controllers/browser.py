@@ -1,8 +1,7 @@
 import asyncio
-
-import playwright
+import subprocess
 from PlaywrightSafeThread.browser.threadsafe_browser import ThreadsafeBrowser as Tb, BrowserName, SUPPORTED_BROWSERS, \
-    Logger
+    Logger, creation_flags_dict, compute_driver_executable
 from playwright.async_api import Error
 
 
@@ -57,7 +56,7 @@ class ThreadsafeBrowser(Tb):
             try:
                 await self.page.wait_for_selector(selector, timeout=timeout)
                 return selector
-            except :
+            except:
                 return
 
         tasks = [self.loop.create_task(wa(selector)) for selector in selectors]
@@ -73,3 +72,25 @@ class ThreadsafeBrowser(Tb):
 
             return task_done.result()
 
+    def run_playwright(self, *args: str):
+        env = self.get_driver_env()
+        driver_executable, driver_cli = compute_driver_executable()
+
+        with subprocess.Popen([driver_executable, driver_cli, *args], env=env, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, **creation_flags_dict()) as process:
+            for line in process.stdout:
+                print(line.decode('utf-8'), end="\r")
+
+    def sync_close(self, timeout_=60):
+        try:
+            self.run_threadsafe(self.__stop_playwright(), timeout_=timeout_)
+        except Exception as e:
+            print(e)
+        self.stop()
+
+    async def close(self):
+        try:
+            await self.create_task(self.__stop_playwright())
+        except Exception as e:
+            print(e)
+        self.stop()

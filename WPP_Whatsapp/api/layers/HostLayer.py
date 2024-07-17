@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
+from playwright._impl._errors import TargetClosedError
 from playwright.async_api import Page
 from WPP_Whatsapp.api.const import whatsappUrl, Logger
 from WPP_Whatsapp.api.helpers.function import asciiQr
@@ -27,6 +28,7 @@ class HostLayer:
     isInitialized: bool
     isInjected: bool
     isStarted: bool
+    isClosed: bool
     isLogged: bool
     isInChat: bool
     urlCode: str
@@ -47,6 +49,7 @@ class HostLayer:
     def __init__(self):
         self.isInChat = False
         self.isLogged = False
+        self.isClosed = False
         self.__initialize()
 
     def catchQR(self, **kwargs):
@@ -65,12 +68,21 @@ class HostLayer:
         self.isInitialized = True
 
     async def on_close(self, _):
+        self.isClosed = True
         self.logger.info(f'{self.session}: Page Closed')
         self.cancelAutoClose()
 
     async def on_load(self, _):
-        self.logger.info(f'{self.session}: Page loaded')
-        await self._afterPageLoad()
+        if self.isClosed:
+            return
+        try:
+            self.logger.info(f'{self.session}: Page loaded')
+            await self._afterPageLoad()
+        except (RuntimeError, TargetClosedError):
+            # mean stop app
+            self.logger.info(f'{self.session}: Stop App, Auto Close')
+            self.isClosed = True
+            await self.tryAutoClose()
 
     async def _afterPageLoad(self):
         self.logger.info(f'{self.session}: Injecting wapi.js')
@@ -197,6 +209,9 @@ class HostLayer:
 
     #################################################################################################
     async def __checkStart(self):
+        if self.isClosed and hasattr(self, "checkStartInterval"):
+            self.clearInterval(self.checkStartInterval)
+            return
         await self.__needsToScan()
 
     async def __checkQrCode(self):
@@ -257,27 +272,50 @@ class HostLayer:
         self.statusFind('inChat', self.session)
 
     async def tryAutoClose(self):
+        if self.isClosed:
+            self.logger.info(f'{self.session}: Closing the page')
+            self.statusFind('autocloseCalled', self.session)
+            if not self.page.is_closed():
+                await self.ThreadsafeBrowser.close()
+
+        if not hasattr(self, "autoCloseInterval"):
+            return
+
         if self.autoCloseInterval:
             self.cancelAutoClose()
 
         if (self.autoClose > 0 or self.options.get(
                 "deviceSyncTimeout") > 0) and (
-                not self.autoCloseInterval or self.autoCloseInterval.is_set()) and not self.page.is_closed():
+                not self.autoCloseInterval or self.autoCloseInterval.is_set()):
+
             self.logger.info(f'{self.session}: Closing the page')
             self.autoCloseCalled = True
+
+            self.isClosed = True
             self.statusFind('autocloseCalled', self.session)
             if not self.page.is_closed():
                 await self.ThreadsafeBrowser.close()
 
     def sync_tryAutoClose(self):
+        if self.isClosed:
+            self.logger.info(f'{self.session}: Closing the page')
+            self.statusFind('autocloseCalled', self.session)
+            if not self.page.is_closed():
+                self.ThreadsafeBrowser.sync_close()
+
+        if not hasattr(self, "autoCloseInterval"):
+            return
+
         if self.autoCloseInterval:
             self.cancelAutoClose()
 
         if (self.autoClose > 0 or self.options.get(
                 "deviceSyncTimeout") > 0) and (
-                not self.autoCloseInterval or self.autoCloseInterval.is_set()) and not self.page.is_closed():
+                not self.autoCloseInterval or self.autoCloseInterval.is_set()):
             self.logger.info(f'{self.session}: Closing the page')
             self.autoCloseCalled = True
+
+            self.isClosed = True
             self.statusFind('autocloseCalled', self.session)
             if not self.page.is_closed():
                 self.ThreadsafeBrowser.sync_close()
@@ -317,6 +355,10 @@ class HostLayer:
             self.cancelAutoClose()
             return
 
+        if not self.isStarted or self.isClosed:
+            self.cancelAutoClose()
+            return
+
         self.remain -= 1
         if self.remain % 10 == 0 or self.remain <= 5:
             self.logger.info(f'{self.session}: http => Auto close remain: {self.remain}s')
@@ -341,7 +383,7 @@ class HostLayer:
     def waitForQrCodeScan(self):
         if not self.isStarted:
             raise Exception('waitForQrCodeScan error: Session not started')
-        while not self.page.is_closed() and not self.isLogged:
+        while not self.page.is_closed() and not self.isLogged and not self.isClosed:
             # sleep(200 / 1000)
             self.ThreadsafeBrowser.sleep(0.2)
             needScan = self.__sync_needsToScan()
@@ -350,7 +392,7 @@ class HostLayer:
     async def waitForQrCodeScan_(self):
         if not self.isStarted:
             raise Exception('waitForQrCodeScan error: Session not started')
-        while not self.page.is_closed() and not self.isLogged:
+        while not self.page.is_closed() and not self.isLogged and not self.isClosed:
             # sleep(200 / 1000)
             await asyncio.sleep(200 / 1000)
             needScan = await self.__needsToScan()
@@ -365,7 +407,7 @@ class HostLayer:
             return False
 
         start = datetime.now()
-        while not self.page.is_closed() and self.isLogged and not self.isInChat:
+        while not self.page.is_closed() and self.isLogged and not self.isInChat and not self.isClosed:
             if 0 < self.options.get("deviceSyncTimeout") <= (datetime.now() - start).seconds:
                 Logger.info(f"deviceSyncTimeout:{self.options.get('deviceSyncTimeout')} timeout")
                 return False
@@ -387,7 +429,7 @@ class HostLayer:
             return False
 
         start = datetime.now()
-        while not self.page.is_closed() and self.isLogged and not self.isInChat:
+        while not self.page.is_closed() and self.isLogged and not self.isInChat and not self.isClosed:
             if 0 < self.options.get("deviceSyncTimeout") <= (datetime.now() - start).seconds:
                 Logger.info(f"deviceSyncTimeout:{self.options.get('deviceSyncTimeout')} timeout")
                 return False
@@ -404,6 +446,9 @@ class HostLayer:
         while not self.isInjected:
             if self.page.is_closed():
                 return
+            # Stop when close
+            if self.isClosed:
+                return
             # TODO::
             self.ThreadsafeBrowser.sleep(.2)
 
@@ -414,10 +459,14 @@ class HostLayer:
         while not self.isInjected:
             if self.page.is_closed():
                 return
+            # Stop when close
+            if self.isClosed:
+                return
             # TODO::
             await asyncio.sleep(.2)
 
-        await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP.isReady", timeout=120 * 1000, page=self.page)
+        await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP.isReady", timeout=120 * 1000,
+                                                            page=self.page)
 
     async def waitForLogin_(self):
         self.logger.info(f'{self.session}: http => Waiting page load')
@@ -477,7 +526,7 @@ class HostLayer:
             self.logger.error(f'{self.session}: Auto Close Called')
             raise Exception("Auto Close Called")
 
-        if self.page.is_closed():
+        if self.page.is_closed() or self.isClosed:
             self.logger.error(f'{self.session}: Page Closed')
             raise Exception("Page Closed")
 
@@ -542,7 +591,7 @@ class HostLayer:
             self.logger.error(f'{self.session}: Auto Close Called')
             raise Exception("Auto Close Called")
 
-        if self.page.is_closed():
+        if self.page.is_closed() or self.isClosed:
             self.logger.error(f'{self.session}: Page Closed')
             raise Exception("Page Closed")
 
@@ -592,7 +641,7 @@ class HostLayer:
 
     async def isAuthenticated(self):
         try:
-            if self.page.is_closed():
+            if self.page.is_closed() or self.isClosed:
                 return None
             return await self.ThreadsafeBrowser.page_evaluate(
                 "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page)
@@ -602,7 +651,7 @@ class HostLayer:
 
     def sync_isAuthenticated(self):
         try:
-            if self.page.is_closed():
+            if self.page.is_closed() or self.isClosed:
                 return False
             return self.ThreadsafeBrowser.page_evaluate_sync(
                 "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page)
@@ -802,6 +851,7 @@ class HostLayer:
         return chatId
 
     def close(self):
+        self.isClosed = True
         self.ThreadsafeBrowser.sync_close()
 
     @staticmethod

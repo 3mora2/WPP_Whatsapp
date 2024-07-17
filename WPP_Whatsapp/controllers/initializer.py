@@ -70,13 +70,18 @@ class Create:
         self.sync_close()
 
     async def close(self):
+        if self.client:
+            self.client.isClosed = True
         if hasattr(self, "ThreadsafeBrowser"):
             await self.ThreadsafeBrowser.close()
         self._onStateChange("CLOSED")
 
     def sync_close(self):
+        if self.client:
+            self.client.isClosed = True
         if hasattr(self, "ThreadsafeBrowser"):
             self.ThreadsafeBrowser.sync_close()
+
         self._onStateChange("CLOSED")
 
     def _onStateChange(self, state):
@@ -139,7 +144,7 @@ class Create:
             await self.create()
         elif self.state in ["CONFLICT", "UNPAIRED", "UNLAUNCHED"]:
             Logger.info("client.useHere()")
-            self.client.useHere()
+            await self.client.useHere_()
         else:
             Logger.info(self.get_state())
 
