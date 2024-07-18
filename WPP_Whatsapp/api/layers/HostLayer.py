@@ -7,15 +7,14 @@ import re
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
-
 from playwright._impl._errors import TargetClosedError
 from playwright.async_api import Page
 from WPP_Whatsapp.api.const import whatsappUrl, Logger
 from WPP_Whatsapp.api.helpers.function import asciiQr
+from WPP_Whatsapp.api.helpers.wapi import WAPI
 from WPP_Whatsapp.controllers.browser import ThreadsafeBrowser
 from WPP_Whatsapp.api.helpers.jsFunction import setInterval
 from WPP_Whatsapp.api.helpers.wa_version import getPageContent, getWaJs
-from WPP_Whatsapp.js_lib.wapi import WAPI
 
 
 class HostLayer:
