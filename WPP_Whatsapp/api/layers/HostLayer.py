@@ -15,6 +15,7 @@ from WPP_Whatsapp.api.helpers.function import asciiQr
 from WPP_Whatsapp.controllers.browser import ThreadsafeBrowser
 from WPP_Whatsapp.api.helpers.jsFunction import setInterval
 from WPP_Whatsapp.api.helpers.wa_version import getPageContent, getWaJs
+from WPP_Whatsapp.js_lib.wapi import WAPI
 
 
 class HostLayer:
@@ -276,7 +277,10 @@ class HostLayer:
             self.logger.info(f'{self.session}: Closing the page')
             self.statusFind('autocloseCalled', self.session)
             if not self.page.is_closed():
-                await self.ThreadsafeBrowser.close()
+                await self.ThreadsafeBrowser.close()        
+            if  hasattr(self, "autoCloseInterval") and self.autoCloseInterval:
+                self.cancelAutoClose()
+            return
 
         if not hasattr(self, "autoCloseInterval"):
             return
@@ -776,10 +780,13 @@ class HostLayer:
         except:
             pass
         self.logger.info(f'{self.session}: inject wapi.js')
-        base_dir = Path(__file__).resolve().parent.parent.parent
-        await self.ThreadsafeBrowser.add_script_tag(path=os.path.join(base_dir, 'js_lib', 'wapi.js'), page=self.page)
+        # base_dir = Path(__file__).resolve().parent.parent.parent
+        # await self.ThreadsafeBrowser.add_script_tag(path=os.path.join(base_dir, 'js_lib', 'wapi.js'), page=self.page)
         # await self.ThreadsafeBrowser.add_script_tag(
-        #     url="https://raw.githubusercontent.com/3mora2/WPP_Whatsapp/main/WPP_Whatsapp/js_lib/wapi.js")
+        #     url="https://raw.githubusercontent.com/3mora2/WPP_Whatsapp/main/WPP_Whatsapp/js_lib/wapi.js",
+        #     page=self.page
+        # )
+        await self.ThreadsafeBrowser.add_script_tag(content=WAPI, page=self.page)
         await self._onLoadingScreen()
         self.logger.info(f'{self.session}: wait window.WPP.isReady')
 

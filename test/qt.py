@@ -1,10 +1,12 @@
 import threading
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QVBoxLayout, QWidget
+
 try:
     from WPP_Whatsapp import Create
 except (ModuleNotFoundError, ImportError):
     import sys, os
+
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
     from WPP_Whatsapp import Create
 
@@ -12,6 +14,7 @@ import logging
 
 logger = logging.getLogger(name="WPP_Whatsapp")
 logger.setLevel(logging.DEBUG)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -64,13 +67,13 @@ class MainWindow(QMainWindow):
             creator.sync_close()
         except Exception as e:
             print("Exception", e)
-        finally:
-            creator.client.isClosed = True
+        # finally:
+        #     creator.client.isClosed = True
 
-    def closeEvent(self, a0):
-        # Ensure Close all
-        for creator in self.creators:
-            creator.client.isClosed = True
+    # def closeEvent(self, a0):
+    #     # Ensure Close all
+    #     for creator in self.creators:
+    #         creator.client.isClosed = True
 
 
 if __name__ == '__main__':
