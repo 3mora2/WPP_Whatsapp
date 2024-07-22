@@ -1,9 +1,10 @@
 import asyncio
-import subprocess
-from PlaywrightSafeThread.browser.threadsafe_browser import ThreadsafeBrowser as Tb, BrowserName, SUPPORTED_BROWSERS, \
-    Logger, creation_flags_dict, compute_driver_executable
+from PlaywrightSafeThread.browser.threadsafe_browser import (ThreadsafeBrowser as Tb, BrowserName,
+                                                             SUPPORTED_BROWSERS)
 from playwright._impl._errors import TargetClosedError
 from playwright.async_api import Error, TimeoutError
+
+from WPP_Whatsapp.api.const import Logger
 
 
 def a_check_page(method):
@@ -11,7 +12,6 @@ def a_check_page(method):
         if "page" not in kwargs or not kwargs["page"]:
             kwargs["page"] = self.page
         if kwargs["page"].is_closed():
-            print("error Page Closed")
             raise TargetClosedError()
         return await method(self, *args, **kwargs)
     return wrapper
@@ -22,7 +22,6 @@ def check_page(method):
         if "page" not in kwargs or not kwargs["page"]:
             kwargs["page"] = self.page
         if kwargs["page"].is_closed():
-            print("error Page Closed")
             raise TargetClosedError()
         return method(self, *args, **kwargs)
 
@@ -36,6 +35,7 @@ class ThreadsafeBrowser(Tb):
             browser: BrowserName = "chromium",
             stealthy: bool = False,
             install: bool = False,
+            install_callback=print,
             check_open_dir=True,
             close_already_profile=True,
             **kwargs
@@ -44,6 +44,7 @@ class ThreadsafeBrowser(Tb):
                          browser=browser,
                          stealthy=stealthy,
                          install=install,
+                         install_callback=install_callback,
                          check_open_dir=check_open_dir,
                          close_already_profile=close_already_profile,
                          **kwargs)
@@ -55,10 +56,10 @@ class ThreadsafeBrowser(Tb):
         except:
             Logger.exception("sleep")
 
-    def run_threadsafe(self, func, *args, timeout_=120, **kwargs):
-        if not asyncio.iscoroutine(func):
-            func = func(*args, **kwargs)
-        return super().run_threadsafe(func, timeout_=timeout_)
+    # def run_threadsafe(self, func, *args, timeout_=120, **kwargs):
+    #     if not asyncio.iscoroutine(func):
+    #         func = func(*args, **kwargs)
+    #     return super().run_threadsafe(func, timeout_=timeout_)
 
     # async def wait_for_first_selectors_(self, *selectors, timeout=0):
     #     async def wa(selector):
@@ -106,14 +107,14 @@ class ThreadsafeBrowser(Tb):
                 await asyncio.sleep(.5)
                 timeout_local += .5
 
-    def run_playwright(self, *args: str):
-        env = self.get_driver_env()
-        driver_executable, driver_cli = compute_driver_executable()
-
-        with subprocess.Popen([driver_executable, driver_cli, *args], env=env, stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, **creation_flags_dict()) as process:
-            for line in process.stdout:
-                print(line.decode('utf-8'), end="\r")
+    # def run_playwright(self, *args: str):
+    #     env = self.get_driver_env()
+    #     driver_executable, driver_cli = compute_driver_executable()
+    #
+    #     with subprocess.Popen([driver_executable, driver_cli, *args], env=env, stdout=subprocess.PIPE,
+    #                           stderr=subprocess.STDOUT, **creation_flags_dict()) as process:
+    #         for line in process.stdout:
+    #             print(line.decode('utf-8'), end="\r")
 
     def sync_close(self, timeout_=60):
         try:
@@ -128,6 +129,12 @@ class ThreadsafeBrowser(Tb):
         except Exception as e:
             print(e)
         self.stop()
+
+    def stop(self):
+        try:
+            super().stop()
+        except:
+            ...
 
     #####################
     @a_check_page

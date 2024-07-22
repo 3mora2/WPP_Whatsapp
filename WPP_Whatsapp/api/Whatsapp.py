@@ -104,8 +104,9 @@ class Whatsapp(BusinessLayer):
 
     def downloadMedia(self, messageId: str | dict, timeout=120):
         return self.ThreadsafeBrowser.run_threadsafe(self.downloadMedia_, messageId, timeout_=timeout)
+
     def takeScreenshot(self, timeout_=120, **kwargs):
-        return self.ThreadsafeBrowser.run_threadsafe(self.takeScreenshot_,**kwargs, timeout_=timeout_)
+        return self.ThreadsafeBrowser.run_threadsafe(self.takeScreenshot_, **kwargs, timeout_=timeout_)
 
     def useHere(self, timeout=120):
         return self.ThreadsafeBrowser.run_threadsafe(self.useHere_, timeout_=timeout)
@@ -153,12 +154,11 @@ class Whatsapp(BusinessLayer):
         return await self.ThreadsafeBrowser.page_evaluate(
             "async (messageId) => WPP.util.blobToBase64(await WPP.chat.downloadMedia(messageId))", messageId,
             page=self.page)
+
     async def takeScreenshot_(self, **kwargs):
         return await self.ThreadsafeBrowser.create_task(
             self.page.screenshot(**kwargs)
         )
-
-
 
     async def useHere_(self):
         return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.takeOver()", page=self.page)

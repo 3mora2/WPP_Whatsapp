@@ -10,4 +10,4 @@ typing_extensions
 requests
 node-semver
 aiohttp
-PlaywrightSafeThread>=0.5.4.1
+PlaywrightSafeThread>=0.5.5
