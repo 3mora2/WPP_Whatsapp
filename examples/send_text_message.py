@@ -18,11 +18,12 @@ if creator.state != 'CONNECTED':
 message = "hello from wpp"
 phone_number = "***********"  # or "+***********"
 
-creator.sync_close()
+
 # example
 # Simple message
-# result = client.sendText(phone_number, message)
-# print(result)
+result = client.sendText(phone_number, message)
+print(result)
+creator.sync_close()
 # client.forwardMessages("***********@c.us", 'true_***********@c.us_3EB07B4EABBAB75F0BD08A_out')
 """
 sendText:

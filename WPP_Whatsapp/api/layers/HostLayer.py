@@ -455,7 +455,8 @@ class HostLayer:
             # TODO::
             self.ThreadsafeBrowser.sleep(.2)
 
-        self.ThreadsafeBrowser.page_wait_for_function_sync("() => window.WPP.isReady", timeout=120 * 1000,
+        self.ThreadsafeBrowser.page_wait_for_function_sync(
+            "() => typeof window.WPP !== 'undefined' && window.WPP.isReady", timeout=120 * 1000,
                                                            page=self.page)
 
     async def waitForPageLoad_(self):
@@ -468,7 +469,8 @@ class HostLayer:
             # TODO::
             await asyncio.sleep(.2)
 
-        await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP.isReady", timeout=120 * 1000,
+        await self.ThreadsafeBrowser.page_wait_for_function(
+            "() => typeof window.WPP !== 'undefined' && window.WPP.isReady", timeout=120 * 1000,
                                                             page=self.page)
 
     async def waitForLogin_(self):

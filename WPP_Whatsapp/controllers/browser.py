@@ -35,7 +35,7 @@ class ThreadsafeBrowser(Tb):
             browser: BrowserName = "chromium",
             stealthy: bool = False,
             install: bool = False,
-            install_callback=print,
+            install_callback=lambda x: print(x.strip() if x else x),
             check_open_dir=True,
             close_already_profile=True,
             **kwargs
