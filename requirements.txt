@@ -1,5 +1,4 @@
 event-emitter-js
-greenlet
 Pillow
 playwright>=1.43.0
 playwright-stealth
