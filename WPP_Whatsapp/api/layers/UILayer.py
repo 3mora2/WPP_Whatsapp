@@ -21,6 +21,16 @@ class UILayer(GroupLayer):
         """
         return self.ThreadsafeBrowser.run_threadsafe(self.openChatAt_, chatId, messageId, timeout_=timeout)
 
+    def closeChat(self, timeout=60):
+        """
+          /**
+           * Closes the currently opened chat (if any).
+           * The boolean result reflects if there was any chat that got closed.
+           * @category UI
+           */
+        """
+        return self.ThreadsafeBrowser.run_threadsafe(self.closeChat_, timeout_=timeout)
+
     def getActiveChat(self, timeout=60):
         """
         Return the current active chat
@@ -50,6 +60,16 @@ class UILayer(GroupLayer):
         return await self.ThreadsafeBrowser.page_evaluate(
             "({chatId, messageId}) => WPP.chat.openChatAt(chatId, messageId)",
             {"chatId": chatId, "messageId": messageId}, page=self.page)
+
+    async def closeChat_(self):
+        """
+          /**
+           * Closes the currently opened chat (if any).
+           * The boolean result reflects if there was any chat that got closed.
+           * @category UI
+           */
+        """
+        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.chat.closeChat()", page=self.page)
 
     async def getActiveChat_(self):
         """
