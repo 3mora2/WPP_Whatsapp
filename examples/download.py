@@ -1,5 +1,5 @@
+import base64
 from WPP_Whatsapp import Create
-
 import logging
 
 logger = logging.getLogger(name="WPP_Whatsapp")
@@ -15,9 +15,22 @@ client = creator.start()
 if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
-message_id = "true_120363021849652757@g.us_3EB03B7A114A44955D2DBC_***********@c.us"
+message_id = "false_0@c.us_898814798703028-1_0@c.us"
 
 media = client.downloadMedia(message_id)
 # OR
-message = client.getMessageById(message_id)
-media = client.downloadMedia(message)
+# message = client.getMessageById(message_id)
+# media = client.downloadMedia(message)
+
+# Remove the "data:video/mp4;base64," prefix
+base64_data = media.split(',')[1]
+
+# Decode the Base64 string
+video_data = base64.b64decode(base64_data)
+
+# Specify the file path where you want to save the video
+file_path = 'output_video.mp4'
+
+# Write the binary data to the file
+with open(file_path, 'wb') as file:
+    file.write(video_data)
