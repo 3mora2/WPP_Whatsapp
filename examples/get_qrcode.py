@@ -1,5 +1,10 @@
 from WPP_Whatsapp import Create
 
+import logging
+
+logger = logging.getLogger(name="WPP_Whatsapp")
+logger.setLevel(logging.DEBUG)
+
 
 def catchQR(qrCode: str, asciiQR: str, attempt: int, urlCode: str):
     """
@@ -20,7 +25,7 @@ creator = Create(session=your_session_name, catchQR=catchQR,
                  )
 
 client = creator.start()
-
+creator.loop.run_forever()
 
 # multi catchQR
 
@@ -46,3 +51,4 @@ client = creator.start()
 #                  )
 #
 # client = creator.start()
+# creator.loop.run_forever()
