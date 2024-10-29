@@ -48,6 +48,11 @@ class SenderLayer(ListenerLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.reply_, to, content, quotedMsg, timeout_=timeout)
 
+    def sendPtt(self, to: str, pathOrBase64: str, filename: str = None, caption: str = None,
+                quotedMessageId: str = None, messageId: str = None):
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.sendPtt_, to, pathOrBase64, filename, caption, quotedMessageId, messageId)
+
     def sendFile(self, to, pathOrBase64, nameOrOptions, caption, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendFile_, to, pathOrBase64, nameOrOptions, caption, timeout_=timeout)
@@ -263,6 +268,80 @@ class SenderLayer(ListenerLayer):
         # message = await self.ThreadsafeBrowser.page_evaluate()("(messageId) => WAPI.getMessageById(messageId)", result.get("id"), page=self.page)
         return result
 
+    async def sendPttFromBase64(
+            self,
+            to: str,
+            base64: str,
+            filename: str,
+            caption: str = None,
+            quotedMessageId: str = None,
+            messageId: str = None
+    ):
+        result = await self.ThreadsafeBrowser.page_evaluate(
+            """
+            async ({ to, base64, filename, caption, quotedMessageId, messageId }) => {
+        const result = await WPP.chat.sendFileMessage(to, base64, {
+          type: 'audio',
+          isPtt: true,
+          filename,
+          caption,
+          quotedMsg: quotedMessageId,
+          waitForAck: true,
+          messageId: messageId,
+        });
+
+        return {
+          ack: result.ack,
+          id: result.id,
+          sendMsgResult: await result.sendMsgResult,
+        };
+      }
+      """,
+            {
+                'to': to,
+                'base64': base64,
+                'filename': filename,
+                'caption': caption,
+                'quotedMsg': quotedMessageId,
+                'messageId': messageId
+            }
+            , page=self.page
+        )
+        return result
+
+    async def sendPtt_(
+            self,
+            to: str,
+            pathOrBase64: str,
+            filename: str = None,
+            caption: str = None,
+            quotedMessageId: str = None,
+            messageId: str = None
+    ):
+
+        base64 = ''
+        if pathOrBase64.startswith('data:'):
+            _base64 = pathOrBase64
+        else:
+            _base64 = await downloadFileToBase64(pathOrBase64)
+            if not _base64:
+                if pathOrBase64 and os.path.exists(pathOrBase64):
+                    _base64 = self.fileToBase64(pathOrBase64)
+            if not filename:
+                filename = os.path.basename(pathOrBase64)
+
+        if not _base64:
+            raise Exception("Empty or invalid file or base64")
+
+        return await self.sendPttFromBase64(
+            to,
+            base64,
+            filename,
+            caption,
+            quotedMessageId,
+            messageId
+        )
+
     async def sendFile_(self, to, pathOrBase64, nameOrOptions, caption):
         to = self.valid_chatId(to)
         options = {"type": 'auto-detect'}
@@ -420,8 +499,8 @@ class SenderLayer(ListenerLayer):
         toChatId = self.valid_chatId(toChatId)
         return await self.ThreadsafeBrowser.page_evaluate(
             """({ toChatId, msgId, options }) =>WPP.chat.forwardMessage(toChatId, msgId, options)""",
-                                                          {"toChatId": toChatId, "msgId": msgId,
-                                                           "options": options}, page=self.page)
+            {"toChatId": toChatId, "msgId": msgId,
+             "options": options}, page=self.page)
         # return await self.ThreadsafeBrowser.page_evaluate("""({ to, messages, skipMyMessages }) =>
         # WAPI.forwardMessages(to, messages, skipMyMessages)""",
         #                                                   {"to": to, "messages": messages,
