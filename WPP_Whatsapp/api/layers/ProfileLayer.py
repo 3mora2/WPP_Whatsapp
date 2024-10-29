@@ -21,6 +21,9 @@ class ProfileLayer(StatusLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.setProfileStatus_, status, timeout_=timeout)
 
+    def getProfileStatus(self, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.getProfileStatus_, timeout_=timeout)
     def setProfilePic(self, pathOrBase64, to, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.setProfilePic_, pathOrBase64, to, timeout_=timeout)
@@ -68,6 +71,8 @@ class ProfileLayer(StatusLayer):
             WPP.profile.setMyStatus(status);
           }""", status, page=self.page)
 
+    async def getProfileStatus_(self):
+        return await self.ThreadsafeBrowser.page_evaluate("""() => WPP.profile.getMyStatus());""", page=self.page)
     async def setProfilePic_(self, pathOrBase64, to):
         pass
         # ToDO:
