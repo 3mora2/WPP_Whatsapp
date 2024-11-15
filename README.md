@@ -11,10 +11,6 @@ any interaction, such as customer service, media sending, intelligence recogniti
 other things, use your imagination         
 
 
-## Online channels
-
-[![Telegram Group](https://img.shields.io/badge/Telegram-Group-32AFED?logo=telegram)](https://t.me/WPP_Whatsapp)
-
 ## Functions
 
 |                                                            |   |
