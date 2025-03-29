@@ -105,6 +105,9 @@ class SenderLayer(ListenerLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.setOnlinePresence_, online, timeout_=timeout)
 
+    def sendMentioned(self, to:str, message:str, mentioned:list[str], timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.sendMentioned_(to, message, mentioned), timeout_=timeout)
+
     def sendListMessage(self, to, options, timeout=60):
         """
           /**
@@ -565,6 +568,16 @@ class SenderLayer(ListenerLayer):
     async def setOnlinePresence_(self, online=True):
         return await self.ThreadsafeBrowser.page_evaluate("(online) => WPP.conn.markAvailable(online)", online,
                                                           page=self.page)
+
+    async def sendMentioned_(self, to:str, message:str, mentioned:list[str]):
+        to = self.valid_chatId(to)
+
+        return await self.ThreadsafeBrowser.page_evaluate(
+            """({ to, message, mentioned }) => WPP.chat.sendTextMessage(to, message, {
+          detectMentioned: true,
+          mentionedList: mentioned,
+        })""",
+            {"to": to, "message": message, "mentioned": mentioned}, page=self.page)
 
     async def sendListMessage_(self, to, options):
         to = self.valid_chatId(to)
