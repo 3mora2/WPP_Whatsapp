@@ -122,7 +122,7 @@ class HostLayer:
             Logger.exception("window.checkQrCode")
 
         self.logger.info(f'{self.session}: Wait First selector (INTRO_IMG, INTRO_QRCODE)')
-        INTRO_IMG_SELECTOR = '[data-icon=\'search-refreshed-thin\']'
+        INTRO_IMG_SELECTOR = '[data-icon*=\'search\']'
         INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas'
         result = await self.ThreadsafeBrowser.wait_for_first_selectors(INTRO_IMG_SELECTOR, INTRO_QRCODE_SELECTOR)
         needAuthentication = True if result == INTRO_QRCODE_SELECTOR else False
