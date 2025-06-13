@@ -71,7 +71,7 @@ defaultOptions = {
     "waitForLogin": True,
     "logger": Logger,
     "tokenStore": 'file',
-    'whatsappVersion': '2.3000.10152x',
+    'whatsappVersion': '2.3000.10231x',
     'deviceName': False,
     'linkPreviewApiServers': None,
     'disableGoogleAnalytics': True,
