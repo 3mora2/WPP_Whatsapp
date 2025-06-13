@@ -226,6 +226,10 @@ class HostLayer:
         if not result or not result.get("urlCode") or self.urlCode == result.get("urlCode"):
             return
 
+        phoneNumber = self.options.get("phoneNumber")
+        if phoneNumber:
+            return await self.__loginByCode(phoneNumber)
+
         self.urlCode = result.get("urlCode")
         self.attempt += 1
 
@@ -249,12 +253,11 @@ class HostLayer:
         )
 
     async def __loginByCode(self, phone: str):
-        code = self.ThreadsafeBrowser.page_evaluate("""async ({ phone }) => {
+        code = await self.ThreadsafeBrowser.page_evaluate("""async ({ phone }) => {
         return JSON.parse(
           JSON.stringify(await WPP.conn.genLinkDeviceCodeForPhoneNumber(phone))
         );
           }""", {"phone": phone})
-
         if self.logQR:
             Logger.info(f'Waiting for Login By Code (Code: {code})\n')
         else:
@@ -816,39 +819,63 @@ class HostLayer:
         except:
             # Function "loadingScreen" has been already registered
             pass
-        await self.ThreadsafeBrowser.page_evaluate("""
-        function (selectors) {
-              let observer = new MutationObserver(function () {
-                let window2 = window;
+        await self.ThreadsafeBrowser.page_evaluate(
+            """
+     function load_ (selectors) {
+      let observer = new MutationObserver(function () {
+        let window2 = window;
 
-                let progressBar = window2.getElementByXpath(selectors.PROGRESS);
-                let progressMessage = window2.getElementByXpath(
-                  selectors.PROGRESS_MESSAGE
-                );
+        let progressBar = window2.getElementByXpath(selectors.PROGRESS);
+        let progressBarNewTheme = window2.getElementByXpath(
+          selectors.PROGRESS_NEW_THEME
+        );
+        let progressMessage = window2.getElementByXpath(
+          selectors.PROGRESS_MESSAGE
+        );
+        let progressMessageNewTheme = window2.getElementByXpath(
+          selectors.PROGRESS_MESSAGE_NEW_THEME
+        );
 
-                if (progressBar) {
-                  if (
-                    this.lastPercent !== progressBar.value ||
-                    this.lastPercentMessage !== progressMessage.innerText
-                  ) {
-                    window2.loadingScreen(progressBar.value, progressMessage.innerText);
-                    this.lastPercent = progressBar.value;
-                    this.lastPercentMessage = progressMessage.innerText;
-                  }
-                }
-              });
+        if (progressBar) {
+          if (
+            this.lastPercent !== progressBar.value ||
+            this.lastPercentMessage !== progressMessage.innerText
+          ) {
+            window2.loadingScreen(progressBar.value, progressMessage.innerText);
+            this.lastPercent = progressBar.value;
+            this.lastPercentMessage = progressMessage.innerText;
+          }
+        } else if (progressBarNewTheme) {
+          if (
+            this.lastPercent !== progressBarNewTheme.value ||
+            this.lastPercentMessage !== progressMessageNewTheme.innerText
+          ) {
+            const progressMsg =
+              progressMessageNewTheme.innerText != 'WhatsApp'
+                ? progressMessageNewTheme.innerText
+                : '';
+            window2.loadingScreen(progressBarNewTheme.value, progressMsg);
+            this.lastPercent = progressBarNewTheme.value;
+            this.lastPercentMessage = progressMsg;
+          }
+        }
+      });
 
-              observer.observe(document, {
-                attributes: true,
-                childList: true,
-                characterData: true,
-                subtree: true,
-              });
-            }""",
-                                                   {
-                                                       "PROGRESS": "//*[@id='app']/div/div/div[2]/progress",
-                                                       "PROGRESS_MESSAGE": "//*[@id='app']/div/div/div[3]",
-                                                   }, page=self.page)
+      observer.observe(document, {
+        attributes: true,
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+    }""",
+            {
+                "PROGRESS": "//*[@id='app']/div/div/div[2]/progress",
+                "PROGRESS_NEW_THEME": "//*[@id='app']/div/div/div[3]/progress",
+                "PROGRESS_MESSAGE": "//*[@id='app']/div/div/div[3]",
+                "PROGRESS_MESSAGE_NEW_THEME": "//*[@id='app']/div/div/div[2]",
+            },
+            page=self.page,
+        )
 
     @staticmethod
     def valid_chatId(chatId):

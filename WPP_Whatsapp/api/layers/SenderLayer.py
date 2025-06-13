@@ -28,13 +28,16 @@ class SenderLayer(ListenerLayer):
         """
         return self.ThreadsafeBrowser.run_threadsafe(self.sendText_, to, content, options, timeout_=timeout)
 
+    def sendPixKey(self, to, params, options=None, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.sendPixKey_, to, params, options, timeout_=timeout)
+
     def sendMessageOptions(self, chat, content, options=None, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.sendMessageOptions_, chat, content, options, timeout_=timeout)
 
-    def sendImage(self, to, filePath, filename="", caption="", quotedMessageId=None, isViewOnce=None, timeout=120):
+    def sendImage(self, to, filePath, filename="", caption="", quotedMessageId=None, isViewOnce=None,options=None, timeout=120):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendImage_, to, filePath, filename, caption,
-            quotedMessageId, isViewOnce, timeout_=timeout)
+            quotedMessageId, isViewOnce, options,timeout_=timeout)
 
     def reply(self, to, content, quotedMsg, timeout=60):
         """
@@ -180,6 +183,25 @@ class SenderLayer(ListenerLayer):
 
         return send_result
 
+    async def sendPixKey_(self, to, params, options=None):
+        if not options:
+            options = {}
+        to = self.valid_chatId(to)
+        send_result = await self.ThreadsafeBrowser.page_evaluate("""({ to, params, options }) =>
+        WPP.chat.sendPixKeyMessage(to, params, {
+          ...options,
+          waitForAck: true,
+        }),
+      { to, params, options: options as any }
+    );""", {"to": to, "params": params, "options": options}, page=self.page)
+        self.logger.debug(f'{self.session}: Send Message {send_result=}')
+
+        result = await self.ThreadsafeBrowser.page_evaluate("""async ({ messageId }) => {
+        return JSON.parse(JSON.stringify(await WAPI.getMessageById(messageId)));
+      }""", {"messageId": send_result.get("id"), }, page=self.page)
+
+        return result
+
     async def sendMessageOptions_(self, chat, content, options=None):
         if not options:
             options = {}
@@ -190,7 +212,7 @@ class SenderLayer(ListenerLayer):
                                                             message_id, page=self.page)
         return result
 
-    async def sendImage_(self, to, filePath, filename="", caption="", quotedMessageId=None, isViewOnce=None):
+    async def sendImage_(self, to, filePath, filename="", caption="", quotedMessageId=None, isViewOnce=None, options=None):
         to = self.valid_chatId(to)
         _base64 = await downloadFileToBase64(filePath, [
             'image/gif',
@@ -206,10 +228,24 @@ class SenderLayer(ListenerLayer):
                 raise Exception("Path Not Found")
 
         filename = os.path.basename(filePath) if not filename else filename
-        return await self.sendImageFromBase64_(to, _base64, filename, caption, quotedMessageId, isViewOnce)
+        return await self.sendImageFromBase64_(to, _base64, filename, caption, quotedMessageId, isViewOnce, options=options)
 
-    async def sendImageFromBase64_(self, to, _base64, filename, caption, quotedMessageId, isViewOnce,
-                                   mentionedList=None):
+    async def sendImageFromBase64_(
+        self,
+        to,
+        _base64,
+        filename,
+        caption,
+        quotedMessageId,
+        isViewOnce,
+        mentionedList=None,
+        options=None,
+    ):
+        if options is None:
+            options = {}
+        if mentionedList is None and options:
+            mentionedList = options.get("mentionedList")
+
         mime_type = self.base64MimeType(_base64)
         if not mime_type:
             raise Exception("Not valid mimeType")
@@ -226,10 +262,12 @@ class SenderLayer(ListenerLayer):
         quotedMessageId,
         isViewOnce,
         mentionedList,
+        options
       }) => {
         const result = await WPP.chat.sendFileMessage(to, base64, {
           type: 'image',
           isViewOnce,
+          messageId: options?.msgId,
           filename,
           caption,
           quotedMsg: quotedMessageId,
@@ -251,7 +289,8 @@ class SenderLayer(ListenerLayer):
             "caption": caption,
             "quotedMessageId": quotedMessageId,
             "isViewOnce": isViewOnce,
-            "mentionedList": mentionedList
+            "mentionedList": mentionedList,
+            "options":options
         }, page=self.page)
         return result
 

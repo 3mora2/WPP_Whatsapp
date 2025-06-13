@@ -17,7 +17,7 @@ class Create:
             catchQR=None,
             statusFind=None, onLoadingScreen=None, catchLinkCode=None,
             onStateChange=None, waitForLogin: bool = True, logQR: bool = False,
-            autoClose: int = 0, version=None, wa_js_version=None, *args, **kwargs) -> None:
+            autoClose: int = 0, version=None, wa_js_version=None, **kwargs) -> None:
         """
         check_open_dir:bool
         close_already_profile:bool
@@ -175,6 +175,7 @@ class Create:
         return self.client
 
     def __create(self):
+        options = self.__kwargs.copy()
         self.state = "STARTING"
         default = {
             "no_viewport": True, "bypass_csp": True, "headless": False,
@@ -199,7 +200,7 @@ class Create:
         self.client = Whatsapp(self.session,
                                threadsafe_browser=self.ThreadsafeBrowser, page=self.ThreadsafeBrowser.page,
                                loop=self.ThreadsafeBrowser.loop, logQR=self.logQR,
-                               autoClose=self.autoClose, version=self.version, wa_js_version=self.wa_js_version)
+                               autoClose=self.autoClose, version=self.version, wa_js_version=self.wa_js_version, **options)
         self.client.catchQR = self.catchQR
         self.client.statusFind = self.statusFind
         self.client.onLoadingScreen = self.onLoadingScreen

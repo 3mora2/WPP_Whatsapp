@@ -13,10 +13,10 @@ class Whatsapp(BusinessLayer):
         self.connected = None
         self.options = {}
         self.options.update(defaultOptions)
-        for key, value in kwargs.items():
-            if key in self.options:
-                self.options[key] = value
-
+        self.options.update(kwargs)
+        # for key, value in kwargs.items():
+        #     if key in self.options:
+        #         self.options[key] = value
         # self.autoCloseInterval = None
         self.version = version  # or self.options.get('whatsappVersion')
         self.wa_js_version = wa_js_version

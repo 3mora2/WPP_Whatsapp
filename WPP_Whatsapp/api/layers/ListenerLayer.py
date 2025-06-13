@@ -14,6 +14,7 @@ onIncomingCall = 'onIncomingCall'
 onInterfaceChange = 'onInterfaceChange'
 onPresenceChanged = 'onPresenceChanged'
 onLiveLocation = 'onLiveLocation'
+onMessageEdit = 'onMessageEdit'
 
 
 class HandelFunc:
@@ -51,6 +52,7 @@ class ListenerLayer(ProfileLayer):
         functions = [
             OnMessage,
             OnAnyMessage,
+            onMessageEdit,
             onAck,
             onNotificationMessage,
             onParticipantsChanged,
@@ -131,6 +133,21 @@ class ListenerLayer(ProfileLayer):
           if (!window['onAck'].exposed) {
             window.WAPI.waitNewAcknowledgements(window['onAck']);
             window['onAck'].exposed = true;
+          }
+        } catch (error) {
+          console.error(error);
+        }
+        try {
+          if (!window['onMessageEdit'].exposed) {
+            WPP.on('chat.msg_edited', (data) => {
+              const eventData = {
+                chat: data.chat,
+                id: data.id,
+                msg: WAPI.processMessageObj(data.msg, true, false),
+              };
+              window['onMessageEdit'](eventData);
+            });
+            window['onMessageEdit'].exposed = true;
           }
         } catch (error) {
           console.error(error);
@@ -306,6 +323,10 @@ class ListenerLayer(ProfileLayer):
     def onAck(self, callback):
         """ """
         return self.__registerEvent(onAck, callback)
+
+    def onMessageEdit(self, callback):
+        """ """
+        return self.__registerEvent(onMessageEdit, callback)
 
     def onLiveLocation(self, id, callback):
         """ ToDo: """
