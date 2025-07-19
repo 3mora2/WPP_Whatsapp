@@ -103,7 +103,11 @@ class SenderLayer(ListenerLayer):
     def stopTyping(self, to, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.stopTyping_, to, timeout_=timeout)
-
+    
+    def sendImageAsSticker(self, to: str, pathOrBase64: str, options=None, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.sendImageAsSticker_, to, pathOrBase64, options, timeout_=timeout)
+            
     def setOnlinePresence(self, online=True, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.setOnlinePresence_, online, timeout_=timeout)
@@ -603,7 +607,45 @@ class SenderLayer(ListenerLayer):
     async def stopTyping_(self, to):
         to = self.valid_chatId(to)
         return await self.ThreadsafeBrowser.page_evaluate("(to) => WPP.chat.markIsPaused(to)", to, page=self.page)
+    
+    async def sendImageAsSticker_(self, to: str, pathOrBase64: str, options={}):
+        to = self.valid_chatId(to)
+        _base64 = ''
+        if pathOrBase64.startswith('data:'):
+            _base64 = pathOrBase64
+        else:
+            _base64 = await downloadFileToBase64(pathOrBase64, [
+                'image/gif',
+                'image/png',
+                'image/jpg',
+                'image/jpeg',
+                'image/webp',
+            ])
+            if not _base64:
+                if pathOrBase64 and os.path.exists(pathOrBase64):
+                    _base64 = self.fileToBase64(pathOrBase64)
+        
+        if not _base64:
+            raise Exception("Empty or invalid file or base64")
 
+        mime_type = self.base64MimeType(_base64)
+        if not mime_type or 'image' not in mime_type:
+            raise Exception('Not an image, allowed formats png, jpeg, webp and gif')
+
+        return await self.ThreadsafeBrowser.page_evaluate("""async ({ to, base64, options }) => {
+            const result = await WPP.chat.sendFileMessage(to, base64, {
+              type: 'sticker',
+              ...options,
+              waitForAck: true,
+            });
+            
+            return {
+              ack: result.ack,
+              id: result.id,
+              sendMsgResult: await result.sendMsgResult,
+            };
+          }""", {"to": to, "base64": _base64, "options": options}, page=self.page)
+    
     async def setOnlinePresence_(self, online=True):
         return await self.ThreadsafeBrowser.page_evaluate("(online) => WPP.conn.markAvailable(online)", online,
                                                           page=self.page)
