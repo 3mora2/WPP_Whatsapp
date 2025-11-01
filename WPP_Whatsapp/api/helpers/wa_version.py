@@ -1,7 +1,5 @@
-import asyncio
 import os
 from nodesemver import max_satisfying, _sorted, satisfies
-import requests
 import aiohttp
 
 
@@ -50,7 +48,7 @@ async def getPageContent(versionMatch=None, includePrerelease=True):
 async def getWaJs(version=None):
     nightly = "https://github.com/wppconnect-team/wa-js/releases/download/nightly/wppconnect-wa.js"
     url = None
-    if version is None:
+    if version is not None:
         version = str(version)
         async with aiohttp.ClientSession() as session:
             async with session.get("https://api.github.com/repos/wppconnect-team/wa-js/releases") as response:

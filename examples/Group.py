@@ -15,6 +15,6 @@ client = creator.start()
 if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
-print(client.ThreadsafeBrowser.run_threadsafe(client.getWAVersion()))
-
-# print(client.ThreadsafeBrowser.page_evaluate_sync('() => WPP.chat.find("5786886765767@c.us").then((c)=>WAPI._serializeChatObj(c))'))
+resp = client.createGroup("grp_n43e5ame", ["20109969@c.us"])
+group_jid = resp.get("gid") or resp.get("id")
+# client.addParticipant(group_jid.get('_serialized'), "*****@c.us")

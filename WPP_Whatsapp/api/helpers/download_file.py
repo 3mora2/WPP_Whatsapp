@@ -1,6 +1,6 @@
 import base64
 
-import requests
+import aiohttp
 import re
 from typing import List, Union
 
@@ -16,8 +16,10 @@ async def downloadFileToBase64(_path: str, _mines: List[Union[str, re.Pattern]] 
         return False
 
     try:
-        response = requests.get(_path)
-        response.raise_for_status()
+        async with aiohttp.ClientSession() as session:
+            async with session.get(_path) as response:
+                response.raise_for_status()
+                content = await response.read()
 
         mimeType = response.headers['content-type']
 
@@ -26,8 +28,7 @@ async def downloadFileToBase64(_path: str, _mines: List[Union[str, re.Pattern]] 
             if not isValidMime:
                 print(f'Content-Type "{mimeType}" of {_path} is not allowed')
                 return False
-
-        archive = base64.b64encode(response.content)
+        archive = base64.b64encode(content)
         base64_content = archive.decode("utf-8")
 
         return f'data:{mimeType};base64,{base64_content}'
@@ -35,3 +36,6 @@ async def downloadFileToBase64(_path: str, _mines: List[Union[str, re.Pattern]] 
         print(e)
 
     return False
+
+import asyncio
+print(asyncio.run(downloadFileToBase64("https://m.media-amazon.com/images/I/41F9VpcaslL.jpg")))
