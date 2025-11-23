@@ -37,5 +37,6 @@ async def downloadFileToBase64(_path: str, _mines: List[Union[str, re.Pattern]] 
 
     return False
 
-import asyncio
-print(asyncio.run(downloadFileToBase64("https://m.media-amazon.com/images/I/41F9VpcaslL.jpg")))
+if __name__ == '__main__':
+    import asyncio
+    print(asyncio.run(downloadFileToBase64("https://m.media-amazon.com/images/I/41F9VpcaslL.jpg")))
