@@ -3,16 +3,22 @@ from WPP_Whatsapp.api.model import ChatListOptions
 
 
 class RetrieverLayer(SenderLayer):
+    def getListMutes(self, type_, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.getListMutes_(type_), timeout_=timeout)
+
     def getSessionTokenBrowser(self, removePath, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.getSessionTokenBrowser_(removePath), timeout_=timeout)
 
     def getTheme(self, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.getTheme_(), timeout_=timeout)
 
+    def getBlockList(self, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.getBlockList_(), timeout_=timeout)
+
     def getAllChats(self, withNewMessageOnly=False, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.getAllChats_(withNewMessageOnly), timeout_=timeout)
 
-    def listChats(self, options: ChatListOptions = {}, timeout=60):
+    def listChats(self, options=None, timeout=60):
         """
           /**
            * Return list of chats
@@ -46,13 +52,16 @@ class RetrieverLayer(SenderLayer):
            * @returns array of [Chat]
            */
         """
+        if options is None:
+            options = {}
         return self.ThreadsafeBrowser.run_threadsafe(self.listChats_(options), timeout_=timeout)
 
     def checkNumberStatus(self, contactId, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.checkNumberStatus_(contactId), timeout_=timeout)
 
     def getAllChatsWithMessages(self, withNewMessageOnly=False, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getAllChatsWithMessages_(withNewMessageOnly), timeout_=timeout)
+        return self.ThreadsafeBrowser.run_threadsafe(self.getAllChatsWithMessages_(withNewMessageOnly),
+                                                     timeout_=timeout)
 
     def getAllGroups(self, withNewMessagesOnly=False, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.getAllGroups_(withNewMessagesOnly), timeout_=timeout)
@@ -117,7 +126,24 @@ class RetrieverLayer(SenderLayer):
     def getVotes(self, msgId, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.getVotes_(msgId), timeout_=timeout)
 
+    def getOrder(self, msgId, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.getOrder_(msgId), timeout_=timeout)
+
+    def getGroupSizeLimit(self, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.getGroupSizeLimit_(), timeout_=timeout)
+
+    def getCommonGroups(self, wid, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.getCommonGroups_(wid), timeout_=timeout)
+
+    def getPnLidEntry(self, phoneOrLid, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.getPnLidEntry_(phoneOrLid), timeout_=timeout)
+
     ########################################################
+    async def getListMutes_(self, type_):
+        # @returns string light or dark
+        return await self.ThreadsafeBrowser.page_evaluate("(type: string) => WAPI.getListMute(type),", type_,
+                                                          page=self.page)
+
     async def getSessionTokenBrowser_(self, removePath):
         # @returns obj [token]
         if removePath:
@@ -152,6 +178,10 @@ class RetrieverLayer(SenderLayer):
         # @returns string light or dark
         return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getTheme()", page=self.page)
 
+    async def getBlockList_(self):
+        return await self.ThreadsafeBrowser.page_evaluate(" () => WPP.blocklist.all().map((b) => b.toString())",
+                                                          page=self.page)
+
     async def getAllChats_(self, withNewMessageOnly=False):
         # @returns array of [Chat]
         if withNewMessageOnly:
@@ -159,7 +189,7 @@ class RetrieverLayer(SenderLayer):
 
         return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getAllChats()", page=self.page)
 
-    async def listChats_(self, options: ChatListOptions = {}):
+    async def listChats_(self, options:ChatListOptions=None):
         """
           /**
            * Return list of chats
@@ -193,6 +223,8 @@ class RetrieverLayer(SenderLayer):
            * @returns array of [Chat]
            */
         """
+        if options is None:
+            options = {}
         return await self.ThreadsafeBrowser.page_evaluate(
             """
         async ({ options }) => {
@@ -298,7 +330,7 @@ class RetrieverLayer(SenderLayer):
                                         };
                                       }""", contactId, page=self.page)
 
-    async def getNumberProfile_(self, contactId):
+    async def getNumberProfile_(self, contactId: str):
         contactId = self.valid_chatId(contactId)
         return await self.ThreadsafeBrowser.page_evaluate("(contactId) => WAPI.getNumberProfile(contactId)", contactId,
                                                           page=self.page)
@@ -317,7 +349,7 @@ class RetrieverLayer(SenderLayer):
         # @deprecated Use getAllUnreadMessages
         return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getAllNewMessages()", page=self.page)
 
-    async def getAllMessagesInChat_(self, chatId, includeMe=False, includeNotifications=False):
+    async def getAllMessagesInChat_(self, chatId: str, includeMe=False, includeNotifications=False):
         chatId = self.valid_chatId(chatId)
         """
         * Retrieves all messages already loaded in a chat
@@ -329,7 +361,7 @@ class RetrieverLayer(SenderLayer):
                                                            "includeNotifications": includeNotifications},
                                                           page=self.page)
 
-    async def loadAndGetAllMessagesInChat_(self, chatId, includeMe=False, includeNotifications=False):
+    async def loadAndGetAllMessagesInChat_(self, chatId: str, includeMe=False, includeNotifications=False):
         chatId = self.valid_chatId(chatId)
         """
         * Loads and Retrieves all Messages in a chat
@@ -340,17 +372,17 @@ class RetrieverLayer(SenderLayer):
                                                            "includeNotifications": includeNotifications},
                                                           page=self.page)
 
-    async def getChatIsOnline_(self, chatId):
+    async def getChatIsOnline_(self, chatId: str):
         chatId = self.valid_chatId(chatId)
         return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WAPI.getChatIsOnline(chatId)", chatId,
                                                           page=self.page)
 
-    async def getLastSeen_(self, chatId):
+    async def getLastSeen_(self, chatId: str):
         chatId = self.valid_chatId(chatId)
         return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WAPI.getLastSeen(chatId)", chatId,
                                                           page=self.page)
 
-    async def getPlatformFromMessage_(self, msgId):
+    async def getPlatformFromMessage_(self, msgId: str):
         """
         * Get the platform message from message ID
         * The platform can be:
@@ -362,9 +394,24 @@ class RetrieverLayer(SenderLayer):
         return await self.ThreadsafeBrowser.page_evaluate("(msgId) => WPP.chat.getPlatformFromMessage(msgId)", msgId,
                                                           page=self.page)
 
-    async def getReactions_(self, msgId):
+    async def getReactions_(self, msgId: str):
         return await self.ThreadsafeBrowser.page_evaluate("(msgId) => WPP.chat.getReactions(msgId)", msgId,
                                                           page=self.page)
 
-    async def getVotes_(self, msgId):
+    async def getVotes_(self, msgId: str):
         return await self.ThreadsafeBrowser.page_evaluate("(msgId) => WPP.chat.getVotes(msgId)", msgId, page=self.page)
+
+    async def getGroupSizeLimit_(self):
+        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.group.getGroupSizeLimit()", page=self.page)
+
+    async def getOrder_(self, msgId: str):
+        return await self.ThreadsafeBrowser.page_evaluate("(msgId) => WPP.order.get(msgId)", msgId, page=self.page)
+
+    async def getCommonGroups_(self, wid: str):
+        return await self.ThreadsafeBrowser.page_evaluate("({ wid }) => WPP.contact.getCommonGroups(wid)", {"wid": wid},
+                                                          page=self.page)
+
+    async def getPnLidEntry_(self, phoneOrLid: str):
+        return await self.ThreadsafeBrowser.page_evaluate("(phoneOrLid) => WPP.contact.getPnLidEntry(phoneOrLid),",
+                                                          phoneOrLid,
+                                                          page=self.page)

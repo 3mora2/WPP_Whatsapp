@@ -1,20 +1,20 @@
 import asyncio
-import logging
 import base64 as base64_model
+import logging
 import mimetypes
-import os
 import re
 from datetime import datetime
-from pathlib import Path
 from typing import Callable
+
 from playwright._impl._errors import TargetClosedError
 from playwright.async_api import Page
+
 from WPP_Whatsapp.api.const import whatsappUrl, Logger
 from WPP_Whatsapp.api.helpers.function import asciiQr
-from WPP_Whatsapp.api.helpers.wapi import WAPI
-from WPP_Whatsapp.controllers.browser import ThreadsafeBrowser
 from WPP_Whatsapp.api.helpers.jsFunction import setInterval
 from WPP_Whatsapp.api.helpers.wa_version import getPageContent, getWaJs
+from WPP_Whatsapp.api.helpers.wapi import WAPI
+from WPP_Whatsapp.controllers.browser import ThreadsafeBrowser
 
 
 class HostLayer:
@@ -279,8 +279,8 @@ class HostLayer:
             self.logger.info(f'{self.session}: Closing the page')
             self.statusFind('autocloseCalled', self.session)
             if not self.page.is_closed():
-                await self.ThreadsafeBrowser.close()        
-            if  hasattr(self, "autoCloseInterval") and self.autoCloseInterval:
+                await self.ThreadsafeBrowser.close()
+            if hasattr(self, "autoCloseInterval") and self.autoCloseInterval:
                 self.cancelAutoClose()
             return
 
@@ -460,7 +460,7 @@ class HostLayer:
 
         self.ThreadsafeBrowser.page_wait_for_function_sync(
             "() => typeof window.WPP !== 'undefined' && window.WPP.isReady", timeout=120 * 1000,
-                                                           page=self.page)
+            page=self.page)
 
     async def waitForPageLoad_(self):
         while not self.isInjected:
@@ -474,7 +474,7 @@ class HostLayer:
 
         await self.ThreadsafeBrowser.page_wait_for_function(
             "() => typeof window.WPP !== 'undefined' && window.WPP.isReady", timeout=120 * 1000,
-                                                            page=self.page)
+            page=self.page)
 
     async def waitForLogin_(self):
         self.logger.info(f'{self.session}: http => Waiting page load')
@@ -631,6 +631,9 @@ class HostLayer:
         """Retrieves if the phone is online. Please note that this may not be real time."""
         return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.isConnected()", page=self.page)
 
+    def isOnline(self):
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isOnline()", page=self.page)
+
     def isLoggedIn(self):
         return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.isLoggedIn()", page=self.page)
 
@@ -646,6 +649,23 @@ class HostLayer:
 
     def isMultiDevice(self):
         return self.ThreadsafeBrowser.page_evaluate_sync("() => window.WPP.conn.isMultiDevice()", page=self.page)
+
+    def isMainLoaded(self):
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => window.WPP.conn.isMainLoaded()", page=self.page)
+
+    def isMainInit(self):
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => window.WPP.conn.isMainInit()", page=self.page)
+
+    def joinWebBeta(self, value:bool):
+        return self.ThreadsafeBrowser.page_evaluate_sync("(value) => WPP.conn.joinWebBeta(value)",value, page=self.page)
+
+    def getBuildConstants(self, ):
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.getBuildConstants()", page=self.page)
+
+    def isLidMigrated(self, ):
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.whatsapp.functions.isLidMigrated()", page=self.page)
+
+
 
     async def isAuthenticated(self):
         try:
@@ -880,8 +900,8 @@ class HostLayer:
     @staticmethod
     def valid_chatId(chatId):
         chatId = chatId.replace("+", "")
-        if chatId and (
-                not chatId.endswith('@c.us') and not chatId.endswith('@g.us') and not chatId.endswith('@newsletter')):
+        # TODO:
+        if chatId and '@' not in chatId:
             chatId += '@g.us' if len(chatId) > 15 else '@c.us'
         return chatId
 
