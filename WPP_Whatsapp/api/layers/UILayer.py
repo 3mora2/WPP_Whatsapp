@@ -47,7 +47,7 @@ class UILayer(GroupLayer):
         @param chatId
         """
         chatId = self.valid_chatId(chatId)
-        return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.chat.openChatBottom(chatId)", chatId, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.chat.openChatBottom(chatId, undefined)", chatId, page=self.page)
 
     async def openChatAt_(self, chatId, messageId):
         """
@@ -58,7 +58,7 @@ class UILayer(GroupLayer):
         """
         chatId = self.valid_chatId(chatId)
         return await self.ThreadsafeBrowser.page_evaluate(
-            "({chatId, messageId}) => WPP.chat.openChatAt(chatId, messageId)",
+            "({chatId, messageId}) => WPP.chat.openChatAt(chatId, messageId, undefined)",
             {"chatId": chatId, "messageId": messageId}, page=self.page)
 
     async def closeChat_(self):

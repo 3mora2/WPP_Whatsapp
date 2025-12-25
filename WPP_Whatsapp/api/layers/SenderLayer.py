@@ -88,6 +88,10 @@ class SenderLayer(ListenerLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.forwardMessages_, toChatId, msgId, options, timeout_=timeout)
 
+    def forwardMessagesV2(self, toChatId: str, messages: str | list[str], options=None, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.forwardMessagesV2_, toChatId, messages, options, timeout_=timeout)
+
     def sendLocation(self, to, options, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendLocation_, to, options, timeout_=timeout)
@@ -552,7 +556,13 @@ class SenderLayer(ListenerLayer):
         #                                                   {"to": to, "messages": messages,
         #                                                    "skipMyMessages": skipMyMessages}, page=self.page)
 
-    async def sendImageAsStickerGif_(self, to: str, pathOrBase64: str, options={}):
+    async def forwardMessagesV2_(self, toChatId: str, messages: str | list[str], options=None):
+        if options is None:
+            options = {}
+        return await self.ThreadsafeBrowser.page_evaluate("""({ toChatId, messages, options }) =>
+        WPP.chat.forwardMessages(toChatId, messages, options)""", { "toChatId":toChatId, "messages":messages, "options":options }, page=self.page)
+
+    async def sendImageAsStickerGif_(self, to: str, pathOrBase64: str, options=None):
         """
           /**
            * Generates sticker from the provided animated gif image and sends it (Send image as animated sticker)
@@ -574,6 +584,8 @@ class SenderLayer(ListenerLayer):
            * @param to chatId '000000000000@c.us'
            */
         """
+        if options is None:
+            options = {}
         ...
 
     async def sendLocation_(self, to, options):
