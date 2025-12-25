@@ -11,6 +11,13 @@ any interaction, such as customer service, media sending, intelligence recogniti
 other things, use your imagination         
 
 
+---
+
+## Quick links
+- Community: Discord ([https://discord.gg/5E39JUWUFa](https://discord.gg/xkmHrjAV)) 
+
+---
+
 ## Functions
 
 |                                                            |   |
