@@ -79,7 +79,6 @@ async def getWaJs(version=None):
                         if not max_version:
                             max_version = max_satisfying(tags, "*", include_prerelease=True)
                         url = tags[max_version] if max_version else nightly
-
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             content=await response.text()
@@ -88,5 +87,5 @@ async def getWaJs(version=None):
 
 if __name__ == '__main__':
     import asyncio
-    asyncio.run(getWaJs(version='3.19.4-alpha.0'))
+    asyncio.run(getWaJs(version='3.19.3'))
 
