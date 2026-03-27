@@ -1,8 +1,12 @@
 [project]
 name = "WPP_Whatsapp"
-version = "0.5.7"
+version = "0.5.8"
 description = "WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python"
 requires-python = ">=3.8"
+authors = [
+    {name = "Ammar Alkotb", email = "ammar.alkotb@gmail.com"}
+]
+license = {text = "MIT License"}
 dependencies = [
     "aiohttp>=3.10.11",
     "event-emitter-js>=0.1.2",
@@ -17,3 +21,24 @@ dependencies = [
     "segno>=1.6.6",
     "typing-extensions>=4.13.2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/3mora2/WPP_Whatsapp"
+"Bug Report" = "https://github.com/3mora2/WPP_Whatsapp/issues/new"
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+WPP_Whatsapp = ["*/*.js", "*.md"]

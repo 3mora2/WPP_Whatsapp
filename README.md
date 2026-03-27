@@ -14,7 +14,8 @@ other things, use your imagination
 ---
 
 ## Quick links
-- Community: Discord ([https://discord.gg/5E39JUWUFa](https://discord.gg/xkmHrjAV)) 
+- Community: Discord ([https://discord.gg/5E39JUWUFa](https://discord.gg/xkmHrjAV))
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
@@ -44,6 +45,15 @@ installed with [pip](https://pip.pypa.io):
 ```commandline
 pip install WPP_Whatsapp -U
 ```
+
+Or with [uv](https://github.com/astral-sh/uv):
+```commandline
+uv add WPP_Whatsapp
+```
+```commandline
+uv pip install WPP_Whatsapp -U
+```
+
 Alternatively, you can grab the latest source code from [GitHub](https://github.com/3mora2/WPP_Whatsapp):
 
 ```
