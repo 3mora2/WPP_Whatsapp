@@ -1,4 +1,6 @@
 import asyncio
+import os
+import pytest
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
 import logging
@@ -8,6 +10,12 @@ logger.setLevel(logging.DEBUG)
 
 session = "test"
 page = None
+
+# Skip this test in CI environments
+pytestmark = pytest.mark.skipif(
+    os.getenv("CI") == "true",
+    reason="Requires browser and WhatsApp Web connection"
+)
 
 
 async def on_load(page):
@@ -96,4 +104,6 @@ def test_sync():
         print(f'{session}: End inject')
 
 
-test_sync()
+if __name__ == "__main__":
+    # Only run when executed directly, not during pytest collection
+    test_sync()
