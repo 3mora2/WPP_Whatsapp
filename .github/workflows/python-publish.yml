@@ -28,7 +28,7 @@ jobs:
     - name: Set up uv
       uses: astral-sh/setup-uv@v3
       with:
-        python-version: ${{ matrix.python-version }}
+        version: ${{ matrix.python-version }}
 
     - name: Install dependencies
       run: |
@@ -55,7 +55,7 @@ jobs:
     - name: Set up uv
       uses: astral-sh/setup-uv@v3
       with:
-        python-version: '3.11'
+        version: '3.11'
 
     - name: Install dependencies
       run: |
@@ -78,7 +78,7 @@ jobs:
     - name: Set up uv
       uses: astral-sh/setup-uv@v3
       with:
-        python-version: '3.11'
+        version: '3.11'
 
     - name: Install dependencies
       run: uv sync
@@ -103,7 +103,7 @@ jobs:
     - name: Set up uv
       uses: astral-sh/setup-uv@v3
       with:
-        python-version: '3.11'
+        version: '3.11'
 
     - name: Download build artifacts
       uses: actions/download-artifact@v3
