@@ -1,0 +1,15 @@
+[flake8]
+exclude =
+    .venv,
+    __pycache__,
+    *.pyc,
+    .git,
+    build,
+    dist,
+    *.egg-info,
+    .pytest_cache,
+    .mypy_cache,
+    coverage.xml,
+    .coverage
+max-line-length = 127
+max-complexity = 10
