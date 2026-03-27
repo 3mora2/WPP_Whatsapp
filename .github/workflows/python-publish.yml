@@ -23,12 +23,12 @@ jobs:
         python-version: ['3.9', '3.10', '3.11', '3.12']
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up uv
-      uses: astral-sh/setup-uv@v3
+      uses: astral-sh/setup-uv@v7
       with:
-        version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
       run: |
@@ -39,7 +39,7 @@ jobs:
       run: uv run pytest tests/ -v --tb=short --cov=WPP_Whatsapp --cov-report=xml --cov-report=term-missing
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         file: ./coverage.xml
         flags: unittests
@@ -50,12 +50,12 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up uv
-      uses: astral-sh/setup-uv@v3
+      uses: astral-sh/setup-uv@v7
       with:
-        version: '3.11'
+        python-version: '3.11'
 
     - name: Install dependencies
       run: |
@@ -73,12 +73,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, lint]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up uv
-      uses: astral-sh/setup-uv@v3
+      uses: astral-sh/setup-uv@v7
       with:
-        version: '3.11'
+        python-version: '3.11'
 
     - name: Install dependencies
       run: uv sync
@@ -87,7 +87,7 @@ jobs:
       run: uv build
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dist
         path: dist/
@@ -98,15 +98,15 @@ jobs:
     if: github.event_name == 'release'
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up uv
-      uses: astral-sh/setup-uv@v3
+      uses: astral-sh/setup-uv@v7
       with:
-        version: '3.11'
+        python-version: '3.11'
 
     - name: Download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: dist
         path: dist/
