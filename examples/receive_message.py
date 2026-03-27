@@ -1,12 +1,13 @@
-from WPP_Whatsapp import Create
 import logging
+
+from WPP_Whatsapp import Create
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 # start client with your session name
 your_session_name = "test"
-creator = Create(session=your_session_name,)
+creator = Create(session=your_session_name, )
 
 client = creator.start()
 # Now scan Whatsapp Qrcode in browser
@@ -19,6 +20,7 @@ if creator.state != 'CONNECTED':
 def new_message(message):
     global client
     # Add your Code here
+
     if message and not message.get("isGroupMsg"):
         chat_id = message.get("from")
         message_id = message.get("id")
@@ -26,7 +28,6 @@ def new_message(message):
             client.reply(chat_id, "وعليكم السلام", message_id)
         else:
             client.reply(chat_id, "Welcome", message_id)
-
 
 
 # creator.client.ThreadsafeBrowser.page_evaluate_sync("""

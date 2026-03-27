@@ -120,13 +120,9 @@ class HostLayer:
                                                        page=self.page)
         except:
             Logger.exception("window.checkQrCode")
-
-        self.logger.info(f'{self.session}: Wait First selector (INTRO_IMG, INTRO_QRCODE)')
-        INTRO_IMG_SELECTOR = '[data-icon*=\'search\']'
-        INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas'
-        result = await self.ThreadsafeBrowser.wait_for_first_selectors(INTRO_IMG_SELECTOR, INTRO_QRCODE_SELECTOR)
-        needAuthentication = True if result == INTRO_QRCODE_SELECTOR else False
-
+        self.logger.info(f'{self.session}: Wait isMainReady')
+        await self.ThreadsafeBrowser.page_wait_for_function("() => WPP.conn.isMainReady()", page=self.page)
+        needAuthentication = not await self.isAuthenticated()
         self.logger.info(f'{self.session}: {needAuthentication=}')
         if needAuthentication:
             await self.__checkQrCode()
@@ -656,16 +652,15 @@ class HostLayer:
     def isMainInit(self):
         return self.ThreadsafeBrowser.page_evaluate_sync("() => window.WPP.conn.isMainInit()", page=self.page)
 
-    def joinWebBeta(self, value:bool):
-        return self.ThreadsafeBrowser.page_evaluate_sync("(value) => WPP.conn.joinWebBeta(value)",value, page=self.page)
+    def joinWebBeta(self, value: bool):
+        return self.ThreadsafeBrowser.page_evaluate_sync("(value) => WPP.conn.joinWebBeta(value)", value,
+                                                         page=self.page)
 
     def getBuildConstants(self, ):
         return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.getBuildConstants()", page=self.page)
 
     def isLidMigrated(self, ):
         return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.whatsapp.functions.isLidMigrated()", page=self.page)
-
-
 
     async def isAuthenticated(self):
         try:

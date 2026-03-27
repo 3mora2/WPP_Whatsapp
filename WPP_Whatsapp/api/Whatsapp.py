@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 from WPP_Whatsapp.api.helpers.jsFunction import setInterval
 from WPP_Whatsapp.api.layers.HostLayer import HostLayer

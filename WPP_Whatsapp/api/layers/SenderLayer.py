@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 from WPP_Whatsapp.api.helpers.download_file import downloadFileToBase64

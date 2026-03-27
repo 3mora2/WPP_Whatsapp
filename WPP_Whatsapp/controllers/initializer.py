@@ -2,10 +2,10 @@ import asyncio
 import os
 import types
 from typing import Optional
-from WPP_Whatsapp.controllers.browser import SUPPORTED_BROWSERS
-from WPP_Whatsapp.controllers.browser import ThreadsafeBrowser
+
 from WPP_Whatsapp.api.Whatsapp import Whatsapp
-from WPP_Whatsapp.api.const import Logger, useragentOverride
+from WPP_Whatsapp.api.const import Logger
+from WPP_Whatsapp.controllers.browser import SUPPORTED_BROWSERS, ThreadsafeBrowser
 
 
 class Create:
@@ -179,7 +179,7 @@ class Create:
         self.state = "STARTING"
         default = {
             "no_viewport": True, "bypass_csp": True, "headless": False,
-            "browser": "chromium", "install": True,
+            "browser": "chrome", "channel": "chrome", "install": False,
         }
 
         for key in default:
@@ -200,7 +200,8 @@ class Create:
         self.client = Whatsapp(self.session,
                                threadsafe_browser=self.ThreadsafeBrowser, page=self.ThreadsafeBrowser.page,
                                loop=self.ThreadsafeBrowser.loop, logQR=self.logQR,
-                               autoClose=self.autoClose, version=self.version, wa_js_version=self.wa_js_version, **options)
+                               autoClose=self.autoClose, version=self.version, wa_js_version=self.wa_js_version,
+                               **options)
         self.client.catchQR = self.catchQR
         self.client.statusFind = self.statusFind
         self.client.onLoadingScreen = self.onLoadingScreen
@@ -208,7 +209,6 @@ class Create:
 
         # self.ThreadsafeBrowser.run_threadsafe(self.client.start, timeout_=120)
         self.client.onStateChange(self._onStateChange)
-
 
     def get_state(self) -> dict:
         return {

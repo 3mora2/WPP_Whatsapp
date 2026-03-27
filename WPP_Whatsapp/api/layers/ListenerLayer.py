@@ -49,6 +49,7 @@ class ListenerLayer(ProfileLayer):
             f'{self.session}: http => Current state: {state.get("mode")} ({state.get("displayInfo")}) ({state.get("info")}) ')
 
     async def _afterPageScriptInjectedListener(self):
+        self.logger.debug(f'{self.session}: Start Exposing function')
         functions = [
             OnMessage,
             OnAnyMessage,
@@ -111,7 +112,9 @@ class ListenerLayer(ProfileLayer):
               if (!serialized) {
                 serialized = _safeSerialize(msg);
               }
-              window['onMessage'](serialized);
+              if (!serialized) {
+                window['onMessage'](serialized);
+              }
             });
 
             window['onMessage'].exposed = true;
@@ -131,7 +134,9 @@ class ListenerLayer(ProfileLayer):
               if (!serialized) {
                 serialized = _safeSerialize(msg);
               }
-              window['onAnyMessage'](serialized);
+              if (!serialized) {
+                window['onAnyMessage'](serialized);
+              }
             });
             window['onAnyMessage'].exposed = true;
           }

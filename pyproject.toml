@@ -1,0 +1,19 @@
+[project]
+name = "WPP_Whatsapp"
+version = "0.5.7"
+description = "WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python"
+requires-python = ">=3.8"
+dependencies = [
+    "aiohttp>=3.10.11",
+    "event-emitter-js>=0.1.2",
+    "node-semver>=0.9.0",
+    "pillow>=10.4.0",
+    "playwright>=1.48.0",
+    "playwright-stealth>=1.0.6",
+    "playwrightsafethread>=0.5.5",
+    "psutil>=7.2.2",
+    "pyee>=12.0.0",
+    "requests>=2.32.4",
+    "segno>=1.6.6",
+    "typing-extensions>=4.13.2",
+]

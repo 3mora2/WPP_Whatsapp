@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from WPP_Whatsapp.api.layers.UILayer import UILayer
 
 
