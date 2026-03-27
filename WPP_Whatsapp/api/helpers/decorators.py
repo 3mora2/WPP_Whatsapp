@@ -1,5 +1,5 @@
 import inspect
-from asyncio import ProactorEventLoop
+import asyncio
 from types import FunctionType
 
 
@@ -10,7 +10,7 @@ def async_to_sync(func: FunctionType):
         if inspect.iscoroutinefunction(func):
             future = func(self, *args, **kwargs)
             if inspect.iscoroutine(future):
-                self.loop: "ProactorEventLoop"
+                self.loop: asyncio.AbstractEventLoop
                 # try:
                 return self.loop.run_until_complete(func(self, *args, **kwargs))
                 # except RuntimeError :
