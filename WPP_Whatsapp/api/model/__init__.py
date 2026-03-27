@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import TypedDict, Optional, Union
+from typing import TypedDict, Optional, Union, List
 
 
-class ChatListOptions(TypedDict):
+class ChatListOptions(TypedDict, total=False):
     count: Optional[int]
     direction: Optional[Union["after", "before"]]
     id: Optional["Wid"]
@@ -12,7 +12,269 @@ class ChatListOptions(TypedDict):
     onlyNewsletter: Optional[bool]
     onlyUsers: Optional[bool]
     onlyWithUnreadMessage: Optional[bool]
-    withLabels: Optional[list[str]]
+    withLabels: Optional[List[str]]
+
+
+# Message Options
+class SendTextOptions(TypedDict, total=False):
+    """Options for sending text messages"""
+    quotedMsg: Optional[str]
+    mentions: Optional[List[str]]
+    linkPreview: Optional[bool]
+    waitForAck: Optional[bool]
+
+
+class SendFileOptions(TypedDict, total=False):
+    """Options for sending files"""
+    filename: Optional[str]
+    caption: Optional[str]
+    quotedMsg: Optional[str]
+    isViewOnce: Optional[bool]
+    mentionedList: Optional[List[str]]
+    waitForAck: Optional[bool]
+    detectMentioned: Optional[bool]
+
+
+class SendImageOptions(SendFileOptions, total=False):
+    """Options for sending images"""
+    type: Optional[str]
+    isGif: Optional[bool]
+    isPtt: Optional[bool]
+    msgId: Optional[str]
+
+
+class SendVideoOptions(SendFileOptions, total=False):
+    """Options for sending videos"""
+    type: Optional[str]
+    isGif: Optional[bool]
+
+
+class SendAudioOptions(SendFileOptions, total=False):
+    """Options for sending audio messages"""
+    type: Optional[str]
+    isPtt: Optional[bool]
+    messageId: Optional[str]
+
+
+class SendStickerOptions(TypedDict, total=False):
+    """Options for sending stickers"""
+    quotedMsg: Optional[str]
+
+
+class SendLocationOptions(TypedDict, total=False):
+    """Options for sending location"""
+    lat: float
+    lng: float
+    title: Optional[str]
+
+
+class SendListMessageOptions(TypedDict, total=False):
+    """Options for sending list messages"""
+    buttonText: str
+    description: Optional[str]
+    sections: List[dict]
+
+
+class ForwardMessageOptions(TypedDict, total=False):
+    """Options for forwarding messages"""
+    displayCaptionText: Optional[bool]
+    multicast: Optional[bool]
+
+
+class MentionOptions(TypedDict, total=False):
+    """Options for mentioned messages"""
+    mentionedList: List[str]
+
+
+# Status Options
+class TextStatusOptions(TypedDict, total=False):
+    """Options for text status"""
+    backgroundColor: Optional[str]
+    font: Optional[int]
+    textAlign: Optional[str]
+
+
+class ImageStatusOptions(TypedDict, total=False):
+    """Options for image status"""
+    caption: Optional[str]
+
+
+class VideoStatusOptions(TypedDict, total=False):
+    """Options for video status"""
+    caption: Optional[str]
+
+
+# Group Options
+class GroupCreateOptions(TypedDict, total=False):
+    """Options for creating groups"""
+    description: Optional[str]
+    parentGroupId: Optional[str]
+    isParentGroup: Optional[bool]
+
+
+class GroupUpdateOptions(TypedDict, total=False):
+    """Options for updating groups"""
+    subject: Optional[str]
+    description: Optional[str]
+    restrict: Optional[bool]
+    announce: Optional[bool]
+    noFrequentlyForwarded: Optional[bool]
+    ephemeralDuration: Optional[int]
+
+
+# Label Options
+class LabelOptions(TypedDict, total=False):
+    """Options for labels"""
+    labelColor: Optional[Union[str, int]]
+
+
+class AddOrRemoveLabelOption(TypedDict):
+    """Option for add/remove label operation"""
+    labelId: str
+    type: str  # 'add' or 'remove'
+
+
+# Contact Options
+class ContactOptions(TypedDict, total=False):
+    """Options for contact operations"""
+    name: Optional[str]
+    phone: Optional[str]
+
+
+# Profile Options
+class ProfileOptions(TypedDict, total=False):
+    """Options for profile settings"""
+    status: Optional[str]
+    profilePicture: Optional[str]
+
+
+# Device Options
+class DeviceOptions(TypedDict, total=False):
+    """Options for device settings"""
+    deviceName: Optional[str]
+    disableGoogleAnalytics: Optional[bool]
+    googleAnalyticsId: Optional[str]
+    linkPreviewApiServers: Optional[List[str]]
+    poweredBy: Optional[str]
+
+
+# Poll Options
+class PollOptions(TypedDict, total=False):
+    """Options for poll messages"""
+    selectableCount: Optional[int]  # Number of choices that can be selected
+    messageSecret: Optional[str]  # Encryption key
+
+
+# Order Options
+class OrderItem(TypedDict):
+    """Item in an order"""
+    productId: str
+    quantity: int
+
+
+class OrderMessageOptions(TypedDict, total=False):
+    """Options for order messages"""
+    title: Optional[str]
+    description: Optional[str]
+    tax: Optional[float]
+    shipping: Optional[float]
+    discount: Optional[float]
+
+
+# Community Options
+class CommunityOptions(TypedDict, total=False):
+    """Options for creating communities"""
+    description: Optional[str]
+    groupIds: Optional[List[str]]
+
+
+class CommunityParticipantOptions(TypedDict, total=False):
+    """Options for community participant management"""
+    participantIds: List[str]
+
+
+# Newsletter Options
+class NewsletterOptions(TypedDict, total=False):
+    """Options for creating newsletters"""
+    description: Optional[str]
+    picture: Optional[str]
+
+
+# Group Management Options
+class GroupDescriptionOptions(TypedDict):
+    """Options for group description"""
+    description: str
+
+
+class GroupSubjectOptions(TypedDict):
+    """Options for group subject"""
+    subject: str
+
+
+class GroupIconOptions(TypedDict):
+    """Options for group icon"""
+    pathOrBase64: str
+
+
+class GroupPropertyOptions(TypedDict):
+    """Options for group properties"""
+    property: str  # 'restrict', 'announce', 'ephemeral', 'noFrequentlyForwarded'
+    value: bool
+
+
+class GroupMembershipRequestOptions(TypedDict, total=False):
+    """Options for group membership requests"""
+    membershipIds: List[str]
+
+
+# Catalog Options
+class CollectionOptions(TypedDict, total=False):
+    """Options for collections"""
+    name: str
+    products: Optional[List[str]]
+
+
+class ProductOptions(TypedDict, total=False):
+    """Options for products"""
+    name: str
+    image: str
+    description: str
+    price: float
+    isHidden: Optional[bool]
+    url: Optional[str]
+    retailerId: Optional[str]
+    currency: Optional[str]
+
+
+# UI Options
+class AutoDownloadOptions(TypedDict):
+    """Options for auto download settings"""
+    wifi: bool
+    cellular: bool
+    roaming: bool
+
+
+class ThemeOptions(TypedDict):
+    """Options for theme"""
+    theme: str  # 'dark', 'light', 'system'
+
+
+# Business Profile Options
+class BusinessProfileOptions(TypedDict, total=False):
+    """Options for business profile"""
+    address: Optional[str]
+    description: Optional[str]
+    email: Optional[str]
+    websites: Optional[List[str]]
+    vertical: Optional[str]  # Business category
+    hours: Optional[dict]  # Business hours
+
+
+# File Operations Options
+class DecryptFileOptions(TypedDict, total=False):
+    """Options for file decryption"""
+    savePath: str
+    filename: Optional[str]
 
 
 class Wid(TypedDict):

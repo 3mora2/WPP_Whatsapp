@@ -1,9 +1,25 @@
 from __future__ import annotations
 
 import os
+from typing import Optional, List, Union
 from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 from WPP_Whatsapp.api.helpers.download_file import downloadFileToBase64
 from WPP_Whatsapp.utils.ffmpeg import convertToMP4GIF
+from WPP_Whatsapp.api.model import (
+    SendTextOptions,
+    SendFileOptions,
+    SendImageOptions,
+    SendVideoOptions,
+    SendAudioOptions,
+    SendStickerOptions,
+    SendLocationOptions,
+    SendListMessageOptions,
+    ForwardMessageOptions,
+    MentionOptions,
+    PollOptions,
+    OrderItem,
+    OrderMessageOptions,
+)
 
 
 class SenderLayer(ListenerLayer):
@@ -15,7 +31,7 @@ class SenderLayer(ListenerLayer):
         """
         return self.ThreadsafeBrowser.run_threadsafe(self.sendLinkPreview_, chatId, url, text, timeout_=timeout)
 
-    def sendText(self, to, content, options=None, timeout=60):
+    def sendText(self, to: str, content: str, options: Optional[SendTextOptions] = None, timeout=60):
         """
            Sends a text message to given chat
            @category Chat
@@ -36,10 +52,10 @@ class SenderLayer(ListenerLayer):
     def sendMessageOptions(self, chat, content, options=None, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.sendMessageOptions_, chat, content, options, timeout_=timeout)
 
-    def sendImage(self, to, filePath, filename="", caption="", quotedMessageId=None, isViewOnce=None,options=None, timeout=120):
+    def sendImage(self, to: str, filePath: str, filename: str = "", caption: str = "", quotedMessageId: Optional[str] = None, isViewOnce: Optional[bool] = None, options: Optional[SendImageOptions] = None, timeout=120):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendImage_, to, filePath, filename, caption,
-            quotedMessageId, isViewOnce, options,timeout_=timeout)
+            quotedMessageId, isViewOnce, options, timeout_=timeout)
 
     def reply(self, to, content, quotedMsg, timeout=60):
         """
@@ -82,7 +98,9 @@ class SenderLayer(ListenerLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendContactVcard_, to, contactsId, name, timeout_=timeout)
 
-    def forwardMessages(self, toChatId: str, msgId: str | list[str], options={}, timeout=60):
+    def forwardMessages(self, toChatId: str, msgId: Union[str, List[str]], options: Optional[ForwardMessageOptions] = None, timeout=60):
+        if options is None:
+            options = {}
         # options = {
         #     "displayCaptionText": bool;
         # "multicast": bool;
@@ -90,11 +108,11 @@ class SenderLayer(ListenerLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.forwardMessages_, toChatId, msgId, options, timeout_=timeout)
 
-    def forwardMessagesV2(self, toChatId: str, messages: str | list[str], options=None, timeout=60):
+    def forwardMessagesV2(self, toChatId: str, messages: Union[str, List[str]], options: Optional[ForwardMessageOptions] = None, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.forwardMessagesV2_, toChatId, messages, options, timeout_=timeout)
 
-    def sendLocation(self, to, options, timeout=60):
+    def sendLocation(self, to: str, options: SendLocationOptions, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendLocation_, to, options, timeout_=timeout)
 
@@ -109,19 +127,19 @@ class SenderLayer(ListenerLayer):
     def stopTyping(self, to, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.stopTyping_, to, timeout_=timeout)
-    
-    def sendImageAsSticker(self, to: str, pathOrBase64: str, options=None, timeout=60):
+
+    def sendImageAsSticker(self, to: str, pathOrBase64: str, options: Optional[SendStickerOptions] = None, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendImageAsSticker_, to, pathOrBase64, options, timeout_=timeout)
-            
+
     def setOnlinePresence(self, online=True, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.setOnlinePresence_, online, timeout_=timeout)
 
-    def sendMentioned(self, to:str, message:str, mentioned:list[str], timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendMentioned_(to, message, mentioned), timeout_=timeout)
+    def sendMentioned(self, to: str, message: str, mentioned: List[str], options: Optional[MentionOptions] = None, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.sendMentioned_, to, message, mentioned, options, timeout_=timeout)
 
-    def sendListMessage(self, to, options, timeout=60):
+    def sendListMessage(self, to: str, options: SendListMessageOptions, timeout=60):
         """
           /**
            * Sends a list message
@@ -170,7 +188,93 @@ class SenderLayer(ListenerLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.setChatState_, chatId, chatState, timeout_=timeout)
 
+    def sendPollMessage(self, chatId: str, name: str, choices: List[str], options: Optional[PollOptions] = None, timeout=60):
+        """
+        Send a poll message
+
+        @param chatId: Chat ID
+        @param name: Poll question
+        @param choices: List of poll options
+        @param options: Poll options (selectableCount, etc)
+        @return: Success status
+        """
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.sendPollMessage_, chatId, name, choices, options, timeout_=timeout)
+
+    def sendOrderMessage(self, to: str, items: List[OrderItem], options: Optional[OrderMessageOptions] = None, timeout=60):
+        """
+        Send an order message
+
+        @param to: Chat ID
+        @param items: List of order items
+        @param options: Order options
+        @return: Success status
+        """
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.sendOrderMessage_, to, items, options, timeout_=timeout)
+
+    def sendWatermarkMessage(self, to: str, content: str, watermark: str = "Sent via WPPConnect", options: Optional[SendTextOptions] = None, timeout=60):
+        """
+        Send a text message with watermark/branding
+
+        @param to: Chat ID
+        @param content: Message content
+        @param watermark: Watermark text to append
+        @param options: Message options
+        @return: Success status
+        """
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.sendWatermarkMessage_, to, content, watermark, options, timeout_=timeout)
+
     ####################################################### async ######################################################
+
+    async def sendPollMessage_(self, chatId: str, name: str, choices: List[str], options: Optional[PollOptions] = None):
+        """Send a poll message - async implementation"""
+        if options is None:
+            options = {}
+        chatId = self.valid_chatId(chatId)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            """({ chatId, name, choices, options }) => {
+                return WPP.poll.createMessage({
+                    chatId,
+                    name,
+                    choices,
+                    ...options
+                });
+            }""",
+            {"chatId": chatId, "name": name, "choices": choices, "options": options},
+            page=self.page
+        )
+
+    async def sendOrderMessage_(self, to: str, items: List[OrderItem], options: Optional[OrderMessageOptions] = None):
+        """Send an order message - async implementation"""
+        if options is None:
+            options = {}
+        to = self.valid_chatId(to)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            """({ to, items, options }) => {
+                return WPP.order.sendOrderMessage(to, items, options);
+            }""",
+            {"to": to, "items": items, "options": options},
+            page=self.page
+        )
+
+    async def sendWatermarkMessage_(self, to: str, content: str, watermark: str = "Sent via WPPConnect", options: Optional[SendTextOptions] = None):
+        """Send a watermark message - async implementation"""
+        if options is None:
+            options = {}
+        to = self.valid_chatId(to)
+        watermarked_content = f"{content}\n\n_{watermark}_"
+        return await self.ThreadsafeBrowser.page_evaluate(
+            """({ to, content, options }) => {
+                return WPP.chat.sendTextMessage(to, content, {
+                    ...options,
+                    waitForAck: true
+                });
+            }""",
+            {"to": to, "content": watermarked_content, "options": options},
+            page=self.page
+        )
 
     async def sendLinkPreview_(self, chatId, url, text=''):
         message = text if url in text else f"{text}\n{url}"
@@ -285,7 +389,7 @@ class SenderLayer(ListenerLayer):
           detectMentioned: true,
           mentionedList: mentionedList,
         }).catch((e) => {return e});
-        
+
         return {
           ack: result.ack,
           id: result.id,
@@ -474,7 +578,7 @@ class SenderLayer(ListenerLayer):
                   quotedMsg: quotedMessageId,
                   waitForAck: true,
                 });
-        
+
                 return {
                   ack: result.ack,
                   id: result.id,
@@ -543,7 +647,9 @@ class SenderLayer(ListenerLayer):
         });
       }""", {"to": to, "contactsId": contactsId, "name": name}, page=self.page)
 
-    async def forwardMessages_(self, toChatId: str, msgId: str | list[str], options={}):
+    async def forwardMessages_(self, toChatId: str, msgId: str | list[str], options=None):
+        if options is None:
+            options = {}
         # {
         #     displayCaptionText?: boolean;
         # multicast?: boolean;
@@ -621,8 +727,10 @@ class SenderLayer(ListenerLayer):
     async def stopTyping_(self, to):
         to = self.valid_chatId(to)
         return await self.ThreadsafeBrowser.page_evaluate("(to) => WPP.chat.markIsPaused(to)", to, page=self.page)
-    
-    async def sendImageAsSticker_(self, to: str, pathOrBase64: str, options={}):
+
+    async def sendImageAsSticker_(self, to: str, pathOrBase64: str, options=None):
+        if options is None:
+            options = {}
         to = self.valid_chatId(to)
         _base64 = ''
         if pathOrBase64.startswith('data:'):
@@ -638,7 +746,7 @@ class SenderLayer(ListenerLayer):
             if not _base64:
                 if pathOrBase64 and os.path.exists(pathOrBase64):
                     _base64 = self.fileToBase64(pathOrBase64)
-        
+
         if not _base64:
             raise Exception("Empty or invalid file or base64")
 
@@ -652,14 +760,14 @@ class SenderLayer(ListenerLayer):
               ...options,
               waitForAck: true,
             });
-            
+
             return {
               ack: result.ack,
               id: result.id,
               sendMsgResult: await result.sendMsgResult,
             };
           }""", {"to": to, "base64": _base64, "options": options}, page=self.page)
-    
+
     async def setOnlinePresence_(self, online=True):
         return await self.ThreadsafeBrowser.page_evaluate("(online) => WPP.conn.markAvailable(online)", online,
                                                           page=self.page)

@@ -3,7 +3,9 @@ from WPP_Whatsapp.api.helpers.download_file import downloadFileToBase64
 
 
 class StatusLayer(LabelsLayer):
-    def sendImageStatus(self, pathOrBase64: str, options: dict = {}, timeout=60):
+    def sendImageStatus(self, pathOrBase64: str, options: dict = None, timeout=60):
+        if options is None:
+            options = {}
         """
           /**
            * Send a image message to status stories
@@ -19,7 +21,9 @@ class StatusLayer(LabelsLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendImageStatus_, pathOrBase64, options, timeout_=timeout)
 
-    def sendVideoStatus(self, pathOrBase64: str, options: dict = {}, timeout=60):
+    def sendVideoStatus(self, pathOrBase64: str, options: dict = None, timeout=60):
+        if options is None:
+            options = {}
         """
           /**
            * Send a video message to status stories
@@ -35,7 +39,9 @@ class StatusLayer(LabelsLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendVideoStatus_, pathOrBase64, options, timeout_=timeout)
 
-    def sendTextStatus(self, text: str, options: dict = {}, timeout=60):
+    def sendTextStatus(self, text: str, options: dict = None, timeout=60):
+        if options is None:
+            options = {}
         """
           /**
            * Send a text to status stories
@@ -67,7 +73,9 @@ class StatusLayer(LabelsLayer):
             self.sendReadStatus_, chatId, statusId, timeout_=timeout)
 
     ##########################################################################
-    async def sendImageStatus_(self, pathOrBase64: str, options={}):
+    async def sendImageStatus_(self, pathOrBase64: str, options=None):
+        if options is None:
+            options = {}
         """
           /**
            * Send a image message to status stories
@@ -118,7 +126,9 @@ class StatusLayer(LabelsLayer):
             {"base64": base64, "options": options}, page=self.page
         )
 
-    async def sendVideoStatus_(self, pathOrBase64: str, options={}):
+    async def sendVideoStatus_(self, pathOrBase64: str, options=None):
+        if options is None:
+            options = {}
         """
           /**
            * Send a video message to status stories

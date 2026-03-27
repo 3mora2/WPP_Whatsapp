@@ -169,7 +169,7 @@ class HostLayer:
                       window.onerror = console.error;
                       window.onunhandledrejection = console.error;
                     }, 500);
-                    
+
                     // Remove existent service worker
                     navigator.serviceWorker
                       .getRegistrations()
@@ -179,7 +179,7 @@ class HostLayer:
                         }
                       })
                       .catch((err) => null);
-                
+
                     // Disable service worker registration
                     // @ts-ignore
                     navigator.serviceWorker.register = new Promise(() => {});
@@ -720,7 +720,7 @@ class HostLayer:
         result = await self.ThreadsafeBrowser.page_evaluate("""() => {
               const selectorImg = document.querySelector('canvas');
               const selectorUrl = selectorImg.closest('[data-ref]');
-        
+
               if (selectorImg != null && selectorUrl != null) {
                 let data = {
                   base64Image: selectorImg.toDataURL(),
@@ -894,10 +894,41 @@ class HostLayer:
 
     @staticmethod
     def valid_chatId(chatId):
-        chatId = chatId.replace("+", "")
-        # TODO:
-        if chatId and '@' not in chatId:
-            chatId += '@g.us' if len(chatId) > 15 else '@c.us'
+        """
+        Validate and format chatId to proper WhatsApp format
+
+        @param chatId: Phone number, group ID, or full chat ID
+        @return: Formatted chat ID with @c.us or @g.us suffix
+        @raises: ValueError if chatId is invalid
+        """
+        if not chatId:
+            raise ValueError("chatId cannot be empty")
+
+        if not isinstance(chatId, str):
+            chatId = str(chatId)
+
+        # Remove any whitespace and plus sign
+        chatId = chatId.strip().replace("+", "")
+
+        # Check if already has proper suffix
+        if '@' in chatId:
+            # Validate suffix
+            if not chatId.endswith(('@c.us', '@g.us', '@broadcast', '@newsletter')):
+                raise ValueError(f"Invalid chatId suffix: {chatId}. Must end with @c.us, @g.us, @broadcast, or @newsletter")
+            return chatId
+
+        # Validate phone/group number format (digits only, possibly with hyphens for groups)
+        if not chatId.replace("-", "").isdigit():
+            raise ValueError(f"Invalid chatId format: {chatId}. Must contain only digits (and optional hyphens for groups)")
+
+        # Determine if group or contact based on length
+        # Groups typically have format: number-number (e.g., 123456-789012)
+        # Contacts are just phone numbers
+        if '-' in chatId or len(chatId) > 15:
+            chatId += '@g.us'
+        else:
+            chatId += '@c.us'
+
         return chatId
 
     def close(self):

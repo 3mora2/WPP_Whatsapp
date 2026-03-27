@@ -125,3 +125,11 @@ tokens
 token
 */tokens
 *.lock
+
+# Project specific
+main.py  # Example file, not needed for package
+*.bak
+*.tmp
+
+# Archive directory (optional development files)
+archive/

@@ -187,3 +187,32 @@ class Whatsapp(BusinessLayer):
     async def rejectCall_(self, callId=""):
         return await self.ThreadsafeBrowser.page_evaluate(
             "(callId) => WPP.call.rejectCall(callId)", callId, page=self.page)
+
+    # Context Manager Support
+    def __enter__(self):
+        """Context manager entry (sync)"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit (sync)"""
+        self.close()
+
+    async def __aenter__(self):
+        """Context manager entry (async)"""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit (async)"""
+        await self.close_async()
+
+    def close(self):
+        """Close the session (sync)"""
+        self.logger.info(f'{self.session}: Closing session...')
+        if hasattr(self, 'ThreadsafeBrowser'):
+            self.ThreadsafeBrowser.sync_close()
+
+    async def close_async(self):
+        """Close the session (async)"""
+        self.logger.info(f'{self.session}: Closing session...')
+        if hasattr(self, 'ThreadsafeBrowser'):
+            await self.ThreadsafeBrowser.close()

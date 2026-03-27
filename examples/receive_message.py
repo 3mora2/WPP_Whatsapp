@@ -39,4 +39,4 @@ def new_message(message):
 
 # Add Listen To New Message
 creator.client.onMessage(new_message)
-creator.loop.run_forever()
+

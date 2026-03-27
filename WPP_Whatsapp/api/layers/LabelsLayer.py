@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Dict
+from typing import List, Dict, Any
 
 from WPP_Whatsapp.api.layers.CatalogLayer import CatalogLayer
 
@@ -53,7 +53,7 @@ class LabelsLayer(CatalogLayer):
         WPP.labels.addNewLabel(name, options);
       }""", {"name": name, "options": options}, page=self.page)
 
-    async def addOrRemoveLabels_(self, chatIds: list, options: List[Dict]):
+    async def addOrRemoveLabels_(self, chatIds: List[str], options: List[Dict[str, Any]]):
         """
           /**
            * Add or delete label of chatId

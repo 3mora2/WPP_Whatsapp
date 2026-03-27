@@ -1,4 +1,8 @@
+from __future__ import annotations
+
+from typing import Optional
 from WPP_Whatsapp.api.layers.StatusLayer import StatusLayer
+from WPP_Whatsapp.api.model import BusinessProfileOptions
 
 
 class ProfileLayer(StatusLayer):
@@ -24,6 +28,12 @@ class ProfileLayer(StatusLayer):
     def getProfileStatus(self, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.getProfileStatus_, timeout_=timeout)
+
+    def getProfileName(self, timeout=60):
+        """Get profile name"""
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.getProfileName_, timeout_=timeout)
+
     def setProfilePic(self, pathOrBase64, to, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.setProfilePic_, pathOrBase64, to, timeout_=timeout)
@@ -35,6 +45,11 @@ class ProfileLayer(StatusLayer):
     def removeMyProfilePicture(self, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.removeMyProfilePicture_, timeout_=timeout)
+
+    def editBusinessProfile(self, options: BusinessProfileOptions, timeout=60):
+        """Update business profile"""
+        return self.ThreadsafeBrowser.run_threadsafe(
+            self.editBusinessProfile_, options, timeout_=timeout)
 
     ##########################################
     async def sendMute_(self, chatId, time, type):
@@ -73,6 +88,20 @@ class ProfileLayer(StatusLayer):
 
     async def getProfileStatus_(self):
         return await self.ThreadsafeBrowser.page_evaluate("""() => WPP.profile.getMyStatus());""", page=self.page)
+
+    async def getProfileName_(self):
+        """Get profile name - async implementation"""
+        return await self.ThreadsafeBrowser.page_evaluate("""() => WPP.profile.getMyName());""", page=self.page)
+
+    async def editBusinessProfile_(self, options: BusinessProfileOptions):
+        """Edit business profile - async implementation"""
+        return await self.ThreadsafeBrowser.page_evaluate(
+            """({ options }) => {
+                return WPP.profile.setBusinessProfile(options);
+            }""",
+            {"options": options},
+            page=self.page
+        )
     async def setProfilePic_(self, pathOrBase64, to):
         pass
         # ToDO:

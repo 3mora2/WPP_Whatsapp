@@ -1,28 +1,117 @@
-# This workflow will upload a Python Package using Twine when a release is created
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+# This workflow will test, build and upload a Python Package using Twine when a release is created
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-name: Upload Python Package
+name: Test, Build & Upload Python Package
 
 on:
   release:
     types: [published]
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        uv sync
+        uv pip install -e ".[dev]"
+
+    - name: Run Tests
+      run: uv run pytest tests/ -v --tb=short --cov=WPP_Whatsapp --cov-report=xml --cov-report=term-missing
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        env_vars: OS,PYTHON
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
     - name: Set up uv
       uses: astral-sh/setup-uv@v3
       with:
         python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        uv sync
+        uv pip install flake8 mypy
+
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        uv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        uv run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: uv sync
+
     - name: Build package
       run: uv build
-    - name: Publish package
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: dist/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test, lint, build]
+    if: github.event_name == 'release'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        python-version: '3.11'
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: dist
+        path: dist/
+
+    - name: Publish package to PyPI
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
       with:
         user: __token__
