@@ -82,16 +82,36 @@ class ListenerLayer(ProfileLayer):
                         raise e
 
         await self.ThreadsafeBrowser.page_evaluate("""() => {
+        function _safeSerialize(msg) {
+          return {
+            id: typeof msg.id === 'object' ? msg.id._serialized : String(msg.id),
+            from: typeof msg.from === 'object' ? msg.from._serialized : String(msg.from || ''),
+            to: typeof msg.to === 'object' ? msg.to._serialized : String(msg.to || ''),
+            body: msg.body || '',
+            type: msg.type || 'chat',
+            t: msg.t || Math.floor(Date.now() / 1000),
+            isGroupMsg: !!msg.isGroupMsg,
+            sender: msg.sender && typeof msg.sender.id === 'object'
+              ? { id: msg.sender.id._serialized }
+              : msg.sender || {},
+          };
+        }
         try {
           if (!window['onMessage'].exposed) {
             WPP.on('chat.new_message', (msg) => {
               if (msg.isSentByMe || msg.isStatusV3) {
                 return;
               }
-              const serialized = WAPI.processMessageObj(msg, false, false);
-              if (serialized) {
-                window['onMessage'](serialized);
+              let serialized = null;
+              try {
+                serialized = WAPI.processMessageObj(msg, false, false);
+              } catch (e) {
+                console.warn('[WPP] processMessageObj failed, using fallback:', e.message);
               }
+              if (!serialized) {
+                serialized = _safeSerialize(msg);
+              }
+              window['onMessage'](serialized);
             });
 
             window['onMessage'].exposed = true;
@@ -102,10 +122,16 @@ class ListenerLayer(ProfileLayer):
         try {
           if (!window['onAnyMessage'].exposed) {
             WPP.on('chat.new_message', (msg) => {
-              const serialized = WAPI.processMessageObj(msg, true, false);
-              if (serialized) {
-                window['onAnyMessage'](serialized);
+              let serialized = null;
+              try {
+                serialized = WAPI.processMessageObj(msg, true, false);
+              } catch (e) {
+                console.warn('[WPP] processMessageObj (any) failed, using fallback:', e.message);
               }
+              if (!serialized) {
+                serialized = _safeSerialize(msg);
+              }
+              window['onAnyMessage'](serialized);
             });
             window['onAnyMessage'].exposed = true;
           }
