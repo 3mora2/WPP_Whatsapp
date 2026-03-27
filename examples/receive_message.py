@@ -18,7 +18,6 @@ if creator.state != 'CONNECTED':
 
 
 def new_message(message):
-    global client
     # Add your Code here
 
     if message and not message.get("isGroupMsg"):

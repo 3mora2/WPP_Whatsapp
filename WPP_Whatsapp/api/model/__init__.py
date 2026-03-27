@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import TypedDict, Optional, Union, List
+from typing import TypedDict, Optional, Union, List, Literal
 
 
 class ChatListOptions(TypedDict, total=False):
     count: Optional[int]
-    direction: Optional[Union["after", "before"]]
+    direction: Optional[Literal["after", "before"]]
     id: Optional["Wid"]
     onlyCommunities: Optional[bool]
     onlyGroups: Optional[bool]
