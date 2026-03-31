@@ -157,7 +157,8 @@ def main():
     logger.info("Starting Bulk Sender Example...")
 
     # Create client
-    client = Create(session="bulk_sender")
+    creator = Create(session="test")
+    client = creator.start()
 
     # Example 1: Simple bulk send
     def example_simple_bulk():

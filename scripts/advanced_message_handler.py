@@ -187,7 +187,8 @@ def main():
     logger.info("Starting Advanced Message Handler Bot...")
 
     # Create client
-    client = Create(session="advanced_handler")
+    creator = Create(session="test")
+    client = creator.start()
 
     # Message handler
     def on_message(message):

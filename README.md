@@ -49,8 +49,9 @@ uv add wpp-whatsapp
 from WPP_Whatsapp import Create
 
 # Create and start client
-client = Create(session="mybot")
+creator = Create(session="mybot")
 
+client = creator.start()
 # Define message handler
 def on_message(msg):
     if msg.get('body') and not msg.get('isGroupMsg'):
@@ -90,8 +91,8 @@ We've created comprehensive documentation to help you:
 ```python
 from WPP_Whatsapp import Create
 
-client = Create(session="test")
-
+creator = Create(session="test")
+client = creator.start()
 # Send text
 client.sendText("1234567890@c.us", "Hello!")
 
@@ -110,7 +111,8 @@ client.sendLocation("1234567890@c.us", 40.7128, -74.0060, title="New York")
 ```python
 from WPP_Whatsapp import Create
 
-client = Create(session="test")
+creator = Create(session="test")
+client = creator.start()
 
 def on_message(message):
     # Ignore group messages
@@ -133,7 +135,8 @@ client.start()
 ```python
 from WPP_Whatsapp import Create
 
-client = Create(session="test")
+creator = Create(session="test")
+client = creator.start()
 
 # Create group
 group = client.createGroup("My Group", ["123@c.us", "456@c.us"])

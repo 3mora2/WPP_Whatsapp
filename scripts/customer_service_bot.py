@@ -334,7 +334,8 @@ def main():
     logger.info("Starting Customer Service Bot...")
 
     # Create client
-    client = Create(session="customer_service_bot")
+    creator = Create(session="test")
+    client = creator.start()
 
     # Create bot instance
     bot = CustomerServiceBot(client)
