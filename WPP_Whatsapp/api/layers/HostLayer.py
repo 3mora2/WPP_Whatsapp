@@ -898,7 +898,7 @@ class HostLayer:
         Validate and format chatId to proper WhatsApp format
 
         @param chatId: Phone number, group ID, or full chat ID
-        @return: Formatted chat ID with @c.us or @g.us suffix
+        @return: Formatted chat ID with @c.us, @g.us or @lid suffix
         @raises: ValueError if chatId is invalid
         """
         if not chatId:
@@ -913,8 +913,8 @@ class HostLayer:
         # Check if already has proper suffix
         if '@' in chatId:
             # Validate suffix
-            if not chatId.endswith(('@c.us', '@g.us', '@broadcast', '@newsletter')):
-                raise ValueError(f"Invalid chatId suffix: {chatId}. Must end with @c.us, @g.us, @broadcast, or @newsletter")
+            if not chatId.endswith(('@c.us', '@g.us', '@broadcast', '@newsletter', '@lid')):
+                raise ValueError(f"Invalid chatId suffix: {chatId}. Must end with @c.us, @g.us, @lid, @broadcast, or @newsletter")
             return chatId
 
         # Validate phone/group number format (digits only, possibly with hyphens for groups)

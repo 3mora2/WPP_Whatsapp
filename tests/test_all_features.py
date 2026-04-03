@@ -284,6 +284,12 @@ class TestValidChatId:
         result = HostLayer.valid_chatId("1234567890-987654321")
         assert result == "1234567890-987654321@g.us"
 
+    def test_valid_lid(self):
+        from WPP_Whatsapp.api.layers.HostLayer import HostLayer
+
+        result = HostLayer.valid_chatId("123456789123123@lid")
+        assert result == "123456789123123@lid"
+
     def test_already_formatted(self):
         from WPP_Whatsapp.api.layers.HostLayer import HostLayer
 
