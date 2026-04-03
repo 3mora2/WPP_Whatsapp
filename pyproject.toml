@@ -1,6 +1,6 @@
 [project]
 name = "WPP_Whatsapp"
-version = "1.0.0"
+version = "1.0.1"
 description = "WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python"
 requires-python = ">=3.9"
 authors = [
