@@ -898,7 +898,7 @@ class HostLayer:
         Validate and format chatId to proper WhatsApp format
 
         @param chatId: Phone number, group ID, or full chat ID
-        @return: Formatted chat ID with @c.us or @g.us suffix
+        @return: Formatted chat ID with @c.us, @g.us or @lid suffix
         @raises: ValueError if chatId is invalid
         """
         if not chatId:
