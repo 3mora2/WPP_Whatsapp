@@ -412,36 +412,6 @@ class RetrieverLayer(SenderLayer):
                                                           page=self.page)
 
     async def getPnLidEntry_(self, phoneOrLid: str):
-        """
-        Returns the phone-number/LID mapping and contact info for a given WID.
-
-        For @c.us inputs: resolves the LID from local cache; if not cached,
-        performs a USync server lookup via queryExists and caches the result.
-
-        For @lid inputs: resolves the phone number from local lidPnCache; if not
-        cached, performs a USync server lookup via queryExists (one network
-        round-trip) so that the mapping can be used for future messages.
-        """
-        return await self.ThreadsafeBrowser.page_evaluate(
-            """async ({ phoneOrLid }) => {
-                const entry = await WPP.contact.getPnLidEntry(phoneOrLid);
-                if (entry && entry.phoneNumber) return entry;
-                // Not in local lidPnCache — fall back to a USync server lookup.
-                // Note: this makes one outbound request to WhatsApp servers.
-                const qr = await WPP.contact.queryExists(phoneOrLid);
-                if (qr && qr.wid) {
-                    const w = qr.wid;
-                    return {
-                        ...entry,
-                        phoneNumber: {
-                            id: w.user,
-                            server: w.server,
-                            _serialized: w._serialized || (w.user + '@' + w.server)
-                        }
-                    };
-                }
-                return entry;
-            }""",
-            {"phoneOrLid": phoneOrLid},
-            page=self.page
-        )
+        return await self.ThreadsafeBrowser.page_evaluate("(phoneOrLid) => WPP.contact.getPnLidEntry(phoneOrLid),",
+                                                          phoneOrLid,
+                                                          page=self.page)
