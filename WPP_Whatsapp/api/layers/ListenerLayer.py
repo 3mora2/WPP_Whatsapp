@@ -112,7 +112,7 @@ class ListenerLayer(ProfileLayer):
               if (!serialized) {
                 serialized = _safeSerialize(msg);
               }
-              if (!serialized) {
+              if (serialized) {
                 window['onMessage'](serialized);
               }
             });
@@ -134,7 +134,7 @@ class ListenerLayer(ProfileLayer):
               if (!serialized) {
                 serialized = _safeSerialize(msg);
               }
-              if (!serialized) {
+              if (serialized) {
                 window['onAnyMessage'](serialized);
               }
             });
