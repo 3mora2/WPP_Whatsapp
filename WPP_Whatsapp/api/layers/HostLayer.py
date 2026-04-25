@@ -926,9 +926,31 @@ class HostLayer:
         # Contacts are just phone numbers
         if '-' in chatId or len(chatId) > 15:
             chatId += '@g.us'
+        elif len(chatId) == 14:
+            chatId += "lid"
         else:
             chatId += '@c.us'
+        return chatId
 
+    async def getPnLidEntry_(self, chat_id):
+        # Implemented later
+        return {}
+    def getPnLidEntry(self, chat_id):
+        # Implemented later
+        return {}
+
+    async def get_chat_id_(self, chat_id:str):
+        chatId = self.valid_chatId(chat_id)
+        if '@c.us' in chatId:
+            chat_info: dict = await self.getPnLidEntry_(chatId)
+            chatId = (chat_info.get("lid", {}) or {}).get("_serialized")
+        return chatId
+
+    def get_chat_id(self, chat_id:str):
+        chatId = self.valid_chatId(chat_id)
+        if '@c.us' in chatId:
+            chat_info: dict = self.getPnLidEntry(chatId)
+            chatId = (chat_info.get("lid", {}) or {}).get("_serialized")
         return chatId
 
     def close(self):

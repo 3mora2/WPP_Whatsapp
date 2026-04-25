@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-from WPP_Whatsapp.api.helpers.jsFunction import setInterval
-from WPP_Whatsapp.api.layers.HostLayer import HostLayer
+
 from WPP_Whatsapp.api.const import defaultOptions, Logger
+from WPP_Whatsapp.api.helpers.jsFunction import setInterval
 from WPP_Whatsapp.api.layers.BusinessLayer import BusinessLayer
+from WPP_Whatsapp.api.layers.HostLayer import HostLayer
 from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 
 
@@ -180,7 +181,7 @@ class Whatsapp(BusinessLayer):
         """
         if not params:
             params = {}
-        chatId = self.valid_chatId(chatId)
+        chatId = await self.get_chat_id_(chatId)
         return await self.ThreadsafeBrowser.page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
                                                           {"chatId": chatId, "params": params}, page=self.page)
 

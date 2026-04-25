@@ -135,7 +135,7 @@ class RetrieverLayer(SenderLayer):
     def getCommonGroups(self, wid, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.getCommonGroups_(wid), timeout_=timeout)
 
-    def getPnLidEntry(self, phoneOrLid, timeout=60):
+    def getPnLidEntry(self, phoneOrLid:str, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.getPnLidEntry_(phoneOrLid), timeout_=timeout)
 
     ########################################################
@@ -323,7 +323,7 @@ class RetrieverLayer(SenderLayer):
         contactId = self.valid_chatId(contactId)
         return await self.ThreadsafeBrowser.page_evaluate("""async (contactId) => {
                                         const status = await WPP.contact.getStatus(contactId);
-                                
+
                                         return {
                                           id: contactId,
                                           status: (status as any)?.status || status,
@@ -412,6 +412,6 @@ class RetrieverLayer(SenderLayer):
                                                           page=self.page)
 
     async def getPnLidEntry_(self, phoneOrLid: str):
-        return await self.ThreadsafeBrowser.page_evaluate("(phoneOrLid) => WPP.contact.getPnLidEntry(phoneOrLid),",
+        return await self.ThreadsafeBrowser.page_evaluate("(phoneOrLid) => WPP.contact.getPnLidEntry(phoneOrLid)",
                                                           phoneOrLid,
                                                           page=self.page)

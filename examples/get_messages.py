@@ -11,9 +11,8 @@ if creator.state != 'CONNECTED':
     raise Exception(creator.state)
 
 phone_number = "***********"  # or "+***********"
-
+client.waitForInChat()
 # example
-# messages = client.getMessages(phone_number)
-# messages = client. getGroupMembers("120363022378011811@g.us")
-# print(messages)
+messages = client.getMessages(phone_number)
+print(messages)
 # client.joinGroup("KOtrjvEwQk8DlDw8mv9IAE")
