@@ -8,6 +8,8 @@
 
 **WPP_Whatsapp** is a powerful Python library built on top of [WPPConnect](https://github.com/wppconnect-team/wppconnect), bringing WhatsApp Web automation to Python developers.
 
+> 💡 **Looking for something else?** Check out [neonize](https://github.com/krypton-byte/neonize) - A powerful Python library built on top of **Whatsmeow**, enabling seamless WhatsApp automation with enterprise-grade performance.
+
 📚 **Looking for documentation?** Check out our [Complete Documentation](docs/README.md)
 
 ---
