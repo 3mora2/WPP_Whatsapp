@@ -362,7 +362,7 @@ class RetrieverLayer(SenderLayer):
                                                           page=self.page)
 
     async def loadAndGetAllMessagesInChat_(self, chatId: str, includeMe=False, includeNotifications=False):
-        chatId = self.valid_chatId(chatId)
+        chatId = await self.get_chat_id_(chatId)
         """
         * Loads and Retrieves all Messages in a chat
         """
