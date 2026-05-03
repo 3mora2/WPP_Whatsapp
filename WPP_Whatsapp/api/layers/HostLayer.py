@@ -950,7 +950,11 @@ class HostLayer:
         chatId = self.valid_chatId(chat_id)
         if '@c.us' in chatId:
             chat_info: dict = self.getPnLidEntry(chatId)
-            chatId = (chat_info.get("lid", {}) or {}).get("_serialized")
+            if chat_info.get("lid", {}):
+                chatId = (chat_info.get("lid", {})).get("_serialized")
+            elif chat_info.get("phoneNumber", {}):
+                chatId = (chat_info.get("phoneNumber", {})).get("_serialized")
+
         return chatId
 
     def close(self):
