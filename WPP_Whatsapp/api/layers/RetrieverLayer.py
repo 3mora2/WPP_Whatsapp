@@ -412,6 +412,6 @@ class RetrieverLayer(SenderLayer):
                                                           page=self.page)
 
     async def getPnLidEntry_(self, phoneOrLid: str):
-        return await self.ThreadsafeBrowser.page_evaluate("(phoneOrLid) => WPP.contact.getPnLidEntry(phoneOrLid),",
+        return await self.ThreadsafeBrowser.page_evaluate("(phoneOrLid) => WPP.contact.getPnLidEntry(phoneOrLid)",
                                                           phoneOrLid,
                                                           page=self.page)
