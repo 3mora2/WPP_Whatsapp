@@ -4,12 +4,40 @@ Comprehensive test suite for WPPConnect Python library.
 
 ---
 
-## 📊 **Test Statistics**
+## Validation
 
-- **Total Tests:** 29
-- **Pass Rate:** 100% ✅
-- **Coverage:** 96%
-- **Python Versions:** 3.8, 3.9, 3.10, 3.11, 3.12
+The suite covers Python wrappers, source-backed WPPConnect/WA-JS contracts,
+JavaScript syntax and argument execution, message IDs, events, lifecycle,
+concurrency, media, and update fallback behavior. Tests use synthetic data;
+a passing suite does not establish compatibility with a signed-in WhatsApp
+account. Node.js 18+ is required for JavaScript contract tests.
+
+Run from the repository root with `uv run pytest tests/ -q`.
+The separate browser injection test is opt-in through
+`RUN_WHATSAPP_BROWSER_TESTS=1`; it closes its browser even when a check fails.
+
+For opt-in verification against a real account, run
+`.venv/Scripts/python.exe -u tests/live_whatsapp_smoke.py` and scan the QR code
+in the newly opened browser. It launches through `Create` with a separate profile
+under ignored `tokens/`, waits for login, and exercises the four history getters
+for issue #81. For issue #84, arrange a new incoming group message: the real
+Python `onMessage` callback checks its ID and retrieves the message by that ID.
+The script never sends messages. Its ignored report at
+`archive/live-whatsapp-report.json` stores counts, checks, and hashed IDs without
+message bodies. The browser remains open until you close it. Use `--chat GROUP_ID`
+to select a specific group; otherwise it selects an already-read group.
+
+Live verification on 2026-10-13 passed against WhatsApp Web
+`2.3000.1050162058` with WA-JS `4.6.1`. After opening an already-read group,
+`getMessages`, `getAllMessagesInChat`, `loadEarlierMessages`, and
+`loadAndGetAllMessagesInChat` returned 50, 51, 53, and 234 messages respectively,
+all with nonempty string IDs. A newly received group message reached the real
+Python `onMessage` callback with a valid group message ID, and a synchronous
+`getMessageById` call from that callback retrieved the same message successfully.
+This validates the reported #81 and #84 scenarios on that account and web build;
+it is not a live test of every library API. No messages were sent by the test.
+The automated suite passed with 176 tests and one opt-in skip; explicitly enabling
+the browser injection test also passed the complete suite (177 tests).
 
 ---
 
@@ -35,26 +63,26 @@ Comprehensive test suite for WPPConnect Python library.
 
 ### **Run All Tests**
 ```bash
-uv run pytest test/ -v
+uv run pytest tests/ -v
 ```
 
 ### **Run with Coverage**
 ```bash
-uv run pytest test/ -v --cov=WPP_Whatsapp --cov-report=html
+uv run pytest tests/ -v --cov=WPP_Whatsapp --cov-report=html
 ```
 
 ### **Run Specific Test**
 ```bash
-uv run pytest test/test_all_features.py::TestTypedDictModels::test_send_text_options -v
+uv run pytest tests/test_all_features.py::TestTypedDictModels::test_send_text_options -v
 ```
 
 ### **Run Specific Category**
 ```bash
 # Run all rate limiter tests
-uv run pytest test/test_all_features.py::TestRateLimiter -v
+uv run pytest tests/test_all_features.py::TestRateLimiter -v
 
 # Run all batch operation tests
-uv run pytest test/test_all_features.py::TestBatchOperations -v
+uv run pytest tests/test_all_features.py::TestBatchOperations -v
 ```
 
 ---
@@ -195,7 +223,7 @@ Tests run automatically on:
 ### **GitHub Actions**
 ```yaml
 - name: Run Tests
-  run: uv run pytest test/ -v --cov=WPP_Whatsapp --cov-report=xml
+  run: uv run pytest tests/ -v --cov=WPP_Whatsapp --cov-report=xml
 ```
 
 ---
@@ -205,10 +233,10 @@ Tests run automatically on:
 ### **Tests Fail**
 ```bash
 # Run with more info
-uv run pytest test/ -v -s --tb=long
+uv run pytest tests/ -v -s --tb=long
 
 # Run specific failing test
-uv run pytest test/test_all_features.py::TestClassName::test_method -v
+uv run pytest tests/test_all_features.py::TestClassName::test_method -v
 ```
 
 ### **Import Errors**
@@ -224,7 +252,7 @@ rm -rf __pycache__/
 ### **Coverage Issues**
 ```bash
 # Generate HTML report
-uv run pytest test/ --cov=WPP_Whatsapp --cov-report=html
+uv run pytest tests/ --cov=WPP_Whatsapp --cov-report=html
 
 # Open in browser
 open htmlcov/index.html  # macOS

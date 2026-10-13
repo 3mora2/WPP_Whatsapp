@@ -1,3 +1,5 @@
+import asyncio
+
 from event_emitter import EventEmitter
 from playwright.async_api import Error
 
@@ -36,9 +38,10 @@ class HandelFunc:
 
 
 class ListenerLayer(ProfileLayer):
-    __listenerEmitter = EventEmitter()
+    __listenerEmitter: EventEmitter
 
     def __init__(self):
+        self.__listenerEmitter = EventEmitter()
         self.__listenerEmitter.max_listener = 0
         self.__listenerEmitter.on(onInterfaceChange, self.onInterfaceChange_)
         # ToDo:
@@ -50,25 +53,7 @@ class ListenerLayer(ProfileLayer):
 
     async def _afterPageScriptInjectedListener(self):
         self.logger.debug(f'{self.session}: Start Exposing function')
-        functions = [
-            OnMessage,
-            OnAnyMessage,
-            onMessageEdit,
-            onAck,
-            onNotificationMessage,
-            onParticipantsChanged,
-            onStateChange,
-            onStreamChange,
-            onIncomingCall,
-            onInterfaceChange,
-            onPresenceChanged,
-            onLiveLocation,
-            'onAddedToGroup',
-            'onIncomingCall',
-            'onRevokedMessage',
-            'onReactionMessage',
-            'onPollResponse'
-        ]
+        functions = ['onMessage', 'onAnyMessage', 'onMessageEdit', 'onAck', 'onNotificationMessage', 'onParticipantsChanged', 'onStateChange', 'onStreamChange', 'onStreamModeChanged', 'onStreamInfoChanged', 'onIncomingCall', 'onInterfaceChange', 'onPresenceChanged', 'onLiveLocation', 'onAddedToGroup', 'onRevokedMessage', 'onReactionMessage', 'onPollResponse', 'onBackendEvent', 'onUpdateLabel', 'onOrderStatusUpdate', 'onNewChat']
 
         for func in functions:
             has = await self.ThreadsafeBrowser.page_evaluate("(func) => typeof window[func] === 'function'", func,
@@ -76,227 +61,77 @@ class ListenerLayer(ProfileLayer):
             if not has:
                 self.logger.debug(f'{self.session}: Exposing {func} function')
                 handel_func = HandelFunc(func, self.session, self.logger, self.__listenerEmitter).handel_func
+                async def dispatch(*args, _handler=handel_func, **kwargs):
+                    # User callbacks commonly call synchronous client methods.
+                    # Keep them off the browser loop so those calls can finish.
+                    return await asyncio.to_thread(_handler, *args, **kwargs)
                 try:
-                    await self.ThreadsafeBrowser.expose_function(func, handel_func, page=self.page)
+                    await self.ThreadsafeBrowser.expose_function(func, dispatch, page=self.page)
                 except Error as e:
                     if "has been already registered" not in e.message:
                         raise e
 
         await self.ThreadsafeBrowser.page_evaluate("""() => {
-        function _safeSerialize(msg) {
-          return {
-            id: typeof msg.id === 'object' ? msg.id._serialized : String(msg.id),
-            from: typeof msg.from === 'object' ? msg.from._serialized : String(msg.from || ''),
-            to: typeof msg.to === 'object' ? msg.to._serialized : String(msg.to || ''),
-            body: msg.body || '',
-            type: msg.type || 'chat',
-            t: msg.t || Math.floor(Date.now() / 1000),
-            isGroupMsg: !!msg.isGroupMsg,
-            sender: msg.sender && typeof msg.sender.id === 'object'
-              ? { id: msg.sender.id._serialized }
-              : msg.sender || {},
+          function register(name, subscribe) {
+            const callback = window[name];
+            if (typeof callback !== 'function' || callback.exposed) return;
+            try {
+              subscribe(callback);
+              callback.exposed = true;
+            } catch (error) { console.error('[WPP] ' + name, error); }
+          }
+          const id = (value) => {
+            if (value == null || typeof value === 'string') return value;
+            const text = value._serialized || value.toString?.();
+            return text && text !== '[object Object]' ? text : undefined;
           };
-        }
-        try {
-          if (!window['onMessage'].exposed) {
-            WPP.on('chat.new_message', (msg) => {
-              if (msg.isSentByMe || msg.isStatusV3) {
-                return;
+          register('onMessage', (cb) => WPP.on('chat.new_message', (msg) => {
+            if (msg.isSentByMe || msg.id?.fromMe || msg.isStatusV3 || msg.isNotification) return;
+            const value = WAPI.processMessageObj(msg, false, false);
+            if (value) cb(value);
+          }));
+          register('onAnyMessage', (cb) => WPP.on('chat.new_message', (msg) => {
+            const value = WAPI.processMessageObj(msg, true, false);
+            if (value) cb(value);
+          }));
+          register('onAck', (cb) => WPP.on('chat.msg_ack_change', (data) => cb({
+            ...data, id: id(data.id), chat: id(data.chat)
+          })));
+          register('onMessageEdit', (cb) => WPP.on('chat.msg_edited', (data) => cb({
+            ...data, id: id(data.id), chat: id(data.chat),
+            msg: WAPI.processMessageObj(data.msg, true, false)
+          })));
+          for (const name of ['onStateChange', 'onStreamChange', 'onStreamModeChanged',
+              'onStreamInfoChanged', 'onAddedToGroup', 'onIncomingCall',
+              'onInterfaceChange', 'onNotificationMessage', 'onLiveLocation']) {
+            register(name, (cb) => WAPI[name](cb));
+          }
+          for (const [name, event] of Object.entries({
+            onPresenceChanged: 'chat.presence_change',
+            onReactionMessage: 'chat.new_reaction',
+            onPollResponse: 'chat.poll_response',
+            onOrderStatusUpdate: 'order.payment_status',
+            onParticipantsChanged: 'group.participant_changed'
+          })) {
+            register(name, (cb) => WPP.on(event, (data) => {
+              // Normalize public key objects without dropping other event fields.
+              const value = {...data};
+              for (const key of ['id', 'msgId', 'chatId', 'refId']) {
+                if (data[key] != null) value[key] = id(data[key]) || data[key];
               }
-              let serialized = null;
-              try {
-                serialized = WAPI.processMessageObj(msg, false, false);
-              } catch (e) {
-                console.warn('[WPP] processMessageObj failed, using fallback:', e.message);
-              }
-              if (!serialized) {
-                serialized = _safeSerialize(msg);
-              }
-              if (serialized) {
-                window['onMessage'](serialized);
-              }
-            });
-
-            window['onMessage'].exposed = true;
+              cb(value);
+            }));
           }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onAnyMessage'].exposed) {
-            WPP.on('chat.new_message', (msg) => {
-              let serialized = null;
-              try {
-                serialized = WAPI.processMessageObj(msg, true, false);
-              } catch (e) {
-                console.warn('[WPP] processMessageObj (any) failed, using fallback:', e.message);
-              }
-              if (!serialized) {
-                serialized = _safeSerialize(msg);
-              }
-              if (serialized) {
-                window['onAnyMessage'](serialized);
-              }
-            });
-            window['onAnyMessage'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onStateChange'].exposed) {
-            window.WAPI.onStateChange(window['onStateChange']);
-            window['onStateChange'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onNotificationMessage'].exposed) {
-            window.WAPI.onNotificationMessage(window['onNotificationMessage']);
-            window['onNotificationMessage'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        /*
-        try {
-          if (!window['onAck'].exposed) {
-            window.WAPI.waitNewAcknowledgements(window['onAck']);
-            window['onAck'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onMessageEdit'].exposed) {
-            WPP.on('chat.msg_edited', (data) => {
-              const eventData = {
-                chat: data.chat,
-                id: data.id,
-                msg: WAPI.processMessageObj(data.msg, true, false),
-              };
-              window['onMessageEdit'](eventData);
-            });
-            window['onMessageEdit'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onStreamChange'].exposed) {
-            window.WAPI.onStreamChange(window['onStreamChange']);
-            window['onStreamChange'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onAddedToGroup'].exposed) {
-            window.WAPI.onAddedToGroup(window['onAddedToGroup']);
-            window['onAddedToGroup'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onIncomingCall'].exposed) {
-            window.WAPI.onIncomingCall(window['onIncomingCall']);
-            window['onIncomingCall'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onInterfaceChange'].exposed) {
-            window.WAPI.onInterfaceChange(window['onInterfaceChange']);
-            window['onInterfaceChange'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-
-        try {
-          if (!window['onPresenceChanged'].exposed) {
-            WPP.on('chat.presence_change', window['onPresenceChanged']);
-            window['onPresenceChanged'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onLiveLocation'].exposed) {
-            window.WAPI.onLiveLocation(window['onLiveLocation']);
-            window['onLiveLocation'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onRevokedMessage'].exposed) {
-            WPP.on('chat.msg_revoke', (data) => {
-              const eventData = {
-                author: data.author,
-                from: data.from,
-                to: data.to,
-                id: data.id._serialized,
-                refId: data.refId._serialized,
-              };
-              window['onRevokedMessage'](eventData);
-            });
-            window['onRevokedMessage'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onReactionMessage'].exposed) {
-            WPP.on('chat.new_reaction', (data) => {
-              const eventData = {
-                id: data.id,
-                msgId: data.msgId,
-                reactionText: data.reactionText,
-                read: data.read,
-                orphan: data.orphan,
-                orphanReason: data.orphanReason,
-                timestamp: data.timestamp,
-              };
-              window['onReactionMessage'](eventData);
-            });
-            window['onReactionMessage'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onPollResponse'].exposed) {
-            WPP.on('chat.poll_response', (data) => {
-              const eventData = {
-                msgId: data.msgId,
-                chatId: data.chatId,
-                selectedOptions: data.selectedOptions,
-                timestamp: data.timestamp,
-                sender: data.sender,
-              };
-              window['onPollResponse'](eventData);
-            });
-            window['onPollResponse'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (!window['onParticipantsChanged'].exposed) {
-            WPP.on('group.participant_changed', (participantChangedEvent) => {
-              window['onParticipantsChanged'](participantChangedEvent);
-            });
-            window['onParticipantsChanged'].exposed = true;
-          }
-        } catch (error) {
-          console.error(error);
-        }
-        */
-      }""", page=self.page)
+          register('onNewChat', (cb) => WPP.on('chat.new_chat', (chat) => cb(WAPI._serializeChatObj(chat))));
+          register('onUpdateLabel', (cb) => WPP.on('chat.update_label', (data) => cb({
+            ...data, chat: WAPI._serializeChatObj(data.chat)
+          })));
+          register('onRevokedMessage', (cb) => WPP.on('chat.msg_revoke', (data) => cb({
+            ...data, id: id(data.id), refId: id(data.refId),
+            from: id(data.from), to: id(data.to), author: id(data.author)
+          })));
+          register('onBackendEvent', (cb) => WPP.on('conn.backend_event', (name, ...args) => cb(name, ...args)));
+        }""", page=self.page)
 
     def __registerEvent(self, event, listener):
         """
@@ -359,13 +194,34 @@ class ListenerLayer(ProfileLayer):
         """ """
         return self.__registerEvent(onMessageEdit, callback)
 
-    def onLiveLocation(self, id, callback):
-        """ ToDo: """
-        # return self.__registerEvent(onLiveLocation, callback)
+    def _filtered_listener(self, event, ids, callback, field='id'):
+        if callback is None and callable(ids):
+            callback, ids = ids, None
+        if not callable(callback):
+            raise TypeError('A callable event callback is required')
+        ids = [ids] if isinstance(ids, str) else list(ids or [])
+        def listener(data):
+            value = data.get(field)
+            if isinstance(value, dict):
+                value = value.get('_serialized')
+            if not ids or value in ids:
+                callback(data)
+        return self.__registerEvent(event, listener)
 
-    def onParticipantsChanged(self, callback):
-        """ ToDo: """
-        # return self.__registerEvent(onNotificationMessage, callback)
+    def onLiveLocation(self, id=None, callback=None):
+        return self._filtered_listener(onLiveLocation, id, callback)
+
+    def onParticipantsChanged(self, groupId=None, callback=None):
+        if callback is None and callable(groupId):
+            callback, groupId = groupId, None
+        if not callable(callback):
+            raise TypeError('A callable event callback is required')
+        def listener(data):
+            if groupId and data.get('groupId') != groupId:
+                return
+            callback({**data, 'by': data.get('author'), 'byPushName': data.get('authorPushName'),
+                      'who': data.get('participants')})
+        return self.__registerEvent(onParticipantsChanged, listener)
 
     def onAddedToGroup(self, callback):
         """ """
@@ -375,9 +231,12 @@ class ListenerLayer(ProfileLayer):
         """ """
         return self.__registerEvent("onIncomingCall", callback)
 
-    def onPresenceChanged(self, id_, callback):
-        """ TODO:"""
-        # return self.__registerEvent(onPresenceChanged, callback)
+    def onPresenceChanged(self, id_=None, callback=None):
+        if callback is None and callable(id_):
+            callback, id_ = id_, None
+        if id_:
+            self.ThreadsafeBrowser.run_threadsafe(self.subscribePresence, id_)
+        return self._filtered_listener(onPresenceChanged, id_, callback)
 
     async def subscribePresence(self, id_):
         """
@@ -401,10 +260,10 @@ class ListenerLayer(ProfileLayer):
            * @returns number of subscribed
            */
         """
-        await self.ThreadsafeBrowser.page_evaluate("(id) => WAPI.subscribePresence(id)", id_, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("(id) => WAPI.subscribePresence(id)", id_, page=self.page)
 
     async def unsubscribePresence(self, id_):
-        await self.ThreadsafeBrowser.page_evaluate("(id) => WAPI.unsubscribePresence(id)", id_, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("(id) => WAPI.unsubscribePresence(id)", id_, page=self.page)
 
     def onRevokedMessage(self, callback):
         """ """
@@ -417,3 +276,65 @@ class ListenerLayer(ProfileLayer):
     def onPollResponse(self, callback):
         """ """
         return self.__registerEvent("onPollResponse", callback)
+
+    def onStreamModeChanged(self, callback):
+        return self.__registerEvent("onStreamModeChanged", callback)
+
+    def onStreamInfoChanged(self, callback):
+        return self.__registerEvent("onStreamInfoChanged", callback)
+
+    def onBackendEvent(self, callback):
+        return self.__registerEvent("onBackendEvent", callback)
+
+    def onUpdateLabel(self, callback):
+        return self.__registerEvent("onUpdateLabel", callback)
+
+    def onOrderStatusUpdate(self, callback):
+        return self.__registerEvent("onOrderStatusUpdate", callback)
+
+    def onNewChat(self, callback):
+        return self.__registerEvent("onNewChat", callback)
+
+    on_message = onMessage
+
+    on_any_message = onAnyMessage
+
+    on_notification_message = onNotificationMessage
+
+    on_state_change = onStateChange
+
+    on_stream_change = onStreamChange
+
+    on_incoming_call = onIncomingCall
+
+    on_interface_change = onInterfaceChange
+
+    on_ack = onAck
+
+    on_message_edit = onMessageEdit
+
+    on_live_location = onLiveLocation
+
+    on_participants_changed = onParticipantsChanged
+
+    on_added_to_group = onAddedToGroup
+
+    on_presence_changed = onPresenceChanged
+
+    on_revoked_message = onRevokedMessage
+
+    on_reaction_message = onReactionMessage
+
+    on_poll_response = onPollResponse
+
+    on_stream_mode_changed = onStreamModeChanged
+
+    on_stream_info_changed = onStreamInfoChanged
+
+    on_backend_event = onBackendEvent
+
+    on_update_label = onUpdateLabel
+
+    on_order_status_update = onOrderStatusUpdate
+
+    on_new_chat = onNewChat

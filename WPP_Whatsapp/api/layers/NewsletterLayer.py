@@ -61,10 +61,7 @@ class NewsletterLayer(HostLayer):
 
         result = await self.ThreadsafeBrowser.page_evaluate(
             """({ name, options }) => {
-                return WPP.newsletter.create({
-                    name,
-                    ...options
-                });
+                return WPP.newsletter.create(name, options);
             }""",
             {"name": name, "options": options},
             page=self.page
@@ -78,7 +75,7 @@ class NewsletterLayer(HostLayer):
 
         result = await self.ThreadsafeBrowser.page_evaluate(
             """({ id, options }) => {
-                return WPP.newsletter.update(id, options);
+                return WPP.newsletter.edit(id, options);
             }""",
             {"id": id, "options": options},
             page=self.page
@@ -106,3 +103,10 @@ class NewsletterLayer(HostLayer):
             page=self.page
         )
         return result
+
+    def muteNesletter(self, id, timeout=60):
+        """Compatibility with the original WPPConnect spelling."""
+        return self.muteNewsletter(id, timeout=timeout)
+
+    async def muteNesletter_(self, id):
+        return await self.muteNewsletter_(id)

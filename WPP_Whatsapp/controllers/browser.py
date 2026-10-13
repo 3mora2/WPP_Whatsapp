@@ -29,6 +29,21 @@ def check_page(method):
 
 
 class ThreadsafeBrowser(Tb):
+    @property
+    def is_same_loop(self):
+        try:
+            return asyncio.get_running_loop() is self.loop
+        except RuntimeError:
+            return False
+
+    async def create_task(self, task, *args, **kwargs):
+        if not asyncio.iscoroutine(task):
+            task = task(*args, **kwargs)
+        if asyncio.get_running_loop() is self.loop:
+            return await task
+        future = asyncio.run_coroutine_threadsafe(task, self.loop)
+        return await asyncio.wrap_future(future)
+
     def __init__(
             self,
             no_context=False,
@@ -116,19 +131,36 @@ class ThreadsafeBrowser(Tb):
     #         for line in process.stdout:
     #             print(line.decode('utf-8'), end="\r")
 
+    async def _close_resources(self):
+        task = getattr(self, '_shutdown_task', None)
+        if task is None:
+            task = self.loop.create_task(self.__stop_playwright())
+            self._shutdown_task = task
+        await asyncio.shield(task)
+
     def sync_close(self, timeout_=60):
+        if self.loop.is_closed() or not self.loop.is_running():
+            return
         try:
-            self.run_threadsafe(self.__stop_playwright(), timeout_=timeout_)
+            self.run_threadsafe(self._close_resources(), timeout_=timeout_)
         except Exception as e:
             print(e)
         self.stop()
 
     async def close(self):
+        if self.loop.is_closed() or not self.loop.is_running():
+            return
         try:
-            await self.create_task(self.__stop_playwright())
+            await self.create_task(self._close_resources())
         except Exception as e:
             print(e)
-        self.stop()
+        if asyncio.get_running_loop() is self.loop:
+            # Complete the caller and its cross-thread future before stopping
+            # the worker; joining the worker from itself would deadlock.
+            task = asyncio.current_task()
+            task.add_done_callback(lambda _: self.loop.call_soon(self.loop.stop))
+        else:
+            self.stop()
 
     def stop(self):
         try:
@@ -181,7 +213,7 @@ class ThreadsafeBrowser(Tb):
     @check_page
     def page_evaluate_sync(self, *args, page=None, timeout_=60, **kwargs, ):
         try:
-            return super().page_evaluate_sync(*args, page=page, timeout_=60, **kwargs, )
+            return super().page_evaluate_sync(*args, page=page, timeout_=timeout_, **kwargs)
         except Error as error:
             if "Execution context was destroyed, most likely because of a navigation" in error.message:
                 pass

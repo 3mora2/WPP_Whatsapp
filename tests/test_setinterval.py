@@ -23,5 +23,6 @@ async def pprint(f="test"):
     print(f'{f=}')
 
 
-pros = setInterval(pprint, 5)
+if __name__ == '__main__':
+    pros = setInterval(pprint, 5)
 

@@ -7,6 +7,7 @@ Provides bulk/batch operations for efficient mass messaging and operations.
 from __future__ import annotations
 
 import asyncio
+import inspect
 from typing import List, Dict, Any, Optional, Callable, Awaitable
 from dataclasses import dataclass
 from enum import Enum
@@ -62,6 +63,21 @@ class BatchOperations:
         self.client = client
         self.rate_limiter = rate_limiter
 
+    async def _call_client(self, name, *args):
+        method = getattr(self.client, name + '_', None)
+        if method is not None:
+            return await method(*args)
+        method = getattr(self.client, name)
+        if inspect.iscoroutinefunction(method):
+            return await method(*args)
+        result = await asyncio.to_thread(method, *args)
+        return await result if inspect.isawaitable(result) else result
+
+    @staticmethod
+    def _validate_concurrency(concurrency):
+        if not isinstance(concurrency, int) or isinstance(concurrency, bool) or concurrency < 1:
+            raise ValueError('concurrency must be a positive integer')
+
     async def send_bulk_text(
         self,
         messages: List[Dict[str, Any]],
@@ -78,6 +94,9 @@ class BatchOperations:
         @param on_progress: Optional callback(current, total) for progress updates
         @return: BatchResult with success/failure counts
         """
+        if any(not isinstance(msg, dict) or 'to' not in msg or 'content' not in msg for msg in messages):
+            raise ValueError("Each message requires 'to' and 'content'")
+        self._validate_concurrency(concurrency)
         import time
         start_time = time.time()
 
@@ -91,13 +110,13 @@ class BatchOperations:
             try:
                 if self.rate_limiter:
                     async with self.rate_limiter:
-                        result = await self.client.sendText(
+                        result = await self._call_client('sendText',
                             msg_data["to"],
                             msg_data["content"],
                             options
                         )
                 else:
-                    result = await self.client.sendText(
+                    result = await self._call_client('sendText',
                         msg_data["to"],
                         msg_data["content"],
                         options
@@ -111,9 +130,6 @@ class BatchOperations:
                 })
                 successful += 1
 
-                if on_progress:
-                    on_progress(successful + failed, len(messages))
-
             except Exception as e:
                 errors.append({
                     "index": index,
@@ -123,8 +139,8 @@ class BatchOperations:
                 })
                 failed += 1
 
-                if on_progress:
-                    on_progress(successful + failed, len(messages))
+            if on_progress:
+                on_progress(successful + failed, len(messages))
 
         # Run with concurrency control
         if concurrency > 1:
@@ -135,7 +151,7 @@ class BatchOperations:
                     await send_message(msg_data, index)
 
             tasks = [limited_send(msg, i) for i, msg in enumerate(messages)]
-            await asyncio.gather(*tasks, return_exceptions=True)
+            await asyncio.gather(*tasks)
         else:
             # Sequential processing
             for i, msg in enumerate(messages):
@@ -149,6 +165,8 @@ class BatchOperations:
         else:
             status = BatchStatus.PARTIAL
 
+        results.sort(key=lambda item: item["index"])
+        errors.sort(key=lambda item: item["index"])
         return BatchResult(
             total=len(messages),
             successful=successful,
@@ -178,9 +196,10 @@ class BatchOperations:
         @return: BatchResult
         """
         # Get group members
-        if not member_ids:
-            members = await self.client.getGroupMembers(group_id)
-            member_ids = [member.get("id", {}).get("_serialized") for member in members]
+        if member_ids is None:
+            members = await self._call_client('getGroupMembers', group_id)
+            member_ids = [member.get("id") for member in members]
+            member_ids = [wid.get("_serialized") if isinstance(wid, dict) else wid for wid in member_ids]
 
         # Prepare messages
         messages = [
@@ -204,6 +223,7 @@ class BatchOperations:
         @param concurrency: Number of concurrent forwards
         @return: BatchResult
         """
+        self._validate_concurrency(concurrency)
         import time
         start_time = time.time()
 
@@ -217,9 +237,9 @@ class BatchOperations:
             try:
                 if self.rate_limiter:
                     async with self.rate_limiter:
-                        result = await self.client.forwardMessages(chat_id, message_id)
+                        result = await self._call_client('forwardMessages',chat_id, message_id)
                 else:
-                    result = await self.client.forwardMessages(chat_id, message_id)
+                    result = await self._call_client('forwardMessages',chat_id, message_id)
 
                 results.append({
                     "index": index,
@@ -245,7 +265,7 @@ class BatchOperations:
                     await forward_message(chat_id, index)
 
             tasks = [limited_forward(chat_id, i) for i, chat_id in enumerate(chat_ids)]
-            await asyncio.gather(*tasks, return_exceptions=True)
+            await asyncio.gather(*tasks)
         else:
             for i, chat_id in enumerate(chat_ids):
                 await forward_message(chat_id, i)
@@ -258,6 +278,8 @@ class BatchOperations:
         else:
             status = BatchStatus.PARTIAL
 
+        results.sort(key=lambda item: item["index"])
+        errors.sort(key=lambda item: item["index"])
         return BatchResult(
             total=len(chat_ids),
             successful=successful,
@@ -286,6 +308,7 @@ class BatchOperations:
         @param concurrency: Number of concurrent deletes
         @return: BatchResult
         """
+        self._validate_concurrency(concurrency)
         import time
         start_time = time.time()
 
@@ -297,7 +320,7 @@ class BatchOperations:
         async def delete_message(msg_id: str, index: int):
             nonlocal successful, failed
             try:
-                result = await self.client.deleteMessage(
+                result = await self._call_client('deleteMessage',
                     chat_id,
                     msg_id,
                     only_local,
@@ -328,7 +351,7 @@ class BatchOperations:
                     await delete_message(msg_id, index)
 
             tasks = [limited_delete(msg_id, i) for i, msg_id in enumerate(message_ids)]
-            await asyncio.gather(*tasks, return_exceptions=True)
+            await asyncio.gather(*tasks)
         else:
             for i, msg_id in enumerate(message_ids):
                 await delete_message(msg_id, i)
@@ -341,6 +364,8 @@ class BatchOperations:
         else:
             status = BatchStatus.PARTIAL
 
+        results.sort(key=lambda item: item["index"])
+        errors.sort(key=lambda item: item["index"])
         return BatchResult(
             total=len(message_ids),
             successful=successful,

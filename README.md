@@ -63,12 +63,39 @@ def on_message(msg):
 # Register handler
 client.on_message(on_message)
 
-# Start bot
-print("Bot started! Scan QR code...")
-client.start()
+print("Bot started!")
 ```
 
 **That's it!** Your WhatsApp bot is now running! 🎉
+
+### JavaScript runtime and message history
+
+The package includes WPPConnect 2.3.4 and WA-JS 4.6.1. By default, startup first
+checks GitHub for the latest stable WA-JS release and downloads its JavaScript
+asset. If the check or download fails, it uses the bundled WA-JS version. This
+attempt has a 30-second total timeout. To skip network access, pass
+`Create(session="mybot", wa_js_version="bundled")`.
+To opt into upstream nightly builds, pass
+`Create(session="mybot", wa_js_version="nightly")`. Explicit version constraints,
+JavaScript URLs, and local JavaScript files are also supported. Explicit
+selections report errors if unavailable instead of silently changing versions.
+
+```python
+# Retrieve a page of history; opening the chat first is optional.
+messages = client.getMessages("1234567890@c.us", {"count": 50})
+
+# Retrieve all history available to this linked device.
+messages = client.loadAndGetAllMessagesInChat(
+    "1234567890@c.us", includeMe=True, includeNotifications=False
+)
+
+# Callbacks include the complete message ID, including group participants.
+client.onMessage(lambda msg: print(msg["id"]))
+```
+
+Phone-to-LID mapping is resolved automatically. Pass explicit LIDs with `@lid`;
+bare phone numbers, including 14-digit numbers, are treated as phone numbers.
+`getAllMessagesInChat` returns only messages already loaded in memory.
 
 ---
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import asyncio
 from typing import Optional, List, Union
 from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 from WPP_Whatsapp.api.helpers.download_file import downloadFileToBase64
@@ -74,7 +75,7 @@ class SenderLayer(ListenerLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendPtt_, to, pathOrBase64, filename, caption, quotedMessageId, messageId)
 
-    def sendFile(self, to, pathOrBase64, nameOrOptions, caption, timeout=60):
+    def sendFile(self, to, pathOrBase64, nameOrOptions=None, caption="", timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendFile_, to, pathOrBase64, nameOrOptions, caption, timeout_=timeout)
 
@@ -86,7 +87,7 @@ class SenderLayer(ListenerLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendGif_, to, filePath, filename, caption, timeout_=timeout)
 
-    def sendContactVcard(self, to, contactsId, name, timeout=60):
+    def sendContactVcard(self, to, contactsId, name=None, timeout=60):
         """
           /**
            * Sends contact card to iven chat id
@@ -235,12 +236,7 @@ class SenderLayer(ListenerLayer):
         chatId = self.valid_chatId(chatId)
         return await self.ThreadsafeBrowser.page_evaluate(
             """({ chatId, name, choices, options }) => {
-                return WPP.poll.createMessage({
-                    chatId,
-                    name,
-                    choices,
-                    ...options
-                });
+                return WPP.chat.sendCreatePollMessage(chatId, name, choices, options);
             }""",
             {"chatId": chatId, "name": name, "choices": choices, "options": options},
             page=self.page
@@ -251,9 +247,19 @@ class SenderLayer(ListenerLayer):
         if options is None:
             options = {}
         to = self.valid_chatId(to)
+        normalized_items = []
+        for item in items:
+            item = dict(item)
+            if 'productId' in item:
+                item.setdefault('id', item.pop('productId'))
+                item.setdefault('type', 'product')
+            if 'quantity' in item:
+                item.setdefault('qnt', item.pop('quantity'))
+            normalized_items.append(item)
+        items = normalized_items
         return await self.ThreadsafeBrowser.page_evaluate(
             """({ to, items, options }) => {
-                return WPP.order.sendOrderMessage(to, items, options);
+                return WPP.chat.sendChargeMessage(to, items, options);
             }""",
             {"to": to, "items": items, "options": options},
             page=self.page
@@ -287,6 +293,8 @@ class SenderLayer(ListenerLayer):
     async def sendText_(self, to, content, options=None):
         if not options:
             options = {}
+        if 'mentions' in options and 'mentionedList' not in options:
+            options = {**options, 'mentionedList': options['mentions']}
         to = self.valid_chatId(to)
         send_result = await self.ThreadsafeBrowser.page_evaluate("""({ to, content, options }) =>
                             WPP.chat.sendTextMessage(to, content, {
@@ -305,9 +313,7 @@ class SenderLayer(ListenerLayer):
         WPP.chat.sendPixKeyMessage(to, params, {
           ...options,
           waitForAck: true,
-        }),
-      { to, params, options: options as any }
-    );""", {"to": to, "params": params, "options": options}, page=self.page)
+        })""", {"to": to, "params": params, "options": options}, page=self.page)
         self.logger.debug(f'{self.session}: Send Message {send_result=}')
 
         result = await self.ThreadsafeBrowser.page_evaluate("""async ({ messageId }) => {
@@ -328,33 +334,22 @@ class SenderLayer(ListenerLayer):
 
     async def sendImage_(self, to, filePath, filename="", caption="", quotedMessageId=None, isViewOnce=None, options=None):
         to = self.valid_chatId(to)
-        _base64 = await downloadFileToBase64(filePath, [
-            'image/gif',
-            'image/png',
-            'image/jpg',
-            'image/jpeg',
-            'image/webp',
-        ])
-        if not _base64:
-            if filePath and os.path.exists(filePath):
-                _base64 = self.fileToBase64(filePath)
-            else:
-                raise Exception("Path Not Found")
-
-        filename = os.path.basename(filePath) if not filename else filename
+        _base64 = await self._media_to_base64(filePath, 'image')
+        filename = filename or (os.path.basename(filePath) if not filePath.startswith('data:') else '')
         return await self.sendImageFromBase64_(to, _base64, filename, caption, quotedMessageId, isViewOnce, options=options)
 
     async def sendImageFromBase64_(
         self,
         to,
         _base64,
-        filename,
-        caption,
-        quotedMessageId,
-        isViewOnce,
+        filename="",
+        caption="",
+        quotedMessageId=None,
+        isViewOnce=None,
         mentionedList=None,
         options=None,
     ):
+        to = self.valid_chatId(to)
         if options is None:
             options = {}
         if mentionedList is None and options:
@@ -379,16 +374,17 @@ class SenderLayer(ListenerLayer):
         options
       }) => {
         const result = await WPP.chat.sendFileMessage(to, base64, {
+          ...options,
           type: 'image',
-          isViewOnce,
-          messageId: options?.msgId,
-          filename,
-          caption,
-          quotedMsg: quotedMessageId,
+          isViewOnce: isViewOnce ?? options.isViewOnce,
+          messageId: options.msgId ?? options.messageId,
+          filename: filename || options.filename,
+          caption: caption || options.caption,
+          quotedMsg: quotedMessageId ?? options.quotedMsg,
           waitForAck: true,
-          detectMentioned: true,
-          mentionedList: mentionedList,
-        }).catch((e) => {return e});
+          detectMentioned: options.detectMentioned ?? true,
+          mentionedList: mentionedList ?? options.mentionedList,
+        });
 
         return {
           ack: result.ack,
@@ -433,6 +429,7 @@ class SenderLayer(ListenerLayer):
             quotedMessageId: str = None,
             messageId: str = None
     ):
+        to = self.valid_chatId(to)
         result = await self.ThreadsafeBrowser.page_evaluate(
             """
             async ({ to, base64, filename, caption, quotedMessageId, messageId }) => {
@@ -458,7 +455,7 @@ class SenderLayer(ListenerLayer):
                 'base64': base64,
                 'filename': filename,
                 'caption': caption,
-                'quotedMsg': quotedMessageId,
+                'quotedMessageId': quotedMessageId,
                 'messageId': messageId
             }
             , page=self.page
@@ -490,15 +487,15 @@ class SenderLayer(ListenerLayer):
             raise Exception("Empty or invalid file or base64")
 
         return await self.sendPttFromBase64(
-            to,
-            base64,
+            self.valid_chatId(to),
+            _base64,
             filename,
             caption,
             quotedMessageId,
             messageId
         )
 
-    async def sendFile_(self, to, pathOrBase64, nameOrOptions, caption):
+    async def sendFile_(self, to, pathOrBase64, nameOrOptions=None, caption=""):
         to = self.valid_chatId(to)
         options = {"type": 'auto-detect'}
         if type(nameOrOptions) is str:
@@ -506,7 +503,7 @@ class SenderLayer(ListenerLayer):
             options["caption"] = caption
 
         elif type(nameOrOptions) is dict:
-            options = nameOrOptions
+            options = {**options, **nameOrOptions}
 
         _base64 = ''
         if pathOrBase64.startswith('data:'):
@@ -542,10 +539,7 @@ class SenderLayer(ListenerLayer):
            * @param caption
            */
         """
-        base64_ = await downloadFileToBase64(filePath)
-
-        if not base64_:
-            base64_ = self.convert_to_base64(filePath)
+        base64_ = await self._media_to_base64(filePath, 'video')
 
         if not base64_:
             raise Exception(f'No such file or directory, open "{filePath}"')
@@ -567,6 +561,7 @@ class SenderLayer(ListenerLayer):
            */
         """
 
+        to = self.valid_chatId(to)
         result = await self.ThreadsafeBrowser.page_evaluate(
             """
             async ({ to, base64, filename, caption, quotedMessageId }) => {
@@ -603,10 +598,7 @@ class SenderLayer(ListenerLayer):
            */
 
         """
-        base64_ = await downloadFileToBase64(filePath)
-
-        if not base64_:
-            base64_ = self.convert_to_base64(filePath)
+        base64_ = await self._media_to_base64(filePath, 'image')
 
         if not base64_:
             raise Exception(f'No such file or directory, open "{filePath}"')
@@ -626,11 +618,11 @@ class SenderLayer(ListenerLayer):
            * @param caption string xxxxx
            */
         """
-        base64_ = convertToMP4GIF(base64_)
+        base64_ = await asyncio.to_thread(convertToMP4GIF, base64_)
 
         return await self.sendVideoAsGifFromBase64(to, base64_, filename, caption)
 
-    async def sendContactVcard_(self, to, contactsId, name):
+    async def sendContactVcard_(self, to, contactsId, name=None):
         """
           /**
            * Sends contact card to iven chat id
@@ -655,6 +647,8 @@ class SenderLayer(ListenerLayer):
         # multicast?: boolean;
         # }
         toChatId = self.valid_chatId(toChatId)
+        if isinstance(msgId, (list, tuple)):
+            return await self.forwardMessagesV2_(toChatId, list(msgId), options)
         return await self.ThreadsafeBrowser.page_evaluate(
             """({ toChatId, msgId, options }) =>WPP.chat.forwardMessage(toChatId, msgId, options)""",
             {"toChatId": toChatId, "msgId": msgId,
@@ -670,37 +664,28 @@ class SenderLayer(ListenerLayer):
         return await self.ThreadsafeBrowser.page_evaluate("""({ toChatId, messages, options }) =>
         WPP.chat.forwardMessages(toChatId, messages, options)""", { "toChatId":toChatId, "messages":messages, "options":options }, page=self.page)
 
-    async def sendImageAsStickerGif_(self, to: str, pathOrBase64: str, options=None):
-        """
-          /**
-           * Generates sticker from the provided animated gif image and sends it (Send image as animated sticker)
-           *
-           * @example
-           * ```javascript
-           * client.sendImageAsStickerGif('000000000000@c.us', 'base64....');
-           * ```
-           *
-           * @example
-           * Send Sticker with reply
-           * ```javascript
-           * client.sendImageAsStickerGif('000000000000@c.us', 'base64....', {
-           *     quotedMsg: 'msgId',
-           * });
-           * ```
-           * @category Chat
-           * @param pathOrBase64 image path imageBase64 A valid gif image is required. You can also send via http/https (http://www.website.com/img.gif)
-           * @param to chatId '000000000000@c.us'
-           */
-        """
-        if options is None:
-            options = {}
-        ...
+    def sendImageAsStickerGif(self, to, pathOrBase64, options=None, timeout=120):
+        return self.ThreadsafeBrowser.run_threadsafe(self.sendImageAsStickerGif_, to, pathOrBase64, options, timeout_=timeout)
+
+    async def sendImageAsStickerGif_(self, to, pathOrBase64, options=None):
+        import base64
+        from io import BytesIO
+        from PIL import Image
+
+        content = await self._media_to_base64(pathOrBase64, 'image')
+        raw = base64.b64decode(content.split(',', 1)[1], validate=True)
+        with Image.open(BytesIO(raw)) as image:
+            output = BytesIO()
+            image.save(output, format='WEBP', save_all=True, loop=image.info.get('loop', 0))
+        webp = 'data:image/webp;base64,' + base64.b64encode(output.getvalue()).decode('ascii')
+        return await self.sendImageAsSticker_(to, webp, options)
 
     async def sendLocation_(self, to, options):
         to = self.valid_chatId(to)
         options = {
-            "lat": options.get("latitude"),
-            "lng": options.get("longitude"),
+            **options,
+            "lat": options.get("lat", options.get("latitude")),
+            "lng": options.get("lng", options.get("longitude")),
             "title": options.get("title"),
         }
         return await self.ThreadsafeBrowser.page_evaluate("""async ({ to, options }) => {
@@ -721,7 +706,7 @@ class SenderLayer(ListenerLayer):
     async def startTyping_(self, to, duration=None):
         to = self.valid_chatId(to)
         return await self.ThreadsafeBrowser.page_evaluate(
-            "({ to, duration }) => WPP.chat.markIsComposing(to, duration)",
+            "({ to, duration }) => WPP.chat.markIsComposing(to, duration ?? undefined)",
             {"to": to, "duration": duration}, page=self.page)
 
     async def stopTyping_(self, to):
@@ -772,15 +757,16 @@ class SenderLayer(ListenerLayer):
         return await self.ThreadsafeBrowser.page_evaluate("(online) => WPP.conn.markAvailable(online)", online,
                                                           page=self.page)
 
-    async def sendMentioned_(self, to:str, message:str, mentioned:list[str]):
+    async def sendMentioned_(self, to:str, message:str, mentioned:list[str], options=None):
         to = self.valid_chatId(to)
 
         return await self.ThreadsafeBrowser.page_evaluate(
-            """({ to, message, mentioned }) => WPP.chat.sendTextMessage(to, message, {
+            """({ to, message, mentioned, options }) => WPP.chat.sendTextMessage(to, message, {
+          ...options,
           detectMentioned: true,
           mentionedList: mentioned,
         })""",
-            {"to": to, "message": message, "mentioned": mentioned}, page=self.page)
+            {"to": to, "message": message, "mentioned": mentioned, "options": options or {}}, page=self.page)
 
     async def sendListMessage_(self, to, options):
         to = self.valid_chatId(to)
@@ -837,5 +823,91 @@ class SenderLayer(ListenerLayer):
         """
         chatId = self.valid_chatId(chatId)
         return await self.ThreadsafeBrowser.page_evaluate("""({ chatState, chatId }) => {
-                WAPI.sendChatstate(chatState, chatId);
+                return WAPI.sendChatstate(chatState, chatId);
               }""", {"chatState": chatState, "chatId": chatId}, page=self.page)
+
+    def sendContactVcardList(self, to, contacts, timeout=60):
+        """Send multiple contact cards."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.sendContactVcardList_, to, contacts, timeout_=timeout)
+
+    async def sendContactVcardList_(self, to, contacts):
+        to = self.valid_chatId(to)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({to, contacts}) => WPP.chat.sendVCardContactMessage(to, contacts)", {"to": to, "contacts": contacts}, page=self.page)
+
+    def markPlayed(self, msgId, timeout=60):
+        """Mark an audio message as played."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.markPlayed_, msgId, timeout_=timeout)
+
+    async def markPlayed_(self, msgId):
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({msgId}) => WPP.chat.markPlayed(msgId)", {"msgId": msgId}, page=self.page)
+
+    def startRecording(self, to, duration=None, timeout=60):
+        """Set recording presence for a chat."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.startRecording_, to, duration, timeout_=timeout)
+
+    async def startRecording_(self, to, duration=None):
+        to = self.valid_chatId(to)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({to, duration}) => WPP.chat.markIsRecording(to, duration ?? undefined)", {"to": to, "duration": duration}, page=self.page)
+
+    def stopRecording(self, to, timeout=60):
+        """Stop recording presence."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.stopRecording_, to, timeout_=timeout)
+
+    async def stopRecording_(self, to):
+        to = self.valid_chatId(to)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({to}) => WPP.chat.markIsPaused(to)", {"to": to}, page=self.page)
+
+    def sendReactionToMessage(self, msgId, reaction, timeout=60):
+        """React to a message; false removes the reaction."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.sendReactionToMessage_, msgId, reaction, timeout_=timeout)
+
+    async def sendReactionToMessage_(self, msgId, reaction):
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({msgId, reaction}) => WPP.chat.sendReactionToMessage(msgId, reaction)", {"msgId": msgId, "reaction": reaction}, page=self.page)
+
+    def sendMessageWithThumb(self, thumb, url, title, description, chatId, timeout=60):
+        """Send a link with a custom preview."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.sendMessageWithThumb_, thumb, url, title, description, chatId, timeout_=timeout)
+
+    async def sendMessageWithThumb_(self, thumb, url, title, description, chatId):
+        chatId = self.valid_chatId(chatId)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({thumb, url, title, description, chatId}) => WPP.chat.sendTextMessage(chatId, url, {linkPreview: {thumbnail: thumb, canonicalUrl: url, title, description, matchedText: url}})", {"thumb": thumb, "url": url, "title": title, "description": description, "chatId": chatId}, page=self.page)
+
+    def sendImageFromBase64(self, to, base64, filename='', caption='', quotedMessageId=None,
+                            isViewOnce=None, mentionedList=None, options=None, timeout=120):
+        return self.ThreadsafeBrowser.run_threadsafe(self.sendImageFromBase64_, self.valid_chatId(to),
+            base64, filename, caption, quotedMessageId, isViewOnce, mentionedList, options, timeout_=timeout)
+
+    def sendFileFromBase64(self, to, base64, filename='', caption='', options=None, timeout=120):
+        return self.ThreadsafeBrowser.run_threadsafe(self.sendFileFromBase64_, to, base64, filename, caption, options, timeout_=timeout)
+
+    async def sendFileFromBase64_(self, to, base64, filename='', caption='', options=None):
+        opts = {'filename': filename, 'caption': caption, **(options or {})}
+        return await self.sendFile_(to, base64, opts, caption)
+
+    def forwardMessage(self, toChatId, msgId, options=None, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.forwardMessages_, toChatId, msgId, options, timeout_=timeout)
+
+    async def forwardMessage_(self, toChatId, msgId, options=None):
+        return await self.forwardMessages_(toChatId, msgId, options)
+
+    def stopRecoring(self, to, timeout=60):
+        """Compatibility spelling; use stopRecording."""
+        return self.stopRecording(to, timeout=timeout)
+
+    async def stopRecoring_(self, to):
+        return await self.stopRecording_(to)
+
+    async def sendPttFromBase64_(self, to, base64, filename='', caption=None, quotedMessageId=None, messageId=None):
+        return await self.sendPttFromBase64(self.valid_chatId(to), base64, filename, caption, quotedMessageId, messageId)
+
+    async def sendVideoAsGifFromBase64_(self, to, base64, filename='', caption='', quotedMessageId=''):
+        return await self.sendVideoAsGifFromBase64(self.valid_chatId(to), base64, filename, caption, quotedMessageId)
+
+    async def sendGifFromBase64_(self, to, base64, filename='', caption=''):
+        return await self.sendGifFromBase64(self.valid_chatId(to), base64, filename, caption)

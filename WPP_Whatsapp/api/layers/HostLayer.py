@@ -4,6 +4,7 @@ import logging
 import mimetypes
 import re
 from datetime import datetime
+from threading import Event
 from typing import Callable
 
 from playwright._impl._errors import TargetClosedError
@@ -23,7 +24,7 @@ class HostLayer:
     logger: logging
     ThreadsafeBrowser: "ThreadsafeBrowser"
     options: dict
-    autoCloseInterval: asyncio.Event
+    autoCloseInterval: Event
     autoCloseCalled: bool
     isInitialized: bool
     isInjected: bool
@@ -38,7 +39,7 @@ class HostLayer:
     lastPercentMessage: str
     session: str
     autoClose: int
-    checkStartInterval: asyncio.Event
+    checkStartInterval: Event
     logQR: bool
     remain: int
     version: str
@@ -67,12 +68,12 @@ class HostLayer:
         self.page.on('load', self.on_load)
         self.isInitialized = True
 
-    async def on_close(self, _):
+    async def on_close(self, _=None):
         self.isClosed = True
         self.logger.info(f'{self.session}: Page Closed')
         self.cancelAutoClose()
 
-    async def on_load(self, _):
+    async def on_load(self, _=None):
         if self.isClosed:
             return
         try:
@@ -253,7 +254,7 @@ class HostLayer:
         return JSON.parse(
           JSON.stringify(await WPP.conn.genLinkDeviceCodeForPhoneNumber(phone))
         );
-          }""", {"phone": phone})
+          }""", {"phone": phone}, page=self.page)
         if self.logQR:
             Logger.info(f'Waiting for Login By Code (Code: {code})\n')
         else:
@@ -323,7 +324,7 @@ class HostLayer:
                 self.ThreadsafeBrowser.sync_close()
 
     def startAutoClose(self, _time=None):
-        if not _time:
+        if _time is None:
             _time = self.autoClose
 
         if _time > 0 and (not hasattr(self, "autoCloseInterval") or not self.autoCloseInterval):
@@ -372,7 +373,7 @@ class HostLayer:
     def cancelAutoClose(self):
         if hasattr(self, "autoCloseInterval"):
             self.clearInterval(self.autoCloseInterval)
-        # self.autoCloseInterval = None
+        self.autoCloseInterval = None
 
     async def __getQrCode(self):
         try:
@@ -750,24 +751,24 @@ class HostLayer:
     async def getWWebVersion(self):
         return await self.ThreadsafeBrowser.page_evaluate("""() => {
             return window.Debug.VERSION;
-        }""")
+        }""", page=self.page)
 
     async def inject_api(self):
         self.logger.debug(f'{self.session}: start inject')
         try:
             injected = await self.ThreadsafeBrowser.page_evaluate("""() => {
-                        return (typeof window.WAPI !== 'undefined' &&typeof window.Store !== 'undefined');}"""
+                        return window.WAPI?._wppWhatsappReady === true;}"""
                                                                   , page=self.page)
         except:
             injected = False
 
         if injected:
             self.logger.info(f'{self.session}: already injected')
-            return
+            return True
 
         self.logger.info(f'{self.session}: injected state: {injected}')
 
-        await self.ThreadsafeBrowser.page_wait_for_function('window.Debug?.VERSION != undefined')
+        await self.ThreadsafeBrowser.page_wait_for_function('window.Debug?.VERSION != undefined', page=self.page)
         # TODO::
         # version = await self.getWWebVersion()
         # isCometOrAbove = int(version.split('.')[1]) >= 3000
@@ -790,6 +791,8 @@ class HostLayer:
         # await self.ThreadsafeBrowser.add_script_tag(
         #     url="https://github.com/wppconnect-team/wa-js/releases/download/nightly/wppconnect-wa.js")
         await self.ThreadsafeBrowser.add_script_tag(**(await getWaJs(self.wa_js_version)), page=self.page)
+        await self.ThreadsafeBrowser.page_wait_for_function(
+            "() => window.WPP?.isReady", page=self.page)
         # await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP?.isReady", page=self.page)
         try:
             await self.ThreadsafeBrowser.page_evaluate("""() => {
@@ -806,6 +809,8 @@ class HostLayer:
         #     page=self.page
         # )
         await self.ThreadsafeBrowser.add_script_tag(content=WAPI, page=self.page)
+        await self.ThreadsafeBrowser.page_wait_for_function(
+            "() => window.WAPI?._wppWhatsappReady === true", page=self.page)
         await self._onLoadingScreen()
         self.logger.info(f'{self.session}: wait window.WPP.isReady')
 
@@ -926,8 +931,6 @@ class HostLayer:
         # Contacts are just phone numbers
         if '-' in chatId or len(chatId) > 15:
             chatId += '@g.us'
-        elif len(chatId) == 14:
-            chatId += "lid"
         else:
             chatId += '@c.us'
         return chatId
@@ -941,21 +944,30 @@ class HostLayer:
 
     async def get_chat_id_(self, chat_id:str):
         chatId = self.valid_chatId(chat_id)
-        if '@c.us' in chatId:
-            chat_info: dict = await self.getPnLidEntry_(chatId)
-            chatId = (chat_info.get("lid", {}) or {}).get("_serialized")
+        if chatId.endswith('@c.us'):
+            chat_info = await self.getPnLidEntry_(chatId)
+            chatId = self._mapped_chat_id(chatId, chat_info)
         return chatId
 
     def get_chat_id(self, chat_id:str):
         chatId = self.valid_chatId(chat_id)
-        if '@c.us' in chatId:
-            chat_info: dict = self.getPnLidEntry(chatId)
-            if chat_info.get("lid", {}):
-                chatId = (chat_info.get("lid", {})).get("_serialized")
-            elif chat_info.get("phoneNumber", {}):
-                chatId = (chat_info.get("phoneNumber", {})).get("_serialized")
+        if chatId.endswith('@c.us'):
+            chat_info = self.getPnLidEntry(chatId)
+            chatId = self._mapped_chat_id(chatId, chat_info)
 
         return chatId
+
+    @staticmethod
+    def _mapped_chat_id(chat_id, chat_info):
+        # Mapping can be absent for a valid phone number. Never replace it
+        # with None, and accept both WA-JS strings and serialized Wid objects.
+        for field in ('lid', 'phoneNumber'):
+            value = (chat_info or {}).get(field)
+            if isinstance(value, dict):
+                value = value.get('_serialized')
+            if isinstance(value, str) and value:
+                return value
+        return chat_id
 
     def close(self):
         self.isClosed = True
@@ -981,6 +993,24 @@ class HostLayer:
     def fileToBase64(self, path):
         return self.convert_to_base64(path)
 
+    async def _media_to_base64(self, value, media_type=None):
+        from WPP_Whatsapp.api.helpers.download_file import downloadFileToBase64
+
+        if not isinstance(value, str) or not value:
+            raise ValueError("Empty or invalid media input")
+        if value.startswith('data:'):
+            content = value
+        elif value.lower().startswith(('http://', 'https://')):
+            content = await downloadFileToBase64(value)
+        else:
+            content = self.fileToBase64(value)
+        if not content:
+            raise ValueError("Could not load media")
+        mime = self.base64MimeTypeV2(content)
+        if not mime or (media_type and not mime.startswith(media_type + '/')):
+            raise ValueError(f"Expected {media_type or 'valid'} media")
+        return content
+
     @staticmethod
     def base64MimeType(encoded):
         result = encoded.split(";base64")[0].split(":")[-1]
@@ -997,3 +1027,21 @@ class HostLayer:
             result = mime.group(1)
 
         return result
+
+    def refreshLinkCode(self, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.refreshLinkCode_, timeout_=timeout)
+
+    async def refreshLinkCode_(self):
+        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.refreshLinkDeviceCode()", page=self.page)
+
+    def getQrCode(self, timeout=60):
+        return self.ThreadsafeBrowser.run_threadsafe(self.getQrCode_, timeout_=timeout)
+
+    async def getQrCode_(self):
+        return await self.__getQrCode()
+
+    def isMainReady(self):
+        return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isMainReady()", page=self.page)
+
+    async def isMainReady_(self):
+        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.isMainReady()", page=self.page)

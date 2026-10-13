@@ -12,7 +12,7 @@ def async_to_sync(func: FunctionType):
             if inspect.iscoroutine(future):
                 self.loop: asyncio.AbstractEventLoop
                 # try:
-                return self.loop.run_until_complete(func(self, *args, **kwargs))
+                return self.loop.run_until_complete(future)
                 # except RuntimeError :
                 #     return asyncio.ensure_future(future, loop=self.loop)
 
