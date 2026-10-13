@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-13
+
 ### Upstream API audit (2026-10-13)
 - Compared all API layers with WPPConnect `05b24636fc5dd5cfc1246aff64ef7db94c3cf3a1`
   and WA-JS `7c0fbd759b6b6de995af515995ad84f66606fde9`. The latest npm releases
