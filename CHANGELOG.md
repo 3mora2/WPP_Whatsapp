@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-13
+
 ### Maintainability
 - Separate explicit service definitions, structural interfaces, delivery models
   and memory/SQLite adapters. Cache bound operations and sync adapters while
