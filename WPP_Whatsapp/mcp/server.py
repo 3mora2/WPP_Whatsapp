@@ -3,52 +3,24 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 from contextlib import asynccontextmanager
-from dataclasses import asdict
+from copy import deepcopy
+from dataclasses import asdict, replace
 from pathlib import Path
-from typing import Annotated, Any, Awaitable, Callable, Literal, Optional, TypeVar
+from typing import Annotated, Any, Literal, Optional
 
 from fastmcp import Context, FastMCP
-from fastmcp.exceptions import ToolError
 from pydantic import Field
 
 from WPP_Whatsapp import AsyncClient
 from WPP_Whatsapp.core.delivery_models import DeliveryState
 from WPP_Whatsapp.core.errors import DeliveryUncertainError, SessionNotReadyError
 
+from .accounts import SCOPES, AccountConfig, AccountManager, validate_accounts
 from .models import DeliveryLookup, DeliveryResult, SessionStatus
 from .runtime import SessionRuntime
-
-Identifier = Annotated[str, Field(min_length=1, max_length=512)]
-OperationId = Annotated[str, Field(min_length=1, max_length=128)]
-Limit = Annotated[int, Field(ge=1, le=200)]
-T = TypeVar("T")
-READ = {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": True}
-SESSION = {"readOnlyHint": False, "destructiveHint": False, "openWorldHint": True}
-
-
-def _runtime(ctx: Context) -> SessionRuntime:
-    return ctx.lifespan_context["whatsapp"]
-
-
-async def _call(
-    runtime: SessionRuntime, action: Callable[[], Awaitable[T]], *, ready: bool = True
-) -> T:
-    try:
-        return await runtime.run(action, ready=ready)
-    except SessionNotReadyError:
-        raise ToolError("Connect WhatsApp and finish login in the browser first") from None
-    except ToolError:
-        raise
-    except Exception as error:
-        # Browser/storage exceptions may contain message bodies, paths or credentials.
-        raise ToolError(f"WhatsApp operation failed ({type(error).__name__})") from None
-
-
-def _identifier(value: str) -> str:
-    if not value.strip():
-        raise ToolError("Identifiers must not be blank")
-    return value
+from .tool_api import READ, SESSION, Identifier, Limit, OperationId, _call, _identifier, _runtime
 
 
 def build_server(
@@ -60,34 +32,102 @@ def build_server(
     options: Optional[dict[str, Any]],
     read_only: bool,
     auth: Any,
+    accounts=None,
+    default_account=None,
+    access_policy=None,
+    media_root=None,
 ) -> FastMCP:
-    settings = {
-        "autoClose": 0,
-        "logQR": False,
-        "deliveryStore": str(Path(token_directory) / ".deliveries" / "mcp.sqlite3"),
-        **(options or {}),
+    if accounts is not None and client is not None:
+        raise ValueError("Pass either client or accounts")
+    configs = (
+        dict(accounts)
+        if accounts is not None
+        else {
+            "default": AccountConfig(
+                session,
+                token_directory,
+                wa_js_version,
+                options or {},
+                read_only,
+                media_root,
+                client,
+            )
+        }
+    )
+    validate_accounts(configs)
+    configs = {
+        key: replace(config, options=deepcopy(config.options)) for key, config in configs.items()
     }
+    default = default_account or next(iter(configs))
+    if default not in configs:
+        raise ValueError("Unknown default account")
+    if access_policy is not None:
+        if auth is None:
+            raise ValueError("An access policy requires a verified authentication provider")
+        if not isinstance(access_policy, Mapping) or any(
+            not isinstance(principal, str)
+            or not principal
+            or not isinstance(grants, Mapping)
+            or any(
+                not isinstance(scopes, (list, tuple, set, frozenset))
+                or any(not isinstance(scope, str) for scope in scopes)
+                for scopes in grants.values()
+            )
+            for principal, grants in access_policy.items()
+        ):
+            raise ValueError("Invalid principal/account/scope policy")
+        # Snapshot administrator configuration; caller mutations cannot grant access later.
+        access_policy = {
+            principal: {key: frozenset(scopes) for key, scopes in grants.items()}
+            for principal, grants in access_policy.items()
+        }
+        if any(
+            key not in configs or not scopes <= SCOPES
+            for grants in access_policy.values()
+            for key, scopes in grants.items()
+        ):
+            raise ValueError("Unknown account or scope in access policy")
+    if auth is not None and len(configs) > 1 and access_policy is None:
+        raise ValueError("Authenticated multi-account servers require an access policy")
 
     @asynccontextmanager
     async def lifespan(server: FastMCP):
-        owned = client is None
-        active = (
-            client
-            if client is not None
-            else AsyncClient(
-                session,
-                token_directory=token_directory,
-                wa_js_version=wa_js_version,
-                wait_for_login=False,
-                **settings,
-            )
-        )
-        runtime = SessionRuntime(active, read_only)
+        runtimes = {}
+        owned = []
         try:
-            yield {"whatsapp": runtime}
+            for key, config in configs.items():
+                active = config.client
+                if active is None:
+                    settings = {
+                        "autoClose": 0,
+                        "logQR": False,
+                        "deliveryStore": str(
+                            Path(config.token_directory)
+                            / ".deliveries"
+                            / ("mcp.sqlite3" if accounts is None else key + ".sqlite3")
+                        ),
+                        **config.options,
+                    }
+                    active = AsyncClient(
+                        config.session,
+                        token_directory=config.token_directory,
+                        wa_js_version=config.wa_js_version,
+                        wait_for_login=False,
+                        **settings,
+                    )
+                runtime = SessionRuntime(active, read_only or config.read_only, config.media_root)
+                runtimes[key] = runtime
+                if config.client is None:
+                    owned.append(runtime)
+            yield {"accounts": AccountManager(runtimes, default, access_policy)}
         finally:
-            if owned:
-                await runtime.run(active.close, ready=False)
+            for runtime in runtimes.values():
+                runtime.unsubscribe()
+            # Shut down every owned account even when one close fails.
+            await asyncio.gather(
+                *(runtime.run(runtime.client.close, ready=False) for runtime in owned),
+                return_exceptions=True,
+            )
 
     server = FastMCP(
         "WPP WhatsApp",
@@ -106,28 +146,38 @@ def build_server(
     )
 
     @server.tool(annotations={**READ, "openWorldHint": False})
-    async def whatsapp_status(ctx: Context) -> SessionStatus:
+    async def whatsapp_status(
+        ctx: Context, account_id: Optional[Identifier] = None
+    ) -> SessionStatus:
         """Return this server's session state without opening a browser."""
-        return _runtime(ctx).status()
+        return _runtime(ctx, account_id, "read").status()
 
     @server.tool(annotations={**SESSION, "idempotentHint": True})
-    async def whatsapp_connect(ctx: Context) -> SessionStatus:
+    async def whatsapp_connect(
+        ctx: Context, account_id: Optional[Identifier] = None
+    ) -> SessionStatus:
         """Open/reuse the configured session. Scan its QR in the browser, then poll status."""
-        runtime = _runtime(ctx)
+        runtime = _runtime(ctx, account_id, "session")
         await _call(runtime, runtime.client.connect, ready=False)
         return runtime.status()
 
     @server.tool(annotations={**SESSION, "idempotentHint": True})
-    async def whatsapp_disconnect(ctx: Context) -> SessionStatus:
+    async def whatsapp_disconnect(
+        ctx: Context, account_id: Optional[Identifier] = None
+    ) -> SessionStatus:
         """Close this session's browser, preserving its saved login and delivery metadata."""
-        runtime = _runtime(ctx)
+        runtime = _runtime(ctx, account_id, "session")
+        runtime.unsubscribe()
         await _call(runtime, runtime.client.close, ready=False)
         return runtime.status()
 
     @server.tool(annotations=SESSION)
-    async def whatsapp_reconnect(ctx: Context) -> SessionStatus:
+    async def whatsapp_reconnect(
+        ctx: Context, account_id: Optional[Identifier] = None
+    ) -> SessionStatus:
         """Reopen the same saved profile without replaying earlier operations."""
-        runtime = _runtime(ctx)
+        runtime = _runtime(ctx, account_id, "session")
+        runtime.unsubscribe()
         await _call(runtime, runtime.client.reconnect, ready=False)
         return runtime.status()
 
@@ -137,9 +187,10 @@ def build_server(
         limit: Limit = 50,
         kind: Literal["all", "groups", "users"] = "all",
         before_chat_id: Optional[Identifier] = None,
+        account_id: Optional[Identifier] = None,
     ) -> list[dict]:
         """List up to 200 chats. Use before_chat_id from a previous page for older chats."""
-        runtime = _runtime(ctx)
+        runtime = _runtime(ctx, account_id, "read")
         params: dict[str, Any] = {"count": limit}
         if kind != "all":
             params["onlyGroups" if kind == "groups" else "onlyUsers"] = True
@@ -153,9 +204,10 @@ def build_server(
         chat_id: Identifier,
         limit: Limit = 50,
         before_message_id: Optional[Identifier] = None,
+        account_id: Optional[Identifier] = None,
     ) -> list[dict]:
         """Read history, including already-read chats. Keep full group/participant message IDs."""
-        runtime = _runtime(ctx)
+        runtime = _runtime(ctx, account_id, "read")
         params: dict[str, Any] = {"count": limit}
         if before_message_id is not None:
             params.update(id=_identifier(before_message_id), direction="before")
@@ -164,33 +216,41 @@ def build_server(
         )
 
     @server.tool(annotations=READ)
-    async def whatsapp_get_message(ctx: Context, message_id: Identifier) -> Any:
+    async def whatsapp_get_message(
+        ctx: Context, message_id: Identifier, account_id: Optional[Identifier] = None
+    ) -> Any:
         """Look up a message using its complete ID, including group participant if present."""
-        runtime = _runtime(ctx)
+        runtime = _runtime(ctx, account_id, "read")
         return await _call(
             runtime, lambda: runtime.client.messages.get_message(_identifier(message_id))
         )
 
     @server.tool(annotations=READ)
-    async def whatsapp_get_contact(ctx: Context, contact_id: Identifier) -> Any:
+    async def whatsapp_get_contact(
+        ctx: Context, contact_id: Identifier, account_id: Optional[Identifier] = None
+    ) -> Any:
         """Read one contact by WhatsApp ID."""
-        runtime = _runtime(ctx)
+        runtime = _runtime(ctx, account_id, "read")
         return await _call(
             runtime, lambda: runtime.client.chats.get_contact(_identifier(contact_id))
         )
 
     @server.tool(annotations=READ)
-    async def whatsapp_get_group_members(ctx: Context, group_id: Identifier) -> list[dict]:
+    async def whatsapp_get_group_members(
+        ctx: Context, group_id: Identifier, account_id: Optional[Identifier] = None
+    ) -> list[dict]:
         """Read the members of a group the account can access."""
-        runtime = _runtime(ctx)
+        runtime = _runtime(ctx, account_id, "read")
         return await _call(
             runtime, lambda: runtime.client.groups.get_group_members(_identifier(group_id))
         )
 
     @server.tool(annotations={**READ, "openWorldHint": False})
-    async def whatsapp_get_delivery(ctx: Context, operation_id: OperationId) -> DeliveryLookup:
+    async def whatsapp_get_delivery(
+        ctx: Context, operation_id: OperationId, account_id: Optional[Identifier] = None
+    ) -> DeliveryLookup:
         """Read a tracked send receipt; unknown/pending must never trigger an automatic resend."""
-        runtime = _runtime(ctx)
+        runtime = _runtime(ctx, account_id, "read")
 
         async def lookup():
             if runtime.status()["ready"]:
@@ -210,9 +270,10 @@ def build_server(
             chat_id: Identifier,
             text: Annotated[str, Field(min_length=1, max_length=65536)],
             operation_id: OperationId,
+            account_id: Optional[Identifier] = None,
         ) -> DeliveryResult:
             """Send text with a stable operation ID. Retry with the SAME ID; never replay unknown sends."""
-            runtime = _runtime(ctx)
+            runtime = _runtime(ctx, account_id, "send")
 
             async def send():
                 _identifier(operation_id)
@@ -238,9 +299,10 @@ def build_server(
             ctx: Context,
             operation_id: OperationId,
             message_id: Identifier,
+            account_id: Optional[Identifier] = None,
         ) -> DeliveryResult:
             """Confirm a reserved send ONLY with a verified outgoing message; does not send anything."""
-            runtime = _runtime(ctx)
+            runtime = _runtime(ctx, account_id, "send")
 
             async def reconcile():
                 receipt = await runtime.client.messages.reconcile(
@@ -250,4 +312,7 @@ def build_server(
 
             return await _call(runtime, reconcile)
 
+    from .tools import register_tools
+
+    register_tools(server, read_only=read_only)
     return server

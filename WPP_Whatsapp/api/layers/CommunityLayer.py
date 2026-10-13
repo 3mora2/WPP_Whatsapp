@@ -4,10 +4,13 @@ from typing import List, Optional
 from WPP_Whatsapp.api.layers.HostLayer import HostLayer
 from WPP_Whatsapp.api.model import CommunityOptions, CommunityParticipantOptions
 
+from WPP_Whatsapp.core.sync_api import sync_wrapper
+
 
 class CommunityLayer(HostLayer):
     """Layer for managing WhatsApp Communities"""
 
+    @sync_wrapper("createCommunity_")
     def createCommunity(self, name: str, description: str, groupIds: List[str], options: Optional[CommunityOptions] = None, timeout=60):
         """
         Create a new community
@@ -18,9 +21,9 @@ class CommunityLayer(HostLayer):
         @param options: Additional options
         @return: Community ID
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.createCommunity_, name, description, groupIds, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("deactivateCommunity_")
     def deactivateCommunity(self, communityId: str, timeout=60):
         """
         Deactivate a community
@@ -28,9 +31,9 @@ class CommunityLayer(HostLayer):
         @param communityId: Community ID
         @return: Success status
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.deactivateCommunity_, communityId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("addSubgroupsCommunity_")
     def addSubgroupsCommunity(self, communityId: str, groupsIds: List[str], timeout=60):
         """
         Add groups to community
@@ -39,9 +42,9 @@ class CommunityLayer(HostLayer):
         @param groupsIds: List of group IDs to add
         @return: Success status
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.addSubgroupsCommunity_, communityId, groupsIds, timeout_=timeout)
+        ...
 
+    @sync_wrapper("removeSubgroupsCommunity_")
     def removeSubgroupsCommunity(self, communityId: str, groupsIds: List[str], timeout=60):
         """
         Remove groups from community
@@ -50,9 +53,9 @@ class CommunityLayer(HostLayer):
         @param groupsIds: List of group IDs to remove
         @return: Success status
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.removeSubgroupsCommunity_, communityId, groupsIds, timeout_=timeout)
+        ...
 
+    @sync_wrapper("promoteCommunityParticipant_")
     def promoteCommunityParticipant(self, communityId: str, participantId: str | List[str], timeout=60):
         """
         Promote participant to community admin
@@ -61,9 +64,9 @@ class CommunityLayer(HostLayer):
         @param participantId: Participant ID or list of IDs
         @return: Success status
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.promoteCommunityParticipant_, communityId, participantId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("demoteCommunityParticipant_")
     def demoteCommunityParticipant(self, communityId: str, participantId: str | List[str], timeout=60):
         """
         Demote community admin to participant
@@ -72,9 +75,9 @@ class CommunityLayer(HostLayer):
         @param participantId: Participant ID or list of IDs
         @return: Success status
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.demoteCommunityParticipant_, communityId, participantId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getCommunityParticipants_")
     def getCommunityParticipants(self, communityId: str, timeout=60):
         """
         Get all participants of a community
@@ -82,8 +85,7 @@ class CommunityLayer(HostLayer):
         @param communityId: Community ID
         @return: List of participant IDs
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getCommunityParticipants_, communityId, timeout_=timeout)
+        ...
 
     # ##########################################################################
     # Async implementations

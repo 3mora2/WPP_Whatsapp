@@ -1,0 +1,68 @@
+name: Review upstream compatibility
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      propose_update:
+        description: 'Open a draft PR containing the audit report for human review'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.12'
+      - run: uv sync --extra dev
+      - name: Validate recorded contracts first
+        run: uv run pytest tests/test_api_contracts.py tests/test_upstream_review.py -q
+      - name: Compare immutable upstream source snapshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uv run python tools/check_upstream.py --output upstream-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: upstream-review
+          path: upstream-report.json
+          if-no-files-found: warn
+
+  proposal:
+    if: always() && inputs.propose_update && needs.audit.result != 'cancelled'
+    needs: audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: upstream-review
+      - name: Check whether a proposal is needed
+        id: plan
+        run: python -c "import json, os; value=json.load(open('upstream-report.json')); print('changed=' + str(value['review_required']).lower(), file=open(os.environ['GITHUB_OUTPUT'], 'a'))"
+      - name: Propose report without replacing runtime or trusted baseline
+        if: steps.plan.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_BRANCH: codex/upstream-review-${{ github.run_id }}
+        run: |
+          mkdir -p docs/upstream
+          mv upstream-report.json docs/upstream/candidate.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git checkout -b "$REVIEW_BRANCH"
+          git add docs/upstream/candidate.json
+          git commit -m "docs: propose upstream compatibility review"
+          git push origin "$REVIEW_BRANCH"
+          gh pr create --draft --head "$REVIEW_BRANCH" --title "Review upstream compatibility changes" --body "Review the candidate source hashes and static API differences. No bundled runtime or trusted contract was replaced. Signature, browser and authenticated WhatsApp tests are required before adopting an update."

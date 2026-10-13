@@ -196,9 +196,13 @@ def test_every_registered_command_is_referenced_and_legacy_surface_is_preserved(
     from pathlib import Path
     import ast
     references = set()
-    for path in (Path(__file__).parents[1] / 'WPP_Whatsapp/api').rglob('*.py'):
+    for path in (Path(__file__).parents[1] / 'WPP_Whatsapp').rglob('*.py'):
         for call in ast.walk(ast.parse(path.read_text(encoding='utf-8'))):
-            if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr in ('_evaluate_js', '_evaluate_js_sync'):
+            if (isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)
+                    and (call.func.attr in ('_evaluate_js', '_evaluate_js_sync')
+                         or (call.func.attr == 'call' and isinstance(call.func.value, ast.Name)
+                             and call.func.value.id == 'bridge'))
+                    and call.args and isinstance(call.args[0], ast.Constant)):
                 references.add(call.args[0].value)
     assert references == set(COMMANDS)
     assert inspect.iscoroutinefunction(Whatsapp.sendText_)

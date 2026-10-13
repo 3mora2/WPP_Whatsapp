@@ -1,8 +1,9 @@
 # Documentation
 
-These guides cover the 2.1 release line. The core supports Python 3.9+;
+These guides cover the 2.2 release line. The core supports Python 3.9+;
 FastMCP requires Python 3.10+. Use installed distribution metadata for the
 exact version: `python -m pip show WPP_Whatsapp`.
+Features introduced in 2.2.0 are marked in their guides.
 
 ## Start here
 
@@ -14,6 +15,7 @@ exact version: `python -m pip show WPP_Whatsapp`.
 | Browse every composed-service signature | [Generated service API](API_METHODS.md) |
 | Configure profiles, runtime and timeouts | [Configuration](CONFIGURATION.md) |
 | Connect an MCP client | [FastMCP](FASTMCP.md) |
+| Use typed results, support reports or bounded media | [Typed reads and media](TYPED_MEDIA.md) |
 | Migrate legacy/async code and track delivery | [Architecture and migration](ARCHITECTURE.md) |
 | Diagnose failures | [Troubleshooting](TROUBLESHOOTING.md), [FAQ](FAQ.md) |
 | Plan ownership, callbacks and pacing | [Usage practices](BEST_PRACTICES.md), [Performance](PERFORMANCE.md) |

@@ -4,16 +4,19 @@ from typing import Optional
 from WPP_Whatsapp.api.layers.StatusLayer import StatusLayer
 from WPP_Whatsapp.api.model import BusinessProfileOptions
 
+from WPP_Whatsapp.core.sync_api import sync_wrapper
+
 
 class ProfileLayer(StatusLayer):
+    @sync_wrapper("sendMute_")
     def sendMute(self, chatId, time, type_, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendMute_, chatId, time, type_, timeout_=timeout)
+        ...
 
+    @sync_wrapper("setTheme_")
     def setTheme(self, type_, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.setTheme_, type_, timeout_=timeout)
+        ...
 
+    @sync_wrapper("setProfileStatus_")
     def setProfileStatus(self, status, timeout=60):
         """
           /**
@@ -22,34 +25,33 @@ class ProfileLayer(StatusLayer):
            * @param status
            */
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.setProfileStatus_, status, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getProfileStatus_")
     def getProfileStatus(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getProfileStatus_, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getProfileName_")
     def getProfileName(self, timeout=60):
         """Get profile name"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getProfileName_, timeout_=timeout)
+        ...
 
+    @sync_wrapper("setProfilePic_")
     def setProfilePic(self, pathOrBase64, to=None, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.setProfilePic_, pathOrBase64, to, timeout_=timeout)
+        ...
 
+    @sync_wrapper("setProfileName_")
     def setProfileName(self, name, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.setProfileName_, name, timeout_=timeout)
+        ...
 
+    @sync_wrapper("removeMyProfilePicture_")
     def removeMyProfilePicture(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.removeMyProfilePicture_, timeout_=timeout)
+        ...
 
+    @sync_wrapper("editBusinessProfile_")
     def editBusinessProfile(self, options: BusinessProfileOptions, timeout=60):
         """Update business profile"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.editBusinessProfile_, options, timeout_=timeout)
+        ...
 
     ##########################################
     async def sendMute_(self, chatId, time, type):

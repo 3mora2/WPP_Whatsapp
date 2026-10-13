@@ -78,15 +78,21 @@ a new ID. An MCP send returns structured `state="unknown"` for uncertainty.
 Stdio clients must launch the configured interpreter and module/command; a
 bare running stdio process is not an HTTP endpoint. HTTP clients use
 `http://127.0.0.1:8765/mcp` when started with `--transport http --port 8765`.
-The CLI accepts loopback hosts only. `whatsapp_status` starts at `new` until
+The CLI defaults to loopback; other hosts require verified JWT configuration
+and an access policy. `whatsapp_status` starts at `new` until
 `whatsapp_connect` opens the browser. Finish login and poll readiness.
 `--read-only` deliberately omits sending and reconciliation tools.
 
-For HTTP deployment, one server represents one shared account, not per-user
-account isolation. Authentication injection is described in [FastMCP](FASTMCP.md).
+For HTTP deployment, configure independent accounts and verified principal/scope
+permissions as described in [FastMCP](FASTMCP.md). Each account is shared only
+among its authorized principals. Unknown accounts and missing permissions
+return the same error; verify both policy grants and token scopes.
 The underlying browser profile must not be opened by multiple workers.
 
 ## Diagnostics for an issue
+
+Use `client.diagnostics()` or the permitted `whatsapp_diagnostics` tool for a
+sanitized support snapshot. See [report fields](TYPED_MEDIA.md#diagnostics).
 
 ```python
 import platform

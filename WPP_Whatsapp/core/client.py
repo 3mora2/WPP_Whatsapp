@@ -3,9 +3,11 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+from .diagnostics import classify_failure, snapshot
 from .engine import AsyncBrowser
 from .errors import SessionNotReadyError
 from .lifecycle import SessionState
+from .models import TypedServices
 from .options import validate_options
 from .profiles import session_directory
 from .service_registry import service_definitions
@@ -35,6 +37,7 @@ class AsyncClient:
         self._lock = None
         self._loop = None
         self._state = SessionState.NEW
+        self._failure = None
 
     def _session_lock(self):
         loop = asyncio.get_running_loop()
@@ -59,6 +62,8 @@ class AsyncClient:
         directory = self.user_data_dir or session_directory(self.token_directory, self.session)
         self.browser = AsyncBrowser()
         self._state = SessionState.STARTING
+        self._failure = None
+        phase = "browser_start"
         browser_name = self.options.get("browser", "chromium")
         options = {
             "headless": False,
@@ -71,6 +76,7 @@ class AsyncClient:
             options["browser"] = "chromium"
         try:
             await self.browser.open(user_data_dir=directory, **options)
+            phase = "runtime_start"
             self._context = Whatsapp(
                 self.session,
                 self.browser,
@@ -84,6 +90,7 @@ class AsyncClient:
             self._context.onStateChange(self._connection_changed)
             await self._context.start()
             if self.wait_for_login:
+                phase = "login"
                 if not await self._context.waitForLogin_():
                     raise SessionNotReadyError("Login or device synchronization did not complete")
                 await self.browser.page_wait_for_function(
@@ -91,7 +98,8 @@ class AsyncClient:
                 )
                 self._context.lifecycle.transition(SessionState.READY)
             return self
-        except BaseException:
+        except BaseException as error:
+            self._failure = classify_failure(phase, error)
             await self._close()
             self._state = SessionState.FAILED
             raise
@@ -119,6 +127,14 @@ class AsyncClient:
         if self._context is None:
             raise SessionNotReadyError("Connect the client first")
         return self._context.async_services
+
+    @property
+    def typed(self) -> TypedServices:
+        return self.services.typed
+
+    def diagnostics(self) -> dict:
+        """Return a sanitized support snapshot without opening a browser."""
+        return snapshot(self.state, self._context, self._failure)
 
     def __getattr__(self, name):
         if not name.startswith("_") and (

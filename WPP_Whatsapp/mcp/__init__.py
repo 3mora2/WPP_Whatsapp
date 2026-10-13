@@ -22,6 +22,10 @@ def create_server(
     options: Optional[dict[str, Any]] = None,
     read_only: bool = False,
     auth: Any = None,
+    accounts: Optional[dict] = None,
+    default_account: Optional[str] = None,
+    access_policy: Optional[dict] = None,
+    media_root: Optional[str] = None,
 ) -> FastMCP:
     """Create a FastMCP server without starting a browser or changing global logging.
 
@@ -47,4 +51,8 @@ def create_server(
         options=options,
         read_only=read_only,
         auth=auth,
+        accounts=accounts,
+        default_account=default_account,
+        access_policy=access_policy,
+        media_root=media_root,
     )

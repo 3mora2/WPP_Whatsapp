@@ -117,7 +117,7 @@ jobs:
         run: |
           if [ -f tests/test_mcp.py ]; then
             uv sync --extra dev --extra mcp
-            uv run pytest tests/test_mcp.py tests/test_mcp_optional.py -v --tb=short
+            uv run pytest tests/test_mcp*.py -v --tb=short
           fi
 
   build:

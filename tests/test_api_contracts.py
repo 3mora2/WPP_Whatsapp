@@ -95,6 +95,24 @@ def test_all_browser_expressions_are_javascript():
     assert json.loads(result.stdout) == []
 
 
+@pytest.mark.parametrize('mode', ['normal', 'hang', 'unverified'])
+def test_media_send_requires_returned_or_verified_key_without_replaying(mode):
+    message_id = 'true_123456789@c.us_MEDIA'
+    request = {'expr': COMMANDS['Media.send'], 'media': True, 'media_mode': mode, 'message_id': message_id,
+               'arg': {'key': 'media-test', 'chatId': '123456789@c.us', 'filename': 'test.png',
+                       'mimetype': 'image/png', 'type': 'image', 'caption': '', 'quotedMsg': None}}
+    result = subprocess.run([shutil.which('node'), str(ROOT / 'tests/js/api_contract.cjs')],
+                            input=json.dumps(request), text=True, capture_output=True, timeout=30)
+    if mode == 'unverified':
+        assert result.returncode != 0 and 'Send failed' in result.stderr
+        return
+    assert result.returncode == 0, result.stderr
+    response = json.loads(result.stdout)
+    assert response['value']['id'] == message_id
+    sends = [call for call in response['calls'] if call['name'] == 'chat.sendFileMessage']
+    assert len(sends) == 1 and sends[0]['args'][2]['waitForAck'] is False
+
+
 class ExecutingBridge:
     def __init__(self):
         self.calls = []

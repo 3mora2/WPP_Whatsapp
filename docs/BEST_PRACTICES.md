@@ -32,9 +32,9 @@ requires explicit recipients/content and operation IDs.
 
 ## MCP deployment
 
-Start with local stdio or loopback HTTP. A server's account is shared by its MCP
-clients; use an authentication provider for an exposed application and define
-your own access model. The CLI does not provide a multi-user gateway.
+Start with local stdio or loopback HTTP. Configure separate accounts and a
+verified principal/account policy when clients differ in trust. HTTP deployment
+uses JWT verification and token scopes; see [FastMCP](FASTMCP.md#accounts-and-authenticated-http).
 Do not run multiple workers on the same browser profile. Use `--read-only`
 when the integration should only retrieve data; session controls remain available.
 

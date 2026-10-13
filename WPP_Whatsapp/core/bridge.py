@@ -5,6 +5,7 @@ import time
 from playwright.async_api import Error as PlaywrightError
 
 from .commands import COMMANDS
+from .diagnostics import classify_failure
 from .errors import BridgeError, RuntimeCompatibilityError
 
 
@@ -14,6 +15,7 @@ class JavascriptBridge:
     def __init__(self, transport, page):
         self.transport, self.page = transport, page
         self.metrics = {"calls": 0, "failures": 0, "duration_seconds": 0.0}
+        self.last_failure = None
 
     async def call(self, command, arg=None):
         try:
@@ -24,8 +26,9 @@ class JavascriptBridge:
         self.metrics["calls"] += 1
         try:
             return await self.transport.page_evaluate(source, arg, page=self.page)
-        except PlaywrightError:
+        except PlaywrightError as error:
             self.metrics["failures"] += 1
+            self.last_failure = classify_failure("browser_operation", error)
             raise BridgeError(command) from None
         finally:
             self.metrics["duration_seconds"] += time.monotonic() - start

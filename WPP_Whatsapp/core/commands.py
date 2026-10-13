@@ -638,4 +638,58 @@ COMMANDS: dict[str, str] = {
     "Whatsapp.getMessageById_.0": "(messageId) => WAPI.getMessageById(messageId)",
     "Whatsapp.getMessages_.0": "({ chatId, params }) => WAPI.getMessages(chatId, params)",
     "Whatsapp.rejectCall_.0": "(callId) => WPP.call.rejectCall(callId)",
+    "Media.append": """({key, data}) => { const bytes = Uint8Array.from(atob(data), c => c.charCodeAt(0)); window.__wppMedia.get(key).push(bytes); }""",
+    "Media.begin": """key => { (window.__wppMedia ??= new Map()).set(key, []); }""",
+    "Media.download": """async ({key, id, maxBytes}) => {
+                const blob = await WPP.chat.downloadMedia(id);
+                if (blob.size > maxBytes) throw new Error('Media exceeds the configured byte limit');
+                (window.__wppMedia ??= new Map()).set(key, blob);
+                return {size: blob.size, mimetype: blob.type};
+            }""",
+    "Media.read": """async ({key, offset, size}) => {
+                        const blob = window.__wppMedia.get(key).slice(offset, offset + size);
+                        return await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result.split(',')[1]);
+                            reader.onerror = () => reject(new Error('Media read failed'));
+                            reader.readAsDataURL(blob);
+                        });
+                    }""",
+    "Media.release": """key => window.__wppMedia?.delete(key)""",
+    "Media.send": """async ({key, chatId, filename, mimetype, type, caption, quotedMsg}) => {
+                const parts = window.__wppMedia.get(key);
+                const file = new File(parts, filename, {type: mimetype});
+                window.__wppMedia.delete(key);
+                const chat = await WPP.chat.find(chatId);
+                const messageId = await WPP.chat.generateMessageID(chat);
+                const serialized = messageId._serialized ?? messageId.toString();
+                let result, failure;
+                // Dispatch once. WA-JS may stall after WhatsApp registers the
+                // message, so a verified local model is also valid confirmation.
+                const pending = WPP.chat.sendFileMessage(chat.id, file, {
+                    type, filename, mimetype, caption, messageId, waitForAck: false,
+                    ...(quotedMsg ? {quotedMsg} : {}),
+                }).then(value => {result = value;}, error => {failure = error;});
+                const deadline = performance.now() + 115000;
+                while (performance.now() < deadline) {
+                    const returnedId = result?.id?._serialized ?? result?.id?.toString();
+                    if (returnedId && returnedId !== '[object Object]')
+                        return {id: returnedId, ack: result.ack, sendMsgResult: null};
+                    const message = WPP.whatsapp?.MsgStore?.get(messageId)
+                        ?? WPP.whatsapp?.MsgStore?.get(serialized);
+                    const actualId = message?.id?._serialized ?? message?.id?.toString();
+                    const outgoing = message?.id?.fromMe === true || message?.fromMe === true
+                        || message?.isSentByMe === true;
+                    const expectedType = message?.type === type
+                        || (type === 'audio' && message?.type === 'ptt');
+                    if (actualId === serialized && outgoing && expectedType)
+                        return {id: actualId, ack: message.ack, sendMsgResult: null};
+                    if (failure) throw failure;
+                    // Wake on completion or one bounded polling interval. A
+                    // settled promise without an ID must not create a busy loop.
+                    await new Promise(resolve => setTimeout(resolve, 250));
+                }
+                void pending;
+                throw new Error('Media confirmation timed out');
+            }""",
 }

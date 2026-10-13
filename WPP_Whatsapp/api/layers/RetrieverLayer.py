@@ -1,22 +1,29 @@
 from WPP_Whatsapp.api.layers.SenderLayer import SenderLayer
 from WPP_Whatsapp.api.model import ChatListOptions
 
+from WPP_Whatsapp.core.sync_api import sync_wrapper
+
 
 class RetrieverLayer(SenderLayer):
+    @sync_wrapper("getListMutes_")
     def getListMutes(self, type_, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getListMutes_(type_), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getSessionTokenBrowser_")
     def getSessionTokenBrowser(self, removePath, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getSessionTokenBrowser_(removePath), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getTheme_")
     def getTheme(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getTheme_(), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getBlockList_")
     def getBlockList(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getBlockList_(), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getAllChats_")
     def getAllChats(self, withNewMessageOnly=False, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getAllChats_(withNewMessageOnly), timeout_=timeout)
+        ...
 
     def listChats(self, options=None, timeout=60):
         """
@@ -56,87 +63,109 @@ class RetrieverLayer(SenderLayer):
             options = {}
         return self.ThreadsafeBrowser.run_threadsafe(self.listChats_(options), timeout_=timeout)
 
+    @sync_wrapper("checkNumberStatus_")
     def checkNumberStatus(self, contactId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.checkNumberStatus_(contactId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getAllChatsWithMessages_")
     def getAllChatsWithMessages(self, withNewMessageOnly=False, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getAllChatsWithMessages_(withNewMessageOnly),
-                                                     timeout_=timeout)
+        ...
 
+    @sync_wrapper("getAllGroups_")
     def getAllGroups(self, withNewMessagesOnly=False, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getAllGroups_(withNewMessagesOnly), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getAllBroadcastList_")
     def getAllBroadcastList(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getAllBroadcastList_(), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getContact_")
     def getContact(self, contactId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getContact_(contactId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getAllContacts_")
     def getAllContacts(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getAllContacts_(), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getChatById_")
     def getChatById(self, contactId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getChatById_(contactId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getChat_")
     def getChat(self, contactId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getChat_(contactId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getProfilePicFromServer_")
     def getProfilePicFromServer(self, chatId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getProfilePicFromServer_(chatId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("loadEarlierMessages_")
     def loadEarlierMessages(self, contactId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.loadEarlierMessages_(contactId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getStatus_")
     def getStatus(self, contactId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getStatus_(contactId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getNumberProfile_")
     def getNumberProfile(self, contactId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getNumberProfile_(contactId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getUnreadMessages_")
     def getUnreadMessages(self, includeMe, includeNotifications, useUnreadCount, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getUnreadMessages_(includeMe, includeNotifications, useUnreadCount), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getAllUnreadMessages_")
     def getAllUnreadMessages(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getAllUnreadMessages_(), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getAllNewMessages_")
     def getAllNewMessages(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getAllNewMessages_(), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getAllMessagesInChat_")
     def getAllMessagesInChat(self, chatId, includeMe=False, includeNotifications=False, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getAllMessagesInChat_(chatId, includeMe, includeNotifications), timeout_=timeout)
+        ...
 
+    @sync_wrapper("loadAndGetAllMessagesInChat_")
     def loadAndGetAllMessagesInChat(self, chatId, includeMe=False, includeNotifications=False, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.loadAndGetAllMessagesInChat_(chatId, includeMe, includeNotifications), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getChatIsOnline_")
     def getChatIsOnline(self, chatId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getChatIsOnline_(chatId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getLastSeen_")
     def getLastSeen(self, chatId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getLastSeen_(chatId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getPlatformFromMessage_")
     def getPlatformFromMessage(self, msgId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getPlatformFromMessage_(msgId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getReactions_")
     def getReactions(self, msgId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getReactions_(msgId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getVotes_")
     def getVotes(self, msgId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getVotes_(msgId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getOrder_")
     def getOrder(self, msgId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getOrder_(msgId), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getGroupSizeLimit_")
     def getGroupSizeLimit(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getGroupSizeLimit_(), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getCommonGroups_")
     def getCommonGroups(self, wid, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getCommonGroups_(wid), timeout_=timeout)
+        ...
 
+    @sync_wrapper("getPnLidEntry_")
     def getPnLidEntry(self, phoneOrLid:str, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getPnLidEntry_(phoneOrLid), timeout_=timeout)
+        ...
 
     ########################################################
     async def getListMutes_(self, type_):
@@ -366,9 +395,10 @@ class RetrieverLayer(SenderLayer):
                                                           phoneOrLid,
                                                           page=self.page)
 
+    @sync_wrapper("getMessagesFromRowId_")
     def getMessagesFromRowId(self, options, timeout=60):
         """Read IndexedDB messages after options.minRowId."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.getMessagesFromRowId_, options, timeout_=timeout)
+        ...
 
     async def getMessagesFromRowId_(self, options):
         options = {} if options is None else options

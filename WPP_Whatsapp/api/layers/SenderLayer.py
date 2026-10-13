@@ -22,16 +22,20 @@ from WPP_Whatsapp.api.model import (
     OrderMessageOptions,
 )
 
+from WPP_Whatsapp.core.sync_api import sync_wrapper
+
 
 class SenderLayer(ListenerLayer):
 
+    @sync_wrapper("sendLinkPreview_")
     def sendLinkPreview(self, chatId, url, text='', timeout=120):
         """
         * Automatically sends a link with the auto generated link preview. You can also add a custom message to be added.
         * Deprecated: please use {@link sendText}
         """
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendLinkPreview_, chatId, url, text, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendText_")
     def sendText(self, to: str, content: str, options: Optional[SendTextOptions] = None, timeout=60):
         """
            Sends a text message to given chat
@@ -45,19 +49,21 @@ class SenderLayer(ListenerLayer):
            client.sendText('<number>@c.us', 'A simple message')
            :return: dict
         """
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendText_, to, content, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendPixKey_")
     def sendPixKey(self, to, params, options=None, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendPixKey_, to, params, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendMessageOptions_")
     def sendMessageOptions(self, chat, content, options=None, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendMessageOptions_, chat, content, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendImage_")
     def sendImage(self, to: str, filePath: str, filename: str = "", caption: str = "", quotedMessageId: Optional[str] = None, isViewOnce: Optional[bool] = None, options: Optional[SendImageOptions] = None, timeout=120):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendImage_, to, filePath, filename, caption,
-            quotedMessageId, isViewOnce, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("reply_")
     def reply(self, to, content, quotedMsg, timeout=60):
         """
             @param to chat to: xxxxx@us.c
@@ -67,26 +73,26 @@ class SenderLayer(ListenerLayer):
            // Simple message
            client.reply('<number>@c.us', 'A simple message', '<message-id>')
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.reply_, to, content, quotedMsg, timeout_=timeout)
+        ...
 
     def sendPtt(self, to: str, pathOrBase64: str, filename: str = None, caption: str = None,
                 quotedMessageId: str = None, messageId: str = None):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendPtt_, to, pathOrBase64, filename, caption, quotedMessageId, messageId)
 
+    @sync_wrapper("sendFile_")
     def sendFile(self, to, pathOrBase64, nameOrOptions=None, caption="", timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendFile_, to, pathOrBase64, nameOrOptions, caption, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendVideoAsGif_")
     def sendVideoAsGif(self, to: str, filePath: str, filename: str = "", caption: str = "", timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendVideoAsGif_, to, filePath, filename, caption, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendGif_")
     def sendGif(self, to, filePath, filename="", caption="", timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendGif_, to, filePath, filename, caption, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendContactVcard_")
     def sendContactVcard(self, to, contactsId, name=None, timeout=60):
         """
           /**
@@ -96,8 +102,7 @@ class SenderLayer(ListenerLayer):
            * @param contactsId Example: 0000@c.us | [000@c.us, 1111@c.us]
            */
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendContactVcard_, to, contactsId, name, timeout_=timeout)
+        ...
 
     def forwardMessages(self, toChatId: str, msgId: Union[str, List[str]], options: Optional[ForwardMessageOptions] = None, timeout=60):
         if options is None:
@@ -109,37 +114,39 @@ class SenderLayer(ListenerLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.forwardMessages_, toChatId, msgId, options, timeout_=timeout)
 
+    @sync_wrapper("forwardMessagesV2_")
     def forwardMessagesV2(self, toChatId: str, messages: Union[str, List[str]], options: Optional[ForwardMessageOptions] = None, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.forwardMessagesV2_, toChatId, messages, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendLocation_")
     def sendLocation(self, to: str, options: SendLocationOptions, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendLocation_, to, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendSeen_")
     def sendSeen(self, chatId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendSeen_, chatId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("startTyping_")
     def startTyping(self, to, duration=None, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.startTyping_, to, duration, timeout_=timeout)
+        ...
 
+    @sync_wrapper("stopTyping_")
     def stopTyping(self, to, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.stopTyping_, to, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendImageAsSticker_")
     def sendImageAsSticker(self, to: str, pathOrBase64: str, options: Optional[SendStickerOptions] = None, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendImageAsSticker_, to, pathOrBase64, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("setOnlinePresence_")
     def setOnlinePresence(self, online=True, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.setOnlinePresence_, online, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendMentioned_")
     def sendMentioned(self, to: str, message: str, mentioned: List[str], options: Optional[MentionOptions] = None, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendMentioned_, to, message, mentioned, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendListMessage_")
     def sendListMessage(self, to: str, options: SendListMessageOptions, timeout=60):
         """
           /**
@@ -173,8 +180,9 @@ class SenderLayer(ListenerLayer):
            * @category Chat
            */
         """
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendListMessage_(to, options), timeout_=timeout)
+        ...
 
+    @sync_wrapper("setChatState_")
     def setChatState(self, chatId, chatState, timeout=60):
         """
           /**
@@ -186,9 +194,9 @@ class SenderLayer(ListenerLayer):
            * @deprecated Deprecated in favor of Use startTyping or startRecording functions
            */
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.setChatState_, chatId, chatState, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendPollMessage_")
     def sendPollMessage(self, chatId: str, name: str, choices: List[str], options: Optional[PollOptions] = None, timeout=60):
         """
         Send a poll message
@@ -199,9 +207,9 @@ class SenderLayer(ListenerLayer):
         @param options: Poll options (selectableCount, etc)
         @return: Success status
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendPollMessage_, chatId, name, choices, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendOrderMessage_")
     def sendOrderMessage(self, to: str, items: List[OrderItem], options: Optional[OrderMessageOptions] = None, timeout=60):
         """
         Send an order message
@@ -211,9 +219,9 @@ class SenderLayer(ListenerLayer):
         @param options: Order options
         @return: Success status
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendOrderMessage_, to, items, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("sendWatermarkMessage_")
     def sendWatermarkMessage(self, to: str, content: str, watermark: str = "Sent via WPPConnect", options: Optional[SendTextOptions] = None, timeout=60):
         """
         Send a text message with watermark/branding
@@ -224,8 +232,7 @@ class SenderLayer(ListenerLayer):
         @param options: Message options
         @return: Success status
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendWatermarkMessage_, to, content, watermark, options, timeout_=timeout)
+        ...
 
     ####################################################### async ######################################################
 
@@ -562,8 +569,9 @@ class SenderLayer(ListenerLayer):
             options = {}
         return await self._evaluate_js('SenderLayer.forwardMessagesV2_.0', { "toChatId":toChatId, "messages":messages, "options":options }, page=self.page)
 
+    @sync_wrapper("sendImageAsStickerGif_")
     def sendImageAsStickerGif(self, to, pathOrBase64, options=None, timeout=120):
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendImageAsStickerGif_, to, pathOrBase64, options, timeout_=timeout)
+        ...
 
     async def sendImageAsStickerGif_(self, to, pathOrBase64, options=None):
         import base64
@@ -698,52 +706,58 @@ class SenderLayer(ListenerLayer):
         chatId = self.valid_chatId(chatId)
         return await self._evaluate_js('SenderLayer.setChatState_.0', {"chatState": chatState, "chatId": chatId}, page=self.page)
 
+    @sync_wrapper("sendContactVcardList_")
     def sendContactVcardList(self, to, contacts, timeout=60):
         """Send multiple contact cards."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendContactVcardList_, to, contacts, timeout_=timeout)
+        ...
 
     async def sendContactVcardList_(self, to, contacts):
         to = self.valid_chatId(to)
         return await self._evaluate_js(
             'SenderLayer.sendContactVcardList_.0', {"to": to, "contacts": contacts}, page=self.page)
 
+    @sync_wrapper("markPlayed_")
     def markPlayed(self, msgId, timeout=60):
         """Mark an audio message as played."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.markPlayed_, msgId, timeout_=timeout)
+        ...
 
     async def markPlayed_(self, msgId):
         return await self._evaluate_js(
             'SenderLayer.markPlayed_.0', {"msgId": msgId}, page=self.page)
 
+    @sync_wrapper("startRecording_")
     def startRecording(self, to, duration=None, timeout=60):
         """Set recording presence for a chat."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.startRecording_, to, duration, timeout_=timeout)
+        ...
 
     async def startRecording_(self, to, duration=None):
         to = self.valid_chatId(to)
         return await self._evaluate_js(
             'SenderLayer.startRecording_.0', {"to": to, "duration": duration}, page=self.page)
 
+    @sync_wrapper("stopRecording_")
     def stopRecording(self, to, timeout=60):
         """Stop recording presence."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.stopRecording_, to, timeout_=timeout)
+        ...
 
     async def stopRecording_(self, to):
         to = self.valid_chatId(to)
         return await self._evaluate_js(
             'SenderLayer.stopRecording_.0', {"to": to}, page=self.page)
 
+    @sync_wrapper("sendReactionToMessage_")
     def sendReactionToMessage(self, msgId, reaction, timeout=60):
         """React to a message; false removes the reaction."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendReactionToMessage_, msgId, reaction, timeout_=timeout)
+        ...
 
     async def sendReactionToMessage_(self, msgId, reaction):
         return await self._evaluate_js(
             'SenderLayer.sendReactionToMessage_.0', {"msgId": msgId, "reaction": reaction}, page=self.page)
 
+    @sync_wrapper("sendMessageWithThumb_")
     def sendMessageWithThumb(self, thumb, url, title, description, chatId, timeout=60):
         """Send a link with a custom preview."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendMessageWithThumb_, thumb, url, title, description, chatId, timeout_=timeout)
+        ...
 
     async def sendMessageWithThumb_(self, thumb, url, title, description, chatId):
         chatId = self.valid_chatId(chatId)
@@ -755,15 +769,17 @@ class SenderLayer(ListenerLayer):
         return self.ThreadsafeBrowser.run_threadsafe(self.sendImageFromBase64_, self.valid_chatId(to),
             base64, filename, caption, quotedMessageId, isViewOnce, mentionedList, options, timeout_=timeout)
 
+    @sync_wrapper("sendFileFromBase64_")
     def sendFileFromBase64(self, to, base64, filename='', caption='', options=None, timeout=120):
-        return self.ThreadsafeBrowser.run_threadsafe(self.sendFileFromBase64_, to, base64, filename, caption, options, timeout_=timeout)
+        ...
 
     async def sendFileFromBase64_(self, to, base64, filename='', caption='', options=None):
         opts = {'filename': filename, 'caption': caption, **(options or {})}
         return await self.sendFile_(to, base64, opts, caption)
 
+    @sync_wrapper("forwardMessages_")
     def forwardMessage(self, toChatId, msgId, options=None, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.forwardMessages_, toChatId, msgId, options, timeout_=timeout)
+        ...
 
     async def forwardMessage_(self, toChatId, msgId, options=None):
         return await self.forwardMessages_(toChatId, msgId, options)

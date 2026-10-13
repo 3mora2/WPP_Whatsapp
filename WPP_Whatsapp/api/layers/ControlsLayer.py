@@ -2,30 +2,40 @@ from __future__ import annotations
 
 from WPP_Whatsapp.api.layers.UILayer import UILayer
 
+from WPP_Whatsapp.core.sync_api import sync_wrapper
+
 
 class ControlsLayer(UILayer):
 
+    @sync_wrapper("unblockContact_")
     def unblockContact(self, contactId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.unblockContact_, contactId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("blockContact_")
     def blockContact(self, contactId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.blockContact_, contactId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("markUnseenMessage_")
     def markUnseenMessage(self, contactId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.markUnseenMessage_, contactId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("deleteChat_")
     def deleteChat(self, chatId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.deleteChat_, chatId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("archiveChat_")
     def archiveChat(self, chatId, option=True, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.archiveChat_, chatId, option, timeout_=timeout)
+        ...
 
+    @sync_wrapper("pinChat_")
     def pinChat(self, chatId, option, nonExistent=False, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.pinChat_, chatId, option, nonExistent, timeout_=timeout)
+        ...
 
+    @sync_wrapper("starMessage_")
     def starMessage(self, messagesId, star=True, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.starMessage_, messagesId, star, timeout_=timeout)
+        ...
 
+    @sync_wrapper("clearChat_")
     def clearChat(self, chatId: str, keepStarred=True, timeout=60):
         """
           /**
@@ -36,8 +46,9 @@ class ControlsLayer(UILayer):
            * @returns boolean
            */
         """
-        return self.ThreadsafeBrowser.run_threadsafe(self.clearChat_, chatId, keepStarred, timeout_=timeout)
+        ...
 
+    @sync_wrapper("deleteMessage_")
     def deleteMessage(self, chatId: str, messageId: list[str] | str, onlyLocal=False, deleteMediaInDevice=True,
                       timeout=60):
         """
@@ -50,16 +61,16 @@ class ControlsLayer(UILayer):
             Defaults to false.
            */
         """
-        return self.ThreadsafeBrowser.run_threadsafe(self.deleteMessage_, chatId, messageId, onlyLocal,
-                                                     deleteMediaInDevice, timeout_=timeout)
+        ...
 
     def editMessage(self, msgId: str, newText: str, options=None, timeout=60):
         if options is None:
             options = {}
         return self.ThreadsafeBrowser.run_threadsafe(self.editMessage_, msgId, newText, options, timeout_=timeout)
 
+    @sync_wrapper("setLimit_")
     def setLimit(self, key, value: bool | int, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.setLimit_, key, value, timeout_=timeout)
+        ...
 
     ######################################
     async def unblockContact_(self, contactId):
@@ -156,9 +167,10 @@ class ControlsLayer(UILayer):
             {"key": key, "value": value}, page=self.page
         )
 
+    @sync_wrapper("setTemporaryMessages_")
     def setTemporaryMessages(self, chatId, value, timeout=60):
         """Enable or disable temporary messages."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.setTemporaryMessages_, chatId, value, timeout_=timeout)
+        ...
 
     async def setTemporaryMessages_(self, chatId, value):
         chatId = self.valid_chatId(chatId)

@@ -60,7 +60,7 @@ browser is sufficient for ordinary login. Never publish QR data or login codes.
 MCP-owned clients default to a SQLite ledger under
 `<token-directory>/.deliveries/mcp.sqlite3`, partitioned by session. Injected
 clients retain their own options. [FastMCP](FASTMCP.md) documents CLI flags,
-loopback HTTP and authentication injection.
+HTTP authentication, account isolation and private media roots.
 
 Known numeric/path options are validated before browser startup. Other
 extension/Playwright options are preserved, but preserving a key does not mean

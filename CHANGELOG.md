@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-13
+
+### Added
+- Optional immutable `Message`, `Chat`, `Group` and `GroupMember` views through
+  native `client.typed` and composed sync/async services; legacy raw results remain.
+- Sanitized diagnostics with lifecycle, startup categories and safe counters.
+- Bounded media preparation and File/Blob transfers in 256 KiB chunks, progress,
+  byte limits, cleanup, exclusive downloads and tracked sends with late confirmation.
+- Nine additional MCP tools (21 total, 16 read-only): account discovery,
+  diagnostics, bounded search, incoming events/cursors, media download,
+  file/image sending and replies.
+- Independent MCP profiles, locks, ledgers and buffers, verified JWT identity,
+  scopes and account grants; authenticated HTTP and private media roots in the CLI.
+- Weekly read-only upstream source audit with reports and optional manually
+  requested draft review proposals. Bundles/contracts are never auto-replaced.
+
+### Changed
+- Centralized 157 reviewed legacy sync wrappers while preserving declarations,
+  defaults, docs and original positional forwarding behavior.
+- Expanded JWT/isolation, overflow, media cleanup/browser and upstream tests;
+  refreshed guides, type metadata and generated API inventory.
+- Legacy HTTP media conversion now uses bounded staging and safe logging while
+  preserving its data-URI/False result contract.
+- Serialize WA-JS media result message keys before crossing the browser bridge,
+  preserving their full ID and avoiding false unknown receipts after a successful send.
+- Confirm media using its preassigned full ID and verified outgoing local model
+  when upstream registration/ack waiting stalls, without replaying the send.
+
 ## [2.1.0] - 2026-10-13
 
 ### Added

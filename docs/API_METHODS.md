@@ -16,6 +16,7 @@ accept `operation_id` and `timeout`; flat methods retain raw results. See
 | `messages.check_number_status(contactId)` | `client.checkNumberStatus`, `await client.checkNumberStatus_` |
 | `messages.download_file(data)` | `client.downloadFile`, `await client.downloadFile_` |
 | `messages.download_media(messageId)` | `client.downloadMedia`, `await client.downloadMedia_` |
+| `messages.download_media_to(message_id, destination, *, max_bytes=67108864, progress=None)` | Service helper |
 | `messages.forward_message(toChatId, msgId, options=None)` | `client.forwardMessage`, `await client.forwardMessage_` |
 | `messages.forward_messages(toChatId, msgId, options=None)` | `client.forwardMessages`, `await client.forwardMessages_` |
 | `messages.forward_messages_v2(toChatId, messages, options=None)` | `client.forwardMessagesV2`, `await client.forwardMessagesV2_` |
@@ -59,6 +60,7 @@ accept `operation_id` and `timeout`; flat methods retain raw results. See
 | `messages.reconcile(operation_id, message_id)` | Service helper |
 | `messages.reject_call(callId='')` | `client.rejectCall`, `await client.rejectCall_` |
 | `messages.reply(to, content, quotedMsg, *, operation_id=None, timeout=None)` | `client.reply`, `await client.reply_` |
+| `messages.search(chat_id, query, *, count=100, before_message_id=None)` | Service helper |
 | `messages.send_contact_vcard(to, contactsId, name=None, *, operation_id=None, timeout=None)` | `client.sendContactVcard`, `await client.sendContactVcard_` |
 | `messages.send_contact_vcard_list(to, contacts, *, operation_id=None, timeout=None)` | `client.sendContactVcardList`, `await client.sendContactVcardList_` |
 | `messages.send_file(to, pathOrBase64, nameOrOptions=None, caption='', *, operation_id=None, timeout=None)` | `client.sendFile`, `await client.sendFile_` |
@@ -72,6 +74,7 @@ accept `operation_id` and `timeout`; flat methods retain raw results. See
 | `messages.send_link_preview(chatId, url, text='', *, operation_id=None, timeout=None)` | `client.sendLinkPreview`, `await client.sendLinkPreview_` |
 | `messages.send_list_message(to, options, *, operation_id=None, timeout=None)` | `client.sendListMessage`, `await client.sendListMessage_` |
 | `messages.send_location(to, options, *, operation_id=None, timeout=None)` | `client.sendLocation`, `await client.sendLocation_` |
+| `messages.send_media(to, source, *, kind='document', caption='', quoted_message_id=None, operation_id=None, timeout=None, max_bytes=67108864, progress=None)` | Service helper |
 | `messages.send_mentioned(to, message, mentioned, options=None, *, operation_id=None, timeout=None)` | `client.sendMentioned`, `await client.sendMentioned_` |
 | `messages.send_message_options(chat, content, options=None, *, operation_id=None, timeout=None)` | `client.sendMessageOptions`, `await client.sendMessageOptions_` |
 | `messages.send_message_with_thumb(thumb, url, title, description, chatId, *, operation_id=None, timeout=None)` | `client.sendMessageWithThumb`, `await client.sendMessageWithThumb_` |
@@ -279,3 +282,13 @@ accept `operation_id` and `timeout`; flat methods retain raw results. See
 
 Event registration is synchronous; callbacks may be sync or async.
 The inventory describes the Python surface, not live upstream/account permissions.
+
+## typed
+
+Opt-in dataclass results; raw services keep their original results.
+
+- `typed.get_message(message_id)`
+- `typed.get_messages(chat_id, options=None)`
+- `typed.list_chats(options=None)`
+- `typed.get_group(group_id)`
+- `typed.get_group_members(group_id)`
