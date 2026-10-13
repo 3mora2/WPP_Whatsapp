@@ -86,9 +86,35 @@ jobs:
             uvx ruff@0.11.10 check WPP_Whatsapp/core
             uvx ruff@0.11.10 format --check WPP_Whatsapp/core
           fi
+          if [ -d WPP_Whatsapp/mcp ]; then
+            uvx ruff@0.11.10 check WPP_Whatsapp/mcp
+            uvx ruff@0.11.10 format --check WPP_Whatsapp/mcp
+          fi
+
+  mcp-test:
+    needs: release-check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.release-check.outputs.ref }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Test optional FastMCP tools and real transports
+        # Older published tags can still be recovered with the current workflow.
+        run: |
+          if [ -f tests/test_mcp.py ]; then
+            uv sync --extra dev --extra mcp
+            uv run pytest tests/test_mcp.py tests/test_mcp_optional.py -v --tb=short
+          fi
 
   build:
-    needs: [release-check, test, lint]
+    needs: [release-check, test, lint, mcp-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

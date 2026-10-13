@@ -16,6 +16,7 @@ Welcome to the WPP_Whatsapp documentation! This folder contains comprehensive gu
 - **[Architecture](ARCHITECTURE.md)** - Library architecture and design
 - **[Development](DEVELOPMENT.md)** - Extension boundaries and quality checks
 - **[Configuration](CONFIGURATION.md)** - Configuration options and settings
+- **[FastMCP Server](FASTMCP.md)** - WhatsApp tools over stdio and local HTTP
 
 ### Advanced Topics
 - **[Advanced Examples](../scripts/README.md)** - Advanced usage patterns

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Optional FastMCP 4 integration (`mcp` extra, Python 3.10+) with a reusable server
+  factory, `wpp-whatsapp-mcp` command and `python -m WPP_Whatsapp.mcp` entry point.
+- Twelve typed MCP tools for explicit session control, paginated chat/history
+  reads, complete message-ID lookup, contacts, group members and tracked text sends.
+  Required operation IDs prevent replay; uncertain receipts can be inspected and
+  reconciled without resending. Delivery metadata uses SQLite by default.
+- Lazy browser startup, caller/server ownership, serialized session operations,
+  read-only tool selection, redacted errors, stdio and loopback HTTP transports,
+  usage documentation and real MCP protocol/transport regression tests in CI.
+
 ## [2.0.0] - 2026-10-13
 
 ### Maintainability

@@ -17,6 +17,10 @@ are documented in the [architecture and migration guide](docs/ARCHITECTURE.md).
 Existing `Create` / `Whatsapp` methods remain available. See the
 [native asyncio example](examples/native_async.py).
 
+An optional [FastMCP server](docs/FASTMCP.md) exposes typed WhatsApp tools over
+stdio or local HTTP. From this checkout, install `pip install -e ".[mcp]"`
+with Python 3.10+ and run `wpp-whatsapp-mcp --session mybot`.
+
 ---
 
 ## ✨ Features

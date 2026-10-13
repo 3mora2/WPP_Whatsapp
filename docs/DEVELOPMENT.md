@@ -21,11 +21,26 @@ close their profiles. Real-account tests are described in
 | `core/events.py` | Supported event names, ordered dispatch and callback isolation. |
 | `core/options.py` | Known-option validation preserving extension/browser options. |
 | `core/engine.py` | Browser ownership, loop dispatch and resource cleanup. |
+| `mcp/runtime.py` | Serialize MCP operations with session lifecycle changes. |
+| `mcp/server.py` | Explicit tool schemas, redacted errors and delivery receipts. |
+| `mcp/cli.py` | Application startup, stdio logging and loopback HTTP settings. |
 
 Keep these responsibilities separate. Browser errors must not include message
 bodies, tokens or recipient details. Storage adapters receive metadata only.
 Imports must not configure the application's root logger or create folders.
 Applications can configure the `WPP_Whatsapp` logger through standard logging.
+
+The optional MCP integration requires Python 3.10+ and FastMCP 4. Install with
+`uv sync --extra dev --extra mcp`. Exercise schemas, lifecycle, receipts and real
+stdio/HTTP transports with:
+
+```bash
+uv run pytest tests/test_mcp.py tests/test_mcp_optional.py -q
+```
+
+These tests use synthetic WhatsApp operations and send
+no real messages. Keep FastMCP imports inside the optional integration; base
+imports and Python 3.9 must continue to work without the extra.
 
 ## Add or update an operation
 
