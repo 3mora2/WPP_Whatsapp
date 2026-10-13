@@ -22,6 +22,7 @@ close their profiles. Real-account tests are described in
 | `core/options.py` | Known-option validation preserving extension/browser options. |
 | `core/engine.py` | Browser ownership, loop dispatch and resource cleanup. |
 | `mcp/runtime.py` | Serialize MCP operations with session lifecycle changes. |
+| `mcp/models.py` | Typed structured MCP results and delivery lookup schema. |
 | `mcp/server.py` | Explicit tool schemas, redacted errors and delivery receipts. |
 | `mcp/cli.py` | Application startup, stdio logging and loopback HTTP settings. |
 
@@ -98,15 +99,20 @@ are unreliable across Windows timer scheduling and slower CI runners.
 ## Quality checks
 
 ```text
-uv run ruff check WPP_Whatsapp/core WPP_Whatsapp/controllers WPP_Whatsapp/api/helpers/jsFunction.py
-uv run ruff format --check WPP_Whatsapp/core WPP_Whatsapp/controllers WPP_Whatsapp/api/helpers/jsFunction.py
+uv run ruff check WPP_Whatsapp/core WPP_Whatsapp/mcp tools/verify_docs.py
+uv run ruff format --check WPP_Whatsapp/core WPP_Whatsapp/mcp tools/verify_docs.py
+uv run python tools/verify_docs.py
 uv run pytest tests/ -q
 uv build
 python tools/verify_release.py dist
 ```
 
-Ruff is pinned in development dependencies. CI enforces its core checks and
-formatting alongside the existing package-wide syntax/undefined-name checks.
+Ruff is pinned in development dependencies. CI enforces core/MCP checks and
+formatting alongside package-wide syntax/undefined-name checks and static guide
+validation. `tools/verify_docs.py` checks local links/headings, compiles Python
+recipes/examples, binds known API signatures and compares the generated service
+inventory. It never executes snippets or opens WhatsApp. Regenerate the inventory
+with `python tools/verify_docs.py --write-api` after service changes.
 Legacy public method names remain unchanged. Enable Chrome tests for changes
 to ownership, concurrency or callbacks. The
 [architecture guide](ARCHITECTURE.md) describes runtime behavior and release recovery.

@@ -1,4 +1,4 @@
-"""Run after installing the source checkout with pip install -e '.[mcp]'."""
+"""Run with WPP_Whatsapp[mcp] (2.1+) or a source install: pip install -e '.[mcp]'."""
 
 from WPP_Whatsapp.mcp import create_server
 

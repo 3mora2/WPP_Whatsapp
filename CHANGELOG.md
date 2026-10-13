@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-13
+
 ### Added
 - Optional FastMCP 4 integration (`mcp` extra, Python 3.10+) with a reusable server
   factory, `wpp-whatsapp-mcp` command and `python -m WPP_Whatsapp.mcp` entry point.
@@ -17,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lazy browser startup, caller/server ownership, serialized session operations,
   read-only tool selection, redacted errors, stdio and loopback HTTP transports,
   usage documentation and real MCP protocol/transport regression tests in CI.
+
+### Documentation
+- Refresh English/Spanish/package guides, API recipes, setup, configuration,
+  troubleshooting, test guidance and example indexes against actual interfaces.
+- Add installation, configuration, usage-practice, performance and FAQ guides;
+  repair relative links and remove stale coverage/production-validation claims.
+- Generate the complete composed-service signature inventory and validate local
+  links/headings, Python recipes and known API call signatures in CI.
+- Correct example lifecycle/callback usage and explicit media inputs; remove
+  automatic sample sends from basic examples. Bulk sending now requires explicit
+  arguments and durable operation IDs and stops on uncertain delivery.
 
 ## [2.0.0] - 2026-10-13
 
@@ -175,9 +188,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
-- **0.5.8** - Build system migration to uv
-- **0.5.7** - Latest stable release
-- **0.5.x** - Various improvements and bug fixes
+Use the release sections above and GitHub Releases for current versions.
+The 0.5.x sections describe historical changes.
 
 ---
 

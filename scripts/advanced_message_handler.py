@@ -9,16 +9,14 @@ This example demonstrates:
 - Logging
 """
 
-from WPP_Whatsapp import Create
+import asyncio
 import logging
-from functools import wraps
-from typing import Callable, Dict, Any
+from typing import Any, Callable, Dict
+
+from WPP_Whatsapp import Create
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -31,10 +29,12 @@ class MessageRouter:
 
     def register_command(self, command: str):
         """Decorator to register a command handler"""
+
         def decorator(func: Callable):
             self.handlers[command.lower()] = func
             logger.info(f"Registered command: {command}")
             return func
+
         return decorator
 
     def use(self, middleware_func: Callable):
@@ -50,12 +50,12 @@ class MessageRouter:
                 return
 
         # Get message text
-        text = message.get('body', '').strip()
+        text = (message.get("body") or "").strip()
         if not text:
             return
 
         # Check if it's a command
-        if text.startswith('/'):
+        if text.startswith("/"):
             command = text.split()[0].lower()
             handler = self.handlers.get(command)
 
@@ -64,14 +64,13 @@ class MessageRouter:
                     await handler(client, message)
                 except Exception as e:
                     logger.error(f"Error in command {command}: {e}")
-                    client.sendText(
-                        message.get('from'),
-                        f"❌ Error executing command: {str(e)}"
+                    await client.sendText_(
+                        message.get("from"), f"❌ Error executing command: {str(e)}"
                     )
             else:
-                client.sendText(
-                    message.get('from'),
-                    f"❌ Unknown command: {command}\nUse /help for available commands"
+                await client.sendText_(
+                    message.get("from"),
+                    f"❌ Unknown command: {command}\nUse /help for available commands",
                 )
 
 
@@ -81,21 +80,23 @@ router = MessageRouter()
 
 # Middleware: Log all messages
 async def log_messages(client, message):
-    logger.info(f"Message from {message.get('from')}: {message.get('body')}")
+    logger.info("Incoming message type: %s", message.get("type"))
     return True  # Continue processing
 
 
 # Middleware: Ignore group messages
 async def ignore_groups(client, message):
-    if message.get('isGroupMsg'):
+    if message.get("isGroupMsg"):
         return False  # Stop processing
     return True
 
 
 # Middleware: Block specific users
-BLOCKED_USERS = ['blocked_number@c.us']
+BLOCKED_USERS = ["blocked_number@c.us"]
+
+
 async def check_blocked(client, message):
-    if message.get('from') in BLOCKED_USERS:
+    if message.get("from") in BLOCKED_USERS:
         return False
     return True
 
@@ -107,13 +108,13 @@ router.use(check_blocked)
 
 
 # Command Handlers
-@router.register_command('/hello')
+@router.register_command("/hello")
 async def cmd_hello(client, message):
     """Greet the user"""
-    client.sendText(message.get('from'), f"👋 Hello! How can I help you?")
+    await client.sendText_(message.get("from"), "👋 Hello! How can I help you?")
 
 
-@router.register_command('/help')
+@router.register_command("/help")
 async def cmd_help(client, message):
     """Show help message"""
     help_text = """
@@ -130,82 +131,70 @@ async def cmd_help(client, message):
 /echo Hello World
 /quote This is a quote
     """
-    client.sendText(message.get('from'), help_text)
+    await client.sendText_(message.get("from"), help_text)
 
 
-@router.register_command('/ping')
+@router.register_command("/ping")
 async def cmd_ping(client, message):
     """Check if bot is alive"""
-    client.sendText(message.get('from'), "🏓 Pong! Bot is online!")
+    await client.sendText_(message.get("from"), "🏓 Pong! Bot is online!")
 
 
-@router.register_command('/info')
+@router.register_command("/info")
 async def cmd_info(client, message):
     """Get user information"""
     try:
-        contact = client.getContact(message.get('from'))
+        contact = await client.getContact_(message.get("from"))
         info_text = f"""
 📱 *Your Information:*
 
-Name: {contact.get('name', 'N/A')}
-Number: {contact.get('number', 'N/A')}
-Is Business: {contact.get('isBusiness', False)}
+Name: {contact.get("name", "N/A")}
+Number: {contact.get("number", "N/A")}
+Is Business: {contact.get("isBusiness", False)}
         """
-        client.sendText(message.get('from'), info_text)
+        await client.sendText_(message.get("from"), info_text)
     except Exception as e:
-        client.sendText(message.get('from'), f"Error getting info: {e}")
+        await client.sendText_(message.get("from"), f"Error getting info: {e}")
 
 
-@router.register_command('/echo')
+@router.register_command("/echo")
 async def cmd_echo(client, message):
     """Echo the user's message"""
-    text = message.get('body', '').strip()
+    text = (message.get("body") or "").strip()
     # Remove the command
-    echo_text = text.replace('/echo', '').strip()
+    echo_text = text.replace("/echo", "").strip()
 
     if echo_text:
-        client.sendText(message.get('from'), f"🔊 {echo_text}")
+        await client.sendText_(message.get("from"), f"🔊 {echo_text}")
     else:
-        client.sendText(message.get('from'), "Usage: /echo <text>")
+        await client.sendText_(message.get("from"), "Usage: /echo <text>")
 
 
-@router.register_command('/quote')
+@router.register_command("/quote")
 async def cmd_quote(client, message):
     """Quote the user's message"""
-    text = message.get('body', '').strip()
-    quote_text = text.replace('/quote', '').strip()
+    text = (message.get("body") or "").strip()
+    quote_text = text.replace("/quote", "").strip()
 
     if quote_text:
         # Send as markdown quote
-        client.sendText(message.get('from'), f"> {quote_text}")
+        await client.sendText_(message.get("from"), f"> {quote_text}")
     else:
-        client.sendText(message.get('from'), "Usage: /quote <text>")
+        await client.sendText_(message.get("from"), "Usage: /quote <text>")
 
 
-# Main bot setup
-def main():
-    logger.info("Starting Advanced Message Handler Bot...")
+async def main():
+    async with Create(session="router-example", autoClose=0) as client:
 
-    # Create client
-    creator = Create(session="test")
-    client = creator.start()
+        async def on_message(message):
+            if not message.get("fromMe"):
+                await router.handle(client, message)
 
-    # Message handler
-    def on_message(message):
-        import asyncio
-        asyncio.run(router.handle(client, message))
-
-    client.on_message(on_message)
-
-    # State change handler
-    def on_state_change(state):
-        logger.info(f"State changed: {state}")
-
-    client.on_state_change(on_state_change)
-
-    logger.info("Bot is running! Scan QR code to start...")
-    client.start()
+        client.onMessage(on_message)
+        client.onStateChange(lambda state: logger.info("State: %s", state))
+        logger.info("Listening; press Ctrl+C to close.")
+        await asyncio.Event().wait()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

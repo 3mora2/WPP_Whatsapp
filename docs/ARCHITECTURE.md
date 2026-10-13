@@ -64,8 +64,10 @@ browser's owner loop; synchronous callbacks run off that loop and can call them.
 ## Sending and uncertain results
 
 ```python
+from WPP_Whatsapp import AsyncClient
 from WPP_Whatsapp.core.errors import DeliveryUncertainError
 
+client: AsyncClient  # A connected native client supplied by the application.
 try:
     receipt = await client.messages.send_text(
         "123456789@c.us", "Hello", operation_id="invoice-123", timeout=30)
@@ -158,13 +160,24 @@ Nightly/custom URLs are fetched each time because their content can change.
 Download/discovery failure uses the packaged runtime. If the latest runtime
 cannot initialize required capabilities, startup reloads once and tries the
 packaged runtime before exposing operations. Explicit versions/URLs/files fail
-instead of silently selecting another runtime. `wa_js_version="bundled"` is offline.
+instead of silently selecting another runtime. `wa_js_version="bundled"` skips
+WA-JS discovery/download; WhatsApp Web itself still requires network access.
+
+## Optional MCP integration
+
+The [FastMCP server](FASTMCP.md) uses the native client and creates it lazily
+per server lifespan. Its explicit tools serialize browser operations with
+connect/disconnect, while local status remains available during startup. One
+server owns one profile shared by its MCP clients. It defaults to persistent
+session-scoped delivery metadata, exposes structured uncertain receipts and
+keeps QR/login in the browser. Injected clients retain caller ownership/options.
 
 ## Releases and recovery
 
 Publishing a GitHub release still triggers the complete test/build/PyPI workflow.
 It verifies the published release, resolves its tag to an immutable commit,
-checks `project.version`, tests Python 3.9–3.12 and builds that commit. Both wheel
+checks `project.version`, tests the core on Python 3.9–3.12 and MCP on Python
+3.10/3.12, checks documentation and builds that commit. Both wheel
 and sdist are checked against every packaged source/runtime byte before upload.
 
 For an interrupted publication, run **Test, Build & Upload Python Package**
@@ -177,5 +190,6 @@ check retries temporary visibility/network failures for a bounded period.
 
 Local build verification: `python tools/verify_release.py dist --dist dist`.
 The `pypi` command additionally compares those artifacts with the published
-version; it never uploads anything. Implementation on a branch does not activate
-the new workflow until that branch is merged.
+version; it never uploads anything. Select the exact release source when checking
+payloads. Windows checkout CRLF bytes can differ from Linux CI LF bytes; use
+the tagged Git blobs and CI artifacts for exact publication comparisons.

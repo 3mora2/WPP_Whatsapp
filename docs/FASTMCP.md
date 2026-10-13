@@ -4,15 +4,15 @@ The optional integration provides a reusable FastMCP server backed by the native
 `AsyncClient`. The core library still supports Python 3.9; MCP requires **Python
 3.10+** and **FastMCP 4.1 or newer, below 5**.
 
-## Install from this checkout
+## Install
 
 ```bash
-pip install -e ".[mcp]"
+python -m pip install --upgrade "WPP_Whatsapp[mcp]"
 wpp-whatsapp-mcp --session mybot
 ```
 
-The integration is currently under `Unreleased`; PyPI 2.0.0 does not contain it.
-Use the source installation above until the next package release.
+FastMCP support is included from version 2.1.0. For a source checkout, use
+`python -m pip install -e ".[mcp]"`. Older PyPI releases do not contain the server.
 
 The equivalent module command is `python -m WPP_Whatsapp.mcp --session mybot`.
 Chrome must be installed. The default transport is stdio: stdout contains only

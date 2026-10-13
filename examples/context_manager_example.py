@@ -1,60 +1,29 @@
-"""
-Example: Using Context Manager
+"""Read-only sync/native-async examples with owned-resource cleanup."""
 
-This example demonstrates how to use the context manager for automatic cleanup.
-"""
+import argparse
+import asyncio
 
-from WPP_Whatsapp import Create
+from WPP_Whatsapp import AsyncClient, Create
+
+
+def sync_example():
+    with Create("context-example", autoClose=0) as client:
+        print("Chats:", len(client.listChats({"count": 5})))
+
+
+async def async_example():
+    async with AsyncClient("async-context-example", autoClose=0) as client:
+        chats = await client.chats.list_chats({"count": 5})
+        print("Chats:", len(chats))
 
 
 def main():
-    print("=== Example 1: Sync Context Manager ===")
-
-    # Sync context manager - automatically closes on exit
-    with Create(session="context_example") as client:
-        client.waitForLogin()
-
-        # Send a message
-        result = client.sendText("1234567890@c.us", "Hello from context manager!")
-        print(f"Message sent: {result}")
-
-        # No need to call client.close() - it's automatic!
-
-    print("Session automatically closed!\n")
-
-    print("=== Example 2: Async Context Manager ===")
-
-    import asyncio
-
-    async def async_example():
-        async with Create(session="async_context_example") as client:
-            client.waitForLogin()
-
-            # Send a message
-            result = await client.sendText_("1234567890@c.us", "Hello from async context manager!")
-            print(f"Message sent: {result}")
-
-            # No need to call await client.close_async() - it's automatic!
-
-    # asyncio.run(async_example())
-
-    print("Async session automatically closed!\n")
-
-    print("=== Example 3: With Error Handling ===")
-
-    try:
-        with Create(session="error_example") as client:
-            client.waitForLogin()
-
-            # This might fail
-            result = client.sendText("invalid_chat", "This will fail")
-            print(f"Message sent: {result}")
-
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        print("But session was still closed properly!")
-
-    print("\nAll examples completed!")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--mode", choices=("sync", "async"), default="sync")
+    if parser.parse_args().mode == "async":
+        asyncio.run(async_example())
+    else:
+        sync_example()
 
 
 if __name__ == "__main__":

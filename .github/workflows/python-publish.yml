@@ -90,6 +90,13 @@ jobs:
             uvx ruff@0.11.10 check WPP_Whatsapp/mcp
             uvx ruff@0.11.10 format --check WPP_Whatsapp/mcp
           fi
+      - name: Validate documentation and example API contracts
+        run: |
+          if [ -f tools/verify_docs.py ]; then
+            uvx ruff@0.11.10 check tools/verify_docs.py
+            uvx ruff@0.11.10 format --check tools/verify_docs.py
+            uv run python tools/verify_docs.py
+          fi
 
   mcp-test:
     needs: release-check
