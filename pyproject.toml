@@ -16,12 +16,9 @@ classifiers = [
 ]
 dependencies = [
     "aiohttp>=3.10.11",
-    "event-emitter-js>=0.1.2",
     "node-semver>=0.9.0",
     "pillow>=10.4.0",
     "playwright>=1.48.0",
-    "playwright-stealth>=1.0.6",
-    "playwrightsafethread>=0.5.5",
     "psutil>=7.2.2",
     "pyee>=12.0.0",
     "requests>=2.32.4",
@@ -30,10 +27,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+stealth = ["playwright-stealth>=2.0.0"]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
+    "ruff==0.11.10",
 ]
 
 [project.urls]
@@ -57,3 +56,10 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B"]

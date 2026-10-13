@@ -93,12 +93,11 @@ class GroupLayer(RetrieverLayer):
     ##################################################################################
     async def leaveGroup_(self, groupId):
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate("(groupId) => WPP.group.leave(groupId)", groupId, page=self.page)
+        return await self._evaluate_js('GroupLayer.leaveGroup_.0', groupId, page=self.page)
 
     async def getGroupMembersIds_(self, groupId):
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate("""(groupId) => Promise.resolve(WPP.group.getParticipants(groupId)).then(
-          (participants) => participants.map((p) => p.id))""", groupId, page=self.page)
+        return await self._evaluate_js('GroupLayer.getGroupMembersIds_.0', groupId, page=self.page)
 
     async def getGroupMembers_(self, groupId):
         groupId = self.valid_chatId(groupId)
@@ -107,13 +106,13 @@ class GroupLayer(RetrieverLayer):
 
     async def getGroupInviteLink_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        code = await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.group.getInviteCode(chatId)", chatId, page=self.page)
+        code = await self._evaluate_js('GroupLayer.getGroupInviteLink_.0', chatId, page=self.page)
 
         return f"https://chat.whatsapp.com/{code}" if code else None
 
     async def revokeGroupInviteLink_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        code = await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.group.revokeInviteCode(chatId)", chatId, page=self.page)
+        code = await self._evaluate_js('GroupLayer.revokeGroupInviteLink_.0', chatId, page=self.page)
 
         return f"https://chat.whatsapp.com/{code}" if code else None
 
@@ -122,30 +121,25 @@ class GroupLayer(RetrieverLayer):
         invite_code = invite_code.replace('invite/', '')
         invite_code = invite_code.replace('https://', '')
         invite_code = invite_code.replace('http://', '')
-        return await self.ThreadsafeBrowser.page_evaluate("(inviteCode) => WPP.group.getGroupInfoFromInviteCode(inviteCode)", invite_code, page=self.page)
+        return await self._evaluate_js('GroupLayer.getGroupInfoFromInviteLink_.0', invite_code, page=self.page)
 
     async def createGroup_(self, groupName, contacts=None):
         contacts = [self.valid_chatId(c) for c in (contacts or [])]
-        return await self.ThreadsafeBrowser.page_evaluate("({ groupName, contacts }) => WPP.group.create(groupName, contacts)",
+        return await self._evaluate_js('GroupLayer.createGroup_.0',
                                         {"groupName": groupName, "contacts": contacts}, page=self.page)
 
     async def removeParticipant_(self, groupId, participantId):
         groupId = self.valid_chatId(groupId)
-        await self.ThreadsafeBrowser.page_evaluate("""({ groupId, participantId }) =>
-        WPP.group.removeParticipants(groupId, participantId)""", {"groupId": groupId, "participantId": participantId}, page=self.page)
+        await self._evaluate_js('GroupLayer.removeParticipant_.0', {"groupId": groupId, "participantId": participantId}, page=self.page)
         return True
 
     async def addParticipant_(self, groupId, participantId):
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate("""({ groupId, participantId }) =>
-        WPP.group.addParticipants(groupId, participantId)""", {"groupId": groupId, "participantId": participantId}, page=self.page)
+        return await self._evaluate_js('GroupLayer.addParticipant_.0', {"groupId": groupId, "participantId": participantId}, page=self.page)
 
     async def getGroupAdmins_(self, chatId):
         chatId = self.valid_chatId(chatId)
-        participants = await self.ThreadsafeBrowser.page_evaluate("""(chatId) =>
-        Promise.resolve(WPP.group.getParticipants(chatId)).then(
-          (participants) => participants.map((p) => p.toJSON())
-        )""", chatId, page=self.page)
+        participants = await self._evaluate_js('GroupLayer.getGroupAdmins_.0', chatId, page=self.page)
         # return [participant for participant in participants if participant.get("isAdmin")]
         return [participant.get("id") for participant in participants if participant.get("isAdmin")]
 
@@ -154,15 +148,13 @@ class GroupLayer(RetrieverLayer):
         invite_code = invite_code.replace('invite/', '')
         invite_code = invite_code.replace('https://', '')
         invite_code = invite_code.replace('http://', '')
-        return await self.ThreadsafeBrowser.page_evaluate("(inviteCode) => WPP.group.join(inviteCode)", invite_code, page=self.page)
+        return await self._evaluate_js('GroupLayer.joinGroup_.0', invite_code, page=self.page)
 
     async def setGroupDescription_(self, groupId: str, description: str, options: Optional[GroupDescriptionOptions] = None):
         """Set group description - async implementation"""
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate(
-            """({ groupId, description }) => {
-                return WPP.group.setDescription(groupId, description);
-            }""",
+        return await self._evaluate_js(
+            'GroupLayer.setGroupDescription_.0',
             {"groupId": groupId, "description": description},
             page=self.page
         )
@@ -170,10 +162,8 @@ class GroupLayer(RetrieverLayer):
     async def setGroupSubject_(self, groupId: str, title: str, options: Optional[GroupSubjectOptions] = None):
         """Set group subject - async implementation"""
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate(
-            """({ groupId, subject }) => {
-                return WPP.group.setSubject(groupId, subject);
-            }""",
+        return await self._evaluate_js(
+            'GroupLayer.setGroupSubject_.0',
             {"groupId": groupId, "subject": title},
             page=self.page
         )
@@ -182,10 +172,8 @@ class GroupLayer(RetrieverLayer):
         """Set group icon - async implementation"""
         groupId = self.valid_chatId(groupId)
         pathOrBase64 = await self._media_to_base64(pathOrBase64, "image")
-        return await self.ThreadsafeBrowser.page_evaluate(
-            """({ groupId, pathOrBase64 }) => {
-                return WPP.group.setIcon(groupId, pathOrBase64);
-            }""",
+        return await self._evaluate_js(
+            'GroupLayer.setGroupIcon_.0',
             {"groupId": groupId, "pathOrBase64": pathOrBase64},
             page=self.page
         )
@@ -193,10 +181,8 @@ class GroupLayer(RetrieverLayer):
     async def removeGroupIcon_(self, groupId: str):
         """Remove group icon - async implementation"""
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate(
-            """({ groupId }) => {
-                return WPP.group.removeIcon(groupId);
-            }""",
+        return await self._evaluate_js(
+            'GroupLayer.removeGroupIcon_.0',
             {"groupId": groupId},
             page=self.page
         )
@@ -210,10 +196,8 @@ class GroupLayer(RetrieverLayer):
             "ephemeral": "ephemeral",
             "noFrequentlyForwarded": "noFrequentlyForwarded"
         }
-        return await self.ThreadsafeBrowser.page_evaluate(
-            """({ groupId, property, value }) => {
-                return WPP.group.setProperty(groupId, property, value);
-            }""",
+        return await self._evaluate_js(
+            'GroupLayer.setGroupProperty_.0',
             {"groupId": groupId, "property": property_map.get(property, property), "value": value},
             page=self.page
         )
@@ -221,10 +205,8 @@ class GroupLayer(RetrieverLayer):
     async def setMessagesAdminsOnly_(self, groupId: str, option: bool):
         """Set messages admins only - async implementation"""
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate(
-            """({ groupId, value }) => {
-                return WPP.group.setProperty(groupId, "announcement", value);
-            }""",
+        return await self._evaluate_js(
+            'GroupLayer.setMessagesAdminsOnly_.0',
             {"groupId": groupId, "value": option},
             page=self.page
         )
@@ -232,10 +214,8 @@ class GroupLayer(RetrieverLayer):
     async def getGroupMembershipRequests_(self, groupId: str):
         """Get group membership requests - async implementation"""
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate(
-            """({ groupId }) => {
-                return WPP.group.getMembershipRequests(groupId);
-            }""",
+        return await self._evaluate_js(
+            'GroupLayer.getGroupMembershipRequests_.0',
             {"groupId": groupId},
             page=self.page
         )
@@ -243,10 +223,8 @@ class GroupLayer(RetrieverLayer):
     async def approveGroupMembershipRequest_(self, groupId: str, membershipIds: List[str]):
         """Approve membership request - async implementation"""
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate(
-            """({ groupId, membershipIds }) => {
-                return WPP.group.approve(groupId, membershipIds);
-            }""",
+        return await self._evaluate_js(
+            'GroupLayer.approveGroupMembershipRequest_.0',
             {"groupId": groupId, "membershipIds": membershipIds},
             page=self.page
         )
@@ -254,10 +232,8 @@ class GroupLayer(RetrieverLayer):
     async def rejectGroupMembershipRequest_(self, groupId: str, membershipIds: List[str]):
         """Reject membership request - async implementation"""
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate(
-            """({ groupId, membershipIds }) => {
-                return WPP.group.reject(groupId, membershipIds);
-            }""",
+        return await self._evaluate_js(
+            'GroupLayer.rejectGroupMembershipRequest_.0',
             {"groupId": groupId, "membershipIds": membershipIds},
             page=self.page
         )
@@ -268,8 +244,8 @@ class GroupLayer(RetrieverLayer):
 
     async def promoteParticipant_(self, groupId, participantId):
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate(
-            "({groupId, participantId}) => WPP.group.promoteParticipants(groupId, participantId)", {"groupId": groupId, "participantId": participantId}, page=self.page)
+        return await self._evaluate_js(
+            'GroupLayer.promoteParticipant_.0', {"groupId": groupId, "participantId": participantId}, page=self.page)
 
     def demoteParticipant(self, groupId, participantId, timeout=60):
         """Demote one or more group admins."""
@@ -277,5 +253,5 @@ class GroupLayer(RetrieverLayer):
 
     async def demoteParticipant_(self, groupId, participantId):
         groupId = self.valid_chatId(groupId)
-        return await self.ThreadsafeBrowser.page_evaluate(
-            "({groupId, participantId}) => WPP.group.demoteParticipants(groupId, participantId)", {"groupId": groupId, "participantId": participantId}, page=self.page)
+        return await self._evaluate_js(
+            'GroupLayer.demoteParticipant_.0', {"groupId": groupId, "participantId": participantId}, page=self.page)

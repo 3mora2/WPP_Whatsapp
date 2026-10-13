@@ -39,6 +39,45 @@ it is not a live test of every library API. No messages were sent by the test.
 The automated suite passed with 176 tests and one opt-in skip; explicitly enabling
 the browser injection test also passed the complete suite (177 tests).
 
+The subsequent async-core/service refactor was verified on the same date with
+**238 passing tests**, including opt-in native Chrome tests on Windows/Python
+3.9.23. These additionally verify independent session cleanup/profile reuse,
+closing from a synchronous callback without executor deadlock, event ordering,
+overflow, cancellation, uncertain delivery, durable claims and release recovery.
+CI is configured for Python 3.9–3.12; this local result is from Python 3.9.
+
+Real-account regression checks after the refactor passed on WhatsApp Web
+`2.3000.1050169898` / WA-JS `4.6.1`: the four #81 getters returned 50, 51, 53
+and 234 messages with complete IDs. A fresh group message reached the real
+callback and lookup by its complete ID succeeded (#84). The native
+`tests/live_async_smoke.py` additionally retrieved 25 messages, matched lookup
+by ID, reconnected using the same profile, retrieved another five messages and
+closed idempotently. Both scripts performed zero sends. The ignored reports are
+`archive/architecture-live-legacy.json` and `archive/architecture-live-async.json`.
+
+Release checks rejected mismatched versions/payloads, validated the workflow YAML
+and job dependencies, and resolved manual recovery of published `v1.1.0` to
+`2c5f829a756d8059d5f9884d694aafd9dda1d7c1`. Rebuilding that exact tag and running
+the new read-only PyPI verifier matched both published distributions and their
+complete package/runtime contents. The current development wheel/sdist also
+passed source-payload verification. These checks do not represent a new release
+or a run of the changed workflow on GitHub.
+The development wheel was then installed into a fresh environment and run from
+outside the source checkout: package imports, all 213 registered commands and a
+native Chrome navigation/evaluation/close check passed. PlaywrightSafeThread,
+event-emitter-js and playwright-stealth were absent from that environment.
+
+The following maintainability pass passed **257 tests with Chrome enabled** on
+Windows/Python 3.9.23. New regressions cover explicit service boundaries/signatures,
+extension registration, early option validation, atomic delivery recovery,
+blocking storage/cancellation, persistence failure, concurrent session startup,
+callable hooks and import-time logging/filesystem behavior. Ruff checks and
+formatting passed for the core, controllers and interval helpers; package-wide
+syntax/undefined-name checks also passed. The native real-account test again
+retrieved 25 messages, matched lookup by ID, reconnected, retrieved five more
+and closed cleanly, with zero sends. This pass does not add live verification
+of outbound sending or activate the changed GitHub workflow.
+
 ---
 
 ## 📋 **Test Files**

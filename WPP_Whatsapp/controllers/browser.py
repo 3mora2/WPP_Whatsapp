@@ -1,34 +1,65 @@
+"""Backward-compatible sync facade over the native async browser runtime."""
+
+from __future__ import annotations
+
 import asyncio
-from PlaywrightSafeThread.browser.threadsafe_browser import (ThreadsafeBrowser as Tb, BrowserName,
-                                                             SUPPORTED_BROWSERS)
-from playwright._impl._errors import TargetClosedError
-from playwright.async_api import Error, TimeoutError
+import sys
+from pathlib import Path
+from typing import Literal
 
-from WPP_Whatsapp.api.const import Logger
+from WPP_Whatsapp.core.engine import AsyncBrowser, LoopRunner
 
-
-def a_check_page(method):
-    async def wrapper(self, *args, **kwargs):
-        if "page" not in kwargs or not kwargs["page"]:
-            kwargs["page"] = self.page
-        if kwargs["page"].is_closed():
-            raise TargetClosedError()
-        return await method(self, *args, **kwargs)
-    return wrapper
+SUPPORTED_BROWSERS = ("chromium", "firefox", "webkit")
+BrowserName = Literal["chromium", "firefox", "webkit"]
 
 
-def check_page(method):
-    def wrapper(self, *args, **kwargs):
-        if "page" not in kwargs or not kwargs["page"]:
-            kwargs["page"] = self.page
-        if kwargs["page"].is_closed():
-            raise TargetClosedError()
-        return method(self, *args, **kwargs)
+class ThreadsafeBrowser(AsyncBrowser):
+    def __init__(
+        self,
+        no_context=False,
+        browser="chromium",
+        stealthy=False,
+        install=False,
+        install_callback=None,
+        check_open_dir=True,
+        close_already_profile=False,
+        **kwargs,
+    ):
+        if close_already_profile:
+            raise ValueError("Profile takeover is unsupported; close its owner explicitly")
+        self._runner = LoopRunner()
+        self.loop = self._runner.loop
 
-    return wrapper
+        async def initialize():
+            AsyncBrowser.__init__(self)
+            if install and not kwargs.get("channel") and not kwargs.get("executable_path"):
+                from playwright.async_api import async_playwright
 
+                async with async_playwright() as probe:
+                    missing = not Path(getattr(probe, browser).executable_path).exists()
+                if missing:
+                    process = await asyncio.create_subprocess_exec(
+                        sys.executable,
+                        "-m",
+                        "playwright",
+                        "install",
+                        browser,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.STDOUT,
+                    )
+                    output, _ = await process.communicate()
+                    if install_callback:
+                        install_callback(output.decode(errors="replace"))
+                    if process.returncode:
+                        raise RuntimeError("Playwright browser installation failed")
+            await self.open(browser=browser, no_context=no_context, stealthy=stealthy, **kwargs)
 
-class ThreadsafeBrowser(Tb):
+        try:
+            asyncio.run_coroutine_threadsafe(initialize(), self.loop).result(120)
+        except BaseException:
+            self._runner.stop()
+            raise
+
     @property
     def is_same_loop(self):
         try:
@@ -36,188 +67,35 @@ class ThreadsafeBrowser(Tb):
         except RuntimeError:
             return False
 
-    async def create_task(self, task, *args, **kwargs):
-        if not asyncio.iscoroutine(task):
-            task = task(*args, **kwargs)
-        if asyncio.get_running_loop() is self.loop:
-            return await task
-        future = asyncio.run_coroutine_threadsafe(task, self.loop)
-        return await asyncio.wrap_future(future)
-
-    def __init__(
-            self,
-            no_context=False,
-            browser: BrowserName = "chromium",
-            stealthy: bool = False,
-            install: bool = False,
-            install_callback=lambda x: print(x.strip() if x else x),
-            check_open_dir=True,
-            close_already_profile=True,
-            **kwargs
-    ) -> None:
-        super().__init__(no_context=no_context,
-                         browser=browser,
-                         stealthy=stealthy,
-                         install=install,
-                         install_callback=install_callback,
-                         check_open_dir=check_open_dir,
-                         close_already_profile=close_already_profile,
-                         **kwargs)
-
-    def sleep(self, val, timeout_=None):
-        # TODO:: Change Loop
-        try:
-            super().sleep(val, timeout_=timeout_)
-        except:
-            Logger.exception("sleep")
-
-    # def run_threadsafe(self, func, *args, timeout_=120, **kwargs):
-    #     if not asyncio.iscoroutine(func):
-    #         func = func(*args, **kwargs)
-    #     return super().run_threadsafe(func, timeout_=timeout_)
-
-    # async def wait_for_first_selectors_(self, *selectors, timeout=0):
-    #     async def wa(selector):
-    #         try:
-    #             await self.page.wait_for_selector(selector, timeout=timeout)
-    #             return selector
-    #         except:
-    #             return
-    #
-    #     tasks = [self.create_task(wa(selector)) for selector in selectors]
-    #
-    #     while True:
-    #         print("while True")
-    #         task_done = next(filter(lambda task: task.done(), tasks), None)
-    #         pending = list(filter(lambda task: not task.done(), tasks))
-    #         if not task_done:
-    #             await asyncio.sleep(.5)
-    #             continue
-    #         print("while True task")
-    #
-    #         for p in pending:
-    #             self.loop.call_soon_threadsafe(p.cancel, "finish")
-    #         print("return")
-    #         return task_done.result()
-
-    async def wait_for_first_selectors(self, *selectors, timeout=0):
-        timeout_local = 0
-
-        while True:
-            if timeout != 0 and timeout_local >= timeout:
-                break
-            for selector in selectors:
-                try:
-                    task = await self.page_wait_for_selector(selector, timeout=1 * 1000)
-                    timeout_local += 1
-                    if task:
-                        return selector
-                except (RuntimeError, TargetClosedError):
-                    return
-                except TimeoutError:
-                    ...
-                except Exception as e:
-                    Logger.exception("wait_for_first_selectors")
-
-                await asyncio.sleep(.5)
-                timeout_local += .5
-
-    # def run_playwright(self, *args: str):
-    #     env = self.get_driver_env()
-    #     driver_executable, driver_cli = compute_driver_executable()
-    #
-    #     with subprocess.Popen([driver_executable, driver_cli, *args], env=env, stdout=subprocess.PIPE,
-    #                           stderr=subprocess.STDOUT, **creation_flags_dict()) as process:
-    #         for line in process.stdout:
-    #             print(line.decode('utf-8'), end="\r")
-
-    async def _close_resources(self):
-        task = getattr(self, '_shutdown_task', None)
-        if task is None:
-            task = self.loop.create_task(self.__stop_playwright())
-            self._shutdown_task = task
-        await asyncio.shield(task)
+    async def close(self):
+        if self.loop.is_closed() or not self.loop.is_running():
+            return
+        await super().close()
+        if self.is_same_loop:
+            asyncio.current_task().add_done_callback(lambda _: self.loop.call_soon(self.loop.stop))
+        else:
+            self.stop()
 
     def sync_close(self, timeout_=60):
         if self.loop.is_closed() or not self.loop.is_running():
             return
-        try:
-            self.run_threadsafe(self._close_resources(), timeout_=timeout_)
-        except Exception as e:
-            print(e)
+        self.run_threadsafe(super().close(), timeout_=timeout_)
         self.stop()
 
-    async def close(self):
-        if self.loop.is_closed() or not self.loop.is_running():
-            return
-        try:
-            await self.create_task(self._close_resources())
-        except Exception as e:
-            print(e)
-        if asyncio.get_running_loop() is self.loop:
-            # Complete the caller and its cross-thread future before stopping
-            # the worker; joining the worker from itself would deadlock.
-            task = asyncio.current_task()
-            task.add_done_callback(lambda _: self.loop.call_soon(self.loop.stop))
-        else:
-            self.stop()
-
     def stop(self):
-        try:
-            super().stop()
-        except:
-            ...
+        runner = getattr(self, "_runner", None)
+        if runner is not None:
+            runner.stop()
 
-    #####################
-    @a_check_page
-    async def goto(self, url, *args, page=None, **kwargs):
-        return await super().goto(url, *args, page=page, **kwargs)
+    def goto_sync(self, *args, **kwargs):
+        return self.sync_goto(*args, **kwargs)
 
-    @a_check_page
-    async def add_script_tag(self, *args, page=None, **kwargs):
-        return await super().add_script_tag(*args, page=page, **kwargs)
+    def add_script_tag_sync(self, *args, timeout_=120, **kwargs):
+        return self.run_threadsafe(self.add_script_tag(*args, **kwargs), timeout_=timeout_)
 
-    @a_check_page
-    async def expose_function(self, *args, page=None, **kwargs):
-        return await super().expose_function(*args, page=page, **kwargs)
+    def expose_function_sync(self, *args, timeout_=120, **kwargs):
+        return self.run_threadsafe(self.expose_function(*args, **kwargs), timeout_=timeout_)
 
-    @a_check_page
-    async def page_wait_for_function(self, *args, page=None, **kwargs):
-        return await super().page_wait_for_function(*args, page=page, **kwargs)
-
-    @a_check_page
-    async def page_wait_for_selector(self, *args, page=None, **kwargs):
-        return await self.create_task(page.wait_for_selector(*args, **kwargs))
-
-    @a_check_page
-    async def page_evaluate(self, *args, page=None, **kwargs):
-        return await super().page_evaluate(*args, page=page, **kwargs)
-
-    ####################################################################################################################
-    @check_page
-    def goto_sync(self, url, *args, page=None, timeout_=60, **kwargs):
-        return super().goto_sync(url, *args, page=page, timeout_=timeout_, **kwargs)
-
-    @check_page
-    def add_script_tag_sync(self, *args, page=None, timeout_=60, **kwargs):
-        return super().add_script_tag_sync(*args, page=page, timeout_=timeout_, **kwargs)
-
-    @check_page
-    def expose_function_sync(self, *args, page=None, timeout_=60, **kwargs):
-        return super().expose_function_sync(*args, page=page, timeout_=timeout_, **kwargs)
-
-    @check_page
-    def page_wait_for_function_sync(self, *args, page=None, timeout_=60, **kwargs):
-        return super().page_wait_for_function_sync(*args, page=page, timeout_=timeout_, **kwargs)
-
-    @check_page
-    def page_evaluate_sync(self, *args, page=None, timeout_=60, **kwargs, ):
-        try:
-            return super().page_evaluate_sync(*args, page=page, timeout_=timeout_, **kwargs)
-        except Error as error:
-            if "Execution context was destroyed, most likely because of a navigation" in error.message:
-                pass
-            # elif "ReferenceError: WPP is not defined" in error.message:
-            #     pass
-            else:
-                raise error
+    def check_close_profile(self, directory):
+        """Compatibility hook: profile ownership is checked when opening it."""
+        return None

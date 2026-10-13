@@ -1,130 +1,67 @@
+"""Legacy event helpers and loop-owned cancellable intervals."""
+
+from __future__ import annotations
+
 import asyncio
-import traceback
+import inspect
 from threading import Event
-
-# from threading import Thread, Event
-#
-#
-# def setInterval(func, interval, *args, **kwargs):
-#     stopped = Event()
-#
-#     async def loop():
-#         while not stopped.wait(interval):
-#             await func(*args)
-#
-#     Thread(target=loop).start()
-#     return stopped
-
-
-# def setInterval(func, interval, *args, **kwargs):
-#     stopped = asyncio.Event()
-#     loop = kwargs.get('loop') or asyncio.get_event_loop()
-#
-#     async def loop_():
-#         print("__nn__")
-#         while not stopped.is_set():
-#             await func(*args)
-#             await asyncio.sleep(interval)
-#         print("finish")
-#
-#     loop. create_task(loop_())
-#     return stopped
-
-
-# async def pprint_():
-#     print("ffffffffffffff")
-#
-#
-# d = setInterval(pprint_, 5)
-#
-# async def asetInterval(func, timeout, *args):
-#     print("setInterval")
-#     while True:
-#         await asyncio.sleep(timeout / 1000)
-#         print("func")
-#         await func(*args)
-#
-#
-# def setTimeout(func, time, *args):
-#     stopped = Event()
-#
-#     def loop():
-#         while not stopped.wait((time / 1000)):
-#             func(*args)
-#             stopped.set()
-#
-#     Thread(target=loop).start()
-#     return stopped
-#
-#
-# def clearInterval(Interval):
-#     try:
-#         if Interval:
-#             Interval.set()
-#             print("Interval", Interval.is_set())
-#             # Interval.clear()
-#     except:
-#         traceback.print_exc()
-#
-#
-# async def print_i(i):
-#     print(i + 1, "print_i")
-#     await asyncio.sleep(1)
-#     print(i + 2, "print_i")
-
-
-# async def stop_All():
-#     clearInterval(intr)
-#     clearInterval(intr2)
-
-
-# intr = setInterval(print_i, 5, 1)
-# intr2 = setInterval(stop_All, 50, )
-
-
-from typing import Dict
+from typing import Any, Callable, Optional
 
 
 class EventEmitter:
+    """Compatibility emitter; session event dispatch lives in core.events."""
 
-    def __init__(self):
-        self._callbacks: Dict[str, callable] = {}
+    def __init__(self) -> None:
+        self._callbacks: dict[str, list[Callable[..., Any]]] = {}
 
     def on(self, event_name, function):
-        self._callbacks[event_name] = self._callbacks.get(event_name, []) + [function]
+        self._callbacks.setdefault(event_name, []).append(function)
         return function
 
     def emit(self, event_name, *args, **kwargs):
-        [function(*args, **kwargs) for function in self._callbacks.get(event_name, [])]
+        for function in self._callbacks.get(event_name, []):
+            function(*args, **kwargs)
 
     def off(self, event_name, function):
         self._callbacks.get(event_name, []).remove(function)
 
 
+class LoopInterval(Event):
+    def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
+        super().__init__()
+        self.loop = loop
+        self.task: Optional[asyncio.Task] = None
+
+    def set(self) -> None:
+        super().set()
+        try:
+            current = asyncio.current_task()
+        except RuntimeError:
+            current = None
+        if (
+            self.task is not None
+            and self.task is not current
+            and not self.task.done()
+            and not self.loop.is_closed()
+        ):
+            self.loop.call_soon_threadsafe(self.task.cancel)
+
+
 def setInterval(loop, func, interval, *args, **kwargs):
-    class Interval(Event):
-        task = None
+    """Run immediately, then periodically until cancelled on the owning loop."""
+    stopped = LoopInterval(loop)
 
-        def set(self):
-            super().set()
-            if self.task is not None and not self.task.done() and not loop.is_closed():
-                loop.call_soon_threadsafe(self.task.cancel)
-
-    stopped = Interval()
-
-    async def loop_():
+    async def run():
         while not stopped.is_set():
-            if asyncio.iscoroutinefunction(func):
-                await func(*args, **kwargs)
-            else:
-                func(*args, **kwargs)
+            result = func(*args, **kwargs)
+            if inspect.isawaitable(result):
+                await result
             await asyncio.sleep(interval)
 
     def start():
         if not stopped.is_set():
-            stopped.task = loop.create_task(loop_())
+            stopped.task = loop.create_task(run())
 
-    # Schedule coroutine creation on its owning loop; an idle/closed loop no
-    # longer leaves unawaited coroutine objects behind.
+    # Create the coroutine only after the owner loop accepts the callback.
     loop.call_soon_threadsafe(start)
     return stopped

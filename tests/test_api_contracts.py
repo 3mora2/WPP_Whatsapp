@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from WPP_Whatsapp.api.Whatsapp import Whatsapp
+from WPP_Whatsapp.core.commands import COMMANDS
 
 ROOT = Path(__file__).parents[1]
 CONTRACT = json.loads((Path(__file__).parent / 'fixtures/upstream_contract.json').read_text())
@@ -31,6 +32,9 @@ def test_all_wajs_calls_exist_in_upstream():
             if ns not in ('whatsapp', 'loader') and method not in CONTRACT['exports'].get(ns, []):
                 missing.append(f'{path.name}: WPP.{ns}.{method}')
     assert not missing
+    for source in COMMANDS.values():
+        for ns, method in re.findall(r'WPP\.(\w+)\.(\w+)\s*\(', source):
+            assert ns in ('whatsapp', 'loader') or method in CONTRACT['exports'].get(ns, []), (ns, method)
 
 
 def test_sync_wrappers_match_async_signatures():
@@ -66,7 +70,7 @@ def test_all_browser_expressions_are_javascript():
     node = shutil.which('node')
     if not node:
         pytest.fail('Node.js is required for JavaScript contract validation')
-    expressions = []
+    expressions = [{'location': key, 'expr': source} for key, source in COMMANDS.items()]
     for path in (ROOT / 'WPP_Whatsapp').rglob('*.py'):
         if path.name == 'wapi.py':
             continue

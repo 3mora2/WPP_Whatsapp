@@ -1,6 +1,8 @@
 include LICENSE
 include README.md
 include pyproject.toml
+include tools/verify_release.py
+include tests/helpers.py
 recursive-include WPP_Whatsapp *.py *.js *.md
 recursive-include tests/js *.cjs
 recursive-include tests/fixtures *.json

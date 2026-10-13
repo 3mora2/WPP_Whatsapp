@@ -7,6 +7,7 @@ from nodesemver import max_satisfying, _sorted, satisfies
 import aiohttp
 
 from WPP_Whatsapp.api.const import Logger
+from WPP_Whatsapp.core.runtime_cache import RuntimeCache
 
 
 async def getAvailableVersions(session, versionMatch=None, includePrerelease=True):
@@ -87,13 +88,23 @@ def _release_asset(release):
     return None
 
 
-async def _download_wajs(session, url):
+async def _download_wajs(session, url, cache_dir=None):
+    cache = RuntimeCache(cache_dir) if cache_dir is not None else None
+    if cache:
+        cached = await asyncio.to_thread(cache.read, url)
+        if cached and not cached.lstrip().lower().startswith(('<!doctype', '<html', '{')):
+            return {'content': cached}
     async with session.get(url) as response:
         response.raise_for_status()
         content = await response.text(encoding="utf-8")
         if (not content.strip() or response.content_type in ("text/html", "application/json")
                 or content.lstrip().lower().startswith(("<!doctype html", "<html"))):
             raise ValueError("WA-JS download did not contain JavaScript")
+        if cache:
+            try:
+                await asyncio.to_thread(cache.write, url, content)
+            except OSError:
+                Logger.warning('WA-JS cache unavailable; using downloaded runtime')
         return {"content": content}
 
 
@@ -127,7 +138,7 @@ async def _versioned_wajs_url(session, version):
     raise ValueError(f"No WA-JS release with a JavaScript asset matches {version!r}")
 
 
-async def _remote_wajs(version):
+async def _remote_wajs(version, cache_dir=None):
     timeout = aiohttp.ClientTimeout(total=20, connect=5)
     async with aiohttp.ClientSession(timeout=timeout) as session:
         if version in (None, "latest"):
@@ -145,10 +156,12 @@ async def _remote_wajs(version):
             url = version
         else:
             url = await _versioned_wajs_url(session, version)
-        return await _download_wajs(session, url)
+        # Nightly/custom URLs are mutable. Only release assets may be reused.
+        immutable = version in (None, 'latest') or (version != 'nightly' and not URL_RE.match(version))
+        return await _download_wajs(session, url, cache_dir if immutable else None)
 
 
-async def getWaJs(version=None):
+async def getWaJs(version=None, *, cache_dir=None):
     """Try the latest stable release first; use bundled WA-JS if unavailable.
 
     Explicit versions, nightly builds, URLs and local files are honored and
@@ -162,7 +175,8 @@ async def getWaJs(version=None):
         if not URL_RE.match(version) and os.path.isfile(version):
             return {"content": Path(version).read_text(encoding="utf-8")}
     try:
-        return await asyncio.wait_for(_remote_wajs(version), timeout=WA_JS_FETCH_TIMEOUT)
+        remote = _remote_wajs(version) if cache_dir is None else _remote_wajs(version, cache_dir)
+        return await asyncio.wait_for(remote, timeout=WA_JS_FETCH_TIMEOUT)
     except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, UnicodeError) as error:
         if version not in (None, "latest"):
             raise

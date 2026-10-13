@@ -1,11 +1,14 @@
 import asyncio
+import inspect
 import os
-import types
 from typing import Optional
 
-from WPP_Whatsapp.api.Whatsapp import Whatsapp
 from WPP_Whatsapp.api.const import Logger
+from WPP_Whatsapp.api.Whatsapp import Whatsapp
 from WPP_Whatsapp.controllers.browser import SUPPORTED_BROWSERS, ThreadsafeBrowser
+from WPP_Whatsapp.core.lifecycle import SessionState
+from WPP_Whatsapp.core.options import validate_options
+from WPP_Whatsapp.core.profiles import session_directory
 
 
 class Create:
@@ -13,11 +16,22 @@ class Create:
     ThreadsafeBrowser: "ThreadsafeBrowser"
 
     def __init__(
-            self, session: str, user_data_dir='', folderNameToken="",
-            catchQR=None,
-            statusFind=None, onLoadingScreen=None, catchLinkCode=None,
-            onStateChange=None, waitForLogin: bool = True, logQR: bool = False,
-            autoClose: int = 0, version=None, wa_js_version=None, **kwargs) -> None:
+        self,
+        session: str,
+        user_data_dir="",
+        folderNameToken="",
+        catchQR=None,
+        statusFind=None,
+        onLoadingScreen=None,
+        catchLinkCode=None,
+        onStateChange=None,
+        waitForLogin: bool = True,
+        logQR: bool = False,
+        autoClose: int = 0,
+        version=None,
+        wa_js_version=None,
+        **kwargs,
+    ) -> None:
         """
         check_open_dir:bool
         close_already_profile:bool
@@ -29,6 +43,7 @@ class Create:
                 client.start()
                 client.waitForLogin()
         """
+        kwargs = validate_options(kwargs, autoClose=autoClose)
         self.browserSessionToken = None
         self.waitLoginPromise = None
         self.client = None
@@ -39,27 +54,23 @@ class Create:
         self.version = version
         self.wa_js_version = wa_js_version
         self.user_data_dir = user_data_dir
-        self.folderNameToken = (
-                folderNameToken or
-                # defaultOptions.get("folderNameToken") or
-                os.path.join(os.getcwd(), "tokens")
-        )
+        self.folderNameToken = folderNameToken or os.path.join(os.getcwd(), "tokens")
         if not self.user_data_dir:
             self.user_data_dir = self.create_user_dir()
             if not self.user_data_dir:
                 raise Exception("- Cant create user_data_dir", user_data_dir)
 
-        self.loop = kwargs.get("loop") or asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
+        self.loop = kwargs.get("loop")
 
-        self.catchQR = catchQR if type(catchQR) in [types.FunctionType, types.MethodType] else self.catchQR
-        self.statusFind = statusFind if type(statusFind) in [types.FunctionType, types.MethodType] else self.statusFind
-        self.onLoadingScreen = onLoadingScreen if type(
-            onLoadingScreen) in [types.FunctionType, types.MethodType] else self.onLoadingScreen
+        self.catchQR = catchQR if callable(catchQR) else self.catchQR
+        self.statusFind = statusFind if callable(statusFind) else self.statusFind
+        self.onLoadingScreen = (
+            onLoadingScreen if callable(onLoadingScreen) else self.onLoadingScreen
+        )
 
         self.catchLinkCode = catchLinkCode
 
-        self.onStateChange = onStateChange if type(onStateChange) in [types.FunctionType, types.MethodType] else None
+        self.onStateChange = onStateChange if callable(onStateChange) else None
         self.logger = Logger
         self.waitForLogin = waitForLogin
         self.logQR = logQR
@@ -82,63 +93,76 @@ class Create:
         if self.waitLoginPromise:
             self.waitLoginPromise.cancel()
         if self.client:
-            self.client.isClosed = True
-        if hasattr(self, "ThreadsafeBrowser"):
+            await self.client.close_async()
+        elif hasattr(self, "ThreadsafeBrowser"):
             await self.ThreadsafeBrowser.close()
-        self._onStateChange("CLOSED")
+        callback = self._onStateChange("CLOSED")
+        if inspect.isawaitable(callback):
+            await callback
 
     def sync_close(self):
         if self.waitLoginPromise:
             self.waitLoginPromise.cancel()
         if self.client:
-            self.client.isClosed = True
-        if hasattr(self, "ThreadsafeBrowser"):
+            self.client.close()
+        elif hasattr(self, "ThreadsafeBrowser"):
             self.ThreadsafeBrowser.sync_close()
 
-        self._onStateChange("CLOSED")
+        callback = self._onStateChange("CLOSED")
+        if inspect.isawaitable(callback):
+            try:
+                current = asyncio.get_running_loop()
+            except RuntimeError:
+                asyncio.run(callback)
+            else:
+                current.create_task(callback)
 
     def _onStateChange(self, state):
         self.state = state
         client = self.client
-        browser = getattr(self, 'ThreadsafeBrowser', None)
-        if (state not in ('CLOSED', 'browserClose', 'serverClose') and client is not None
-                and not client.page.is_closed() and browser is not None
-                and browser.loop.is_running() and not self.waitLoginPromise):
+        browser = getattr(self, "ThreadsafeBrowser", None)
+        if (
+            state not in ("CLOSED", "browserClose", "serverClose")
+            and client is not None
+            and not client.page.is_closed()
+            and browser is not None
+            and browser.loop.is_running()
+            and not self.waitLoginPromise
+        ):
+
             async def check_connection():
-                if not await browser.page_evaluate("() => WPP.conn.isRegistered()", page=client.page):
+                if not await browser.page_evaluate(
+                    "() => WPP.conn.isRegistered()", page=client.page
+                ):
+                    client.lifecycle.transition(SessionState.RECONNECTING)
                     await client.waitForLogin_()
-            self.waitLoginPromise = asyncio.run_coroutine_threadsafe(check_connection(), browser.loop)
+
+            self.waitLoginPromise = asyncio.run_coroutine_threadsafe(
+                check_connection(), browser.loop
+            )
+
             def finished(future):
                 self.waitLoginPromise = None
                 if not future.cancelled() and future.exception():
-                    Logger.error("Session reconnection failed: %s", future.exception())
+                    Logger.error(
+                        "Session reconnection failed (%s)", type(future.exception()).__name__
+                    )
+
             self.waitLoginPromise.add_done_callback(finished)
 
         if state == "CONNECTED":
             Logger.info("Ready ....")
 
-        elif state in ["browserClose", 'serverClose']:
+        elif state in ["browserClose", "serverClose"]:
             self.state = "CLOSED"
             self.client = None
             Logger.info("client.close - session.state: " + self.state)
 
         if self.onStateChange:
-            self.onStateChange(state)
+            return self.onStateChange(state)
 
     def create_user_dir(self, new=False):
-        user_dir = os.path.join(self.folderNameToken, self.session)
-        if os.path.exists(user_dir):
-            return user_dir
-
-        if not os.path.exists(user_dir):
-            os.makedirs(user_dir)
-            return user_dir
-
-        # user_dir_temp = user_dir
-        # for i in itertools.count(1):
-        #     if not os.path.exists(user_dir_temp):
-        #         return user_dir_temp
-        #     user_dir_temp = f'{user_dir}-{i}'
+        return session_directory(self.folderNameToken, self.session)
 
     def start(self) -> "Whatsapp":
         if not self.state or self.state in ["CLOSED"]:
@@ -163,70 +187,94 @@ class Create:
         return self.client
 
     def create_sync(self) -> Whatsapp:
-        self.__create()
-        self.ThreadsafeBrowser.run_threadsafe(self.client.start, timeout_=120)
-        if self.waitForLogin:
-            is_logged = self.client.waitForLogin()
-            if not is_logged:
-                raise Exception('Not Logged')
-            self.state = "CONNECTED"
-        self.setup()
-
-        return self.client
+        try:
+            self.__create()
+            self.ThreadsafeBrowser.run_threadsafe(self.client.start, timeout_=120)
+            if self.waitForLogin:
+                if not self.client.waitForLogin():
+                    raise RuntimeError("Not Logged")
+                self.state = "CONNECTED"
+            self.setup()
+            return self.client
+        except BaseException:
+            self.sync_close()
+            raise
 
     async def create(self) -> Whatsapp:
-        self.__create()
-        await self.client.start()
-        if self.waitForLogin:
-            is_logged = await self.client.waitForLogin_()
-            if not is_logged:
-                raise Exception('Not Logged')
-            self.state = "CONNECTED"
-        self.setup()
-
-        return self.client
+        creation = asyncio.create_task(asyncio.to_thread(self.__create))
+        try:
+            await asyncio.shield(creation)
+            await self.ThreadsafeBrowser.create_task(self.client.start())
+            if self.waitForLogin:
+                if not await self.ThreadsafeBrowser.create_task(self.client.waitForLogin_()):
+                    raise RuntimeError("Not Logged")
+                self.state = "CONNECTED"
+            self.setup()
+            return self.client
+        except BaseException:
+            # A Python worker cannot be cancelled while it is launching a
+            # browser. Wait for ownership to be recorded before cleaning it up.
+            try:
+                await asyncio.shield(creation)
+            except Exception:
+                pass
+            await self.close()
+            raise
 
     def __create(self):
         options = self.__kwargs.copy()
+        options.setdefault("runtimeCacheDir", os.path.join(self.folderNameToken, ".runtime-cache"))
         self.state = "STARTING"
         default = {
-            "no_viewport": True, "bypass_csp": True, "headless": False,
-            "browser": "chrome", "channel": "chrome", "install": False,
+            "no_viewport": True,
+            "bypass_csp": True,
+            "headless": False,
+            "browser": "chrome",
+            "channel": "chrome",
+            "install": False,
         }
 
-        for key in default:
-            if key not in self.__kwargs:
-                self.__kwargs[key] = default[key]
+        default.update(self.__kwargs)
 
         # Use Default channel as chrome
-        if self.__kwargs.get("browser") == "chrome" or self.__kwargs.get("browser") not in SUPPORTED_BROWSERS:
-            self.__kwargs["browser"] = "chromium"
-            self.__kwargs["channel"] = "chrome"
+        if default.get("browser") == "chrome" or default.get("browser") not in SUPPORTED_BROWSERS:
+            default["browser"] = "chromium"
+            default["channel"] = "chrome"
 
-        self.ThreadsafeBrowser = ThreadsafeBrowser(user_data_dir=self.user_data_dir, **self.__kwargs)
+        self.ThreadsafeBrowser = ThreadsafeBrowser(user_data_dir=self.user_data_dir, **default)
+        self.loop = self.ThreadsafeBrowser.loop
 
-        self.ThreadsafeBrowser.page.on("close", self.close)
-        self.ThreadsafeBrowser.page.on("crash", self.close)
-        self.ThreadsafeBrowser.browser.on("disconnected", lambda: self.statusFind('browserClose', self.session))
+        async def build_client():
+            self.ThreadsafeBrowser.page.on("close", self.close)
+            self.ThreadsafeBrowser.page.on("crash", self.close)
+            self.ThreadsafeBrowser.browser.on(
+                "disconnected", lambda: self.statusFind("browserClose", self.session)
+            )
+            client = Whatsapp(
+                self.session,
+                threadsafe_browser=self.ThreadsafeBrowser,
+                page=self.ThreadsafeBrowser.page,
+                loop=self.ThreadsafeBrowser.loop,
+                logQR=self.logQR,
+                autoClose=self.autoClose,
+                version=self.version,
+                wa_js_version=self.wa_js_version,
+                **options,
+            )
+            client.catchQR = self.catchQR
+            client.statusFind = self.statusFind
+            client.onLoadingScreen = self.onLoadingScreen
+            client.catchLinkCode = self.catchLinkCode
+            client.onStateChange(self._onStateChange)
+            return client
 
-        self.client = Whatsapp(self.session,
-                               threadsafe_browser=self.ThreadsafeBrowser, page=self.ThreadsafeBrowser.page,
-                               loop=self.ThreadsafeBrowser.loop, logQR=self.logQR,
-                               autoClose=self.autoClose, version=self.version, wa_js_version=self.wa_js_version,
-                               **options)
-        self.client.catchQR = self.catchQR
-        self.client.statusFind = self.statusFind
-        self.client.onLoadingScreen = self.onLoadingScreen
-        self.client.catchLinkCode = self.catchLinkCode
-
-        # self.ThreadsafeBrowser.run_threadsafe(self.client.start, timeout_=120)
-        self.client.onStateChange(self._onStateChange)
+        self.client = self.ThreadsafeBrowser.run_threadsafe(build_client())
 
     def get_state(self) -> dict:
         return {
             "session_name": self.session,
             "state": self.state,
-            "status": self.statusFind_dict.get("status")
+            "status": self.statusFind_dict.get("status"),
         }
 
     def getQrcode(self) -> dict:
@@ -236,7 +284,7 @@ class Create:
         elif self.state in ["CLOSED", None]:
             return {"result": "error", **self.get_state()}
         else:
-            if self.statusFind_dict.get("status") != 'isLogged':
+            if self.statusFind_dict.get("status") != "isLogged":
                 return {"result": "success", **self.get_state(), "qrcode": self.catchQR_dict}
             else:
                 return {"result": "success", **self.get_state()}
@@ -247,14 +295,11 @@ class Create:
         # print(self.state)
 
     def statusFind(self, status, session):
-        self.statusFind_dict = {
-            "status": status,
-            "session": session
-        }
+        self.statusFind_dict = {"status": status, "session": session}
         # print(session, status)
 
     def onLoadingScreen(self, percent, message):
-        Logger.info("onLoadingScreen", percent, message)
+        Logger.info("Loading screen: %s (%s%%)", message, percent)
 
     def setup(self):
         pass

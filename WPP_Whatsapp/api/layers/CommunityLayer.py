@@ -94,11 +94,8 @@ class CommunityLayer(HostLayer):
         if options is None:
             options = {}
 
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            """({ name, description, groupIds, options }) => {
-                return WPP.community.create(options.name ?? name,
-                    options.description ?? description, options.groupIds ?? groupIds);
-            }""",
+        result = await self._evaluate_js(
+            'CommunityLayer.createCommunity_.0',
             {"name": name, "description": description, "groupIds": groupIds, "options": options},
             page=self.page
         )
@@ -106,10 +103,8 @@ class CommunityLayer(HostLayer):
 
     async def deactivateCommunity_(self, communityId: str):
         """Deactivate a community - async implementation"""
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            """({ communityId }) => {
-                return WPP.community.deactivate(communityId);
-            }""",
+        result = await self._evaluate_js(
+            'CommunityLayer.deactivateCommunity_.0',
             {"communityId": communityId},
             page=self.page
         )
@@ -117,10 +112,8 @@ class CommunityLayer(HostLayer):
 
     async def addSubgroupsCommunity_(self, communityId: str, groupsIds: List[str]):
         """Add groups to community - async implementation"""
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            """({ communityId, groupsIds }) => {
-                return WPP.community.addSubgroups(communityId, groupsIds);
-            }""",
+        result = await self._evaluate_js(
+            'CommunityLayer.addSubgroupsCommunity_.0',
             {"communityId": communityId, "groupsIds": groupsIds},
             page=self.page
         )
@@ -128,10 +121,8 @@ class CommunityLayer(HostLayer):
 
     async def removeSubgroupsCommunity_(self, communityId: str, groupsIds: List[str]):
         """Remove groups from community - async implementation"""
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            """({ communityId, groupsIds }) => {
-                return WPP.community.removeSubgroups(communityId, groupsIds);
-            }""",
+        result = await self._evaluate_js(
+            'CommunityLayer.removeSubgroupsCommunity_.0',
             {"communityId": communityId, "groupsIds": groupsIds},
             page=self.page
         )
@@ -142,10 +133,8 @@ class CommunityLayer(HostLayer):
         if isinstance(participantId, str):
             participantId = [participantId]
 
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            """({ communityId, participantIds }) => {
-                return WPP.community.promoteParticipants(communityId, participantIds);
-            }""",
+        result = await self._evaluate_js(
+            'CommunityLayer.promoteCommunityParticipant_.0',
             {"communityId": communityId, "participantIds": participantId},
             page=self.page
         )
@@ -156,10 +145,8 @@ class CommunityLayer(HostLayer):
         if isinstance(participantId, str):
             participantId = [participantId]
 
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            """({ communityId, participantIds }) => {
-                return WPP.community.demoteParticipants(communityId, participantIds);
-            }""",
+        result = await self._evaluate_js(
+            'CommunityLayer.demoteCommunityParticipant_.0',
             {"communityId": communityId, "participantIds": participantId},
             page=self.page
         )
@@ -167,10 +154,8 @@ class CommunityLayer(HostLayer):
 
     async def getCommunityParticipants_(self, communityId: str):
         """Get all participants of a community - async implementation"""
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            """({ communityId }) => {
-                return WPP.community.getParticipants(communityId);
-            }""",
+        result = await self._evaluate_js(
+            'CommunityLayer.getCommunityParticipants_.0',
             {"communityId": communityId},
             page=self.page
         )
