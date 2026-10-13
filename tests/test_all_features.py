@@ -174,7 +174,7 @@ class TestBatchOperations:
     async def test_send_bulk_text_success(self, mock_client, mock_browser):
         from WPP_Whatsapp.utils.batch_operations import BatchOperations, BatchStatus
 
-        mock_browser.run_threadsafe = AsyncMock(return_value={"id": "msg123"})
+        mock_client.sendText_ = AsyncMock(return_value={"id": "msg123"})
 
         batch = BatchOperations(mock_client)
 
@@ -201,7 +201,7 @@ class TestBatchOperations:
                 return {"id": "msg123"}
             raise Exception("Failed")
 
-        mock_browser.run_threadsafe = AsyncMock(side_effect=side_effect)
+        mock_client.sendText_ = AsyncMock(side_effect=side_effect)
 
         batch = BatchOperations(mock_client)
 
@@ -221,7 +221,7 @@ class TestBatchOperations:
     async def test_delete_many_messages(self, mock_client, mock_browser):
         from WPP_Whatsapp.utils.batch_operations import BatchOperations
 
-        mock_browser.run_threadsafe = AsyncMock(return_value=True)
+        mock_client.deleteMessage_ = AsyncMock(return_value=True)
 
         batch = BatchOperations(mock_client)
 
@@ -504,7 +504,7 @@ class TestIntegration:
         with patch.object(Whatsapp, '__init__', lambda x, *args, **kwargs: None):
             mock_client = Whatsapp.__new__(Whatsapp)
             mock_client.ThreadsafeBrowser = mock_browser
-            mock_browser.run_threadsafe = AsyncMock(return_value={"id": "msg123"})
+            mock_client.sendText_ = AsyncMock(return_value={"id": "msg123"})
 
             # Setup
             limiter = WhatsAppRateLimiters.conservative()

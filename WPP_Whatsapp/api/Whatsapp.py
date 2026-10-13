@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from threading import Event
 
 from WPP_Whatsapp.api.const import defaultOptions, Logger
 from WPP_Whatsapp.api.helpers.jsFunction import setInterval
@@ -10,7 +11,7 @@ from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
 
 
 class Whatsapp(BusinessLayer):
-    interval: asyncio.Event
+    interval: Event
 
     def __init__(self, session, threadsafe_browser, page, loop=None, version=None, wa_js_version=None, **kwargs):
         self.connected = None
@@ -44,7 +45,9 @@ class Whatsapp(BusinessLayer):
         self.logger = self.options.get("logger") or Logger
         self.logger.info(f'{self.session}: Initializing...')
         self.logQR = kwargs.get("logQR") or False
-        self.autoClose = kwargs.get("autoClose") or self.options.get("autoClose") or 60
+        self.autoClose = kwargs.get("autoClose", self.options.get("autoClose", 60))
+        if self.autoClose is None:
+            self.autoClose = 60
         HostLayer.__init__(self)
         ListenerLayer.__init__(self)
         self.handel()
@@ -208,12 +211,19 @@ class Whatsapp(BusinessLayer):
 
     def close(self):
         """Close the session (sync)"""
+        self.isClosed = True
+        for name in ('interval', 'autoCloseInterval', 'checkStartInterval'):
+            interval = getattr(self, name, None)
+            if interval is not None:
+                interval.set()
         self.logger.info(f'{self.session}: Closing session...')
         if hasattr(self, 'ThreadsafeBrowser'):
             self.ThreadsafeBrowser.sync_close()
 
     async def close_async(self):
         """Close the session (async)"""
+        self.isClosed = True
+        await self.clear_all_interval()
         self.logger.info(f'{self.session}: Closing session...')
         if hasattr(self, 'ThreadsafeBrowser'):
             await self.ThreadsafeBrowser.close()

@@ -38,17 +38,27 @@ class RateLimiter:
         @param period: Time period in seconds
         @param delay_between_calls: Optional minimum delay between calls in seconds
         """
+        if not isinstance(calls, int) or isinstance(calls, bool) or calls < 1:
+            raise ValueError('calls must be a positive integer')
+        if period <= 0 or (delay_between_calls is not None and delay_between_calls < 0):
+            raise ValueError('period must be positive and delay cannot be negative')
         self.calls = calls
         self.period = period
         self.delay_between_calls = delay_between_calls
         self.timestamps: deque = deque(maxlen=calls)
-        self._lock = asyncio.Lock()
+        self._lock = None
+        self._lock_loop = None
         self._last_call_time: Optional[float] = None
 
     async def acquire(self):
         """Acquire permission to make a call"""
+        loop = asyncio.get_running_loop()
+        if self._lock is None:
+            self._lock, self._lock_loop = asyncio.Lock(), loop
+        elif self._lock_loop is not loop:
+            raise RuntimeError('Use a separate RateLimiter for each event loop')
         async with self._lock:
-            now = time.time()
+            now = time.monotonic()
 
             # Remove old timestamps
             while self.timestamps and self.timestamps[0] <= now - self.period:
@@ -60,18 +70,18 @@ class RateLimiter:
                 if wait_time > 0:
                     await asyncio.sleep(wait_time)
                     # Clean up again after waiting
-                    while self.timestamps and self.timestamps[0] <= time.time() - self.period:
+                    while self.timestamps and self.timestamps[0] <= time.monotonic() - self.period:
                         self.timestamps.popleft()
 
             # Apply delay between calls if configured
             if self.delay_between_calls and self._last_call_time:
-                elapsed = time.time() - self._last_call_time
+                elapsed = time.monotonic() - self._last_call_time
                 if elapsed < self.delay_between_calls:
                     await asyncio.sleep(self.delay_between_calls - elapsed)
 
             # Record this call
-            self.timestamps.append(time.time())
-            self._last_call_time = time.time()
+            self.timestamps.append(time.monotonic())
+            self._last_call_time = time.monotonic()
 
     async def __aenter__(self):
         await self.acquire()
@@ -82,7 +92,7 @@ class RateLimiter:
 
     def get_wait_time(self) -> float:
         """Get time to wait before next call is allowed"""
-        now = time.time()
+        now = time.monotonic()
         if len(self.timestamps) < self.calls:
             return 0.0
 
@@ -92,7 +102,7 @@ class RateLimiter:
     @property
     def remaining_calls(self) -> int:
         """Get number of remaining calls in current period"""
-        now = time.time()
+        now = time.monotonic()
         while self.timestamps and self.timestamps[0] <= now - self.period:
             self.timestamps.popleft()
         return max(0, self.calls - len(self.timestamps))

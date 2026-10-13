@@ -7,6 +7,13 @@ authors = [
     {name = "Ammar Alkotb", email = "ammar.alkotb@gmail.com"}
 ]
 license = {text = "MIT License"}
+
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     "aiohttp>=3.10.11",
     "event-emitter-js>=0.1.2",
@@ -37,20 +44,13 @@ Homepage = "https://github.com/3mora2/WPP_Whatsapp"
 file = "README.md"
 content-type = "text/markdown"
 
-classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Intended Audience :: Developers",
-    "Programming Language :: Python",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
-
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["WPP_Whatsapp*"]
 exclude = ["archive*", "tests*", "examples*"]
 
 [tool.setuptools.package-data]
-WPP_Whatsapp = ["*/*.js", "*.md"]
+WPP_Whatsapp = ["*/*.js", "*.md", "js_lib/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

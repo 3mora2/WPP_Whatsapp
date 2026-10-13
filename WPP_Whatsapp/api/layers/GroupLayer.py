@@ -30,7 +30,7 @@ class GroupLayer(RetrieverLayer):
     def getGroupInfoFromInviteLink(self, invite_code, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.getGroupInfoFromInviteLink_, invite_code, timeout_=timeout)
 
-    def createGroup(self, groupName, contacts=[], timeout=60):
+    def createGroup(self, groupName, contacts=None, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.createGroup_, groupName, contacts, timeout_=timeout)
 
     def removeParticipant(self, groupId, participantId, timeout=60):
@@ -103,7 +103,7 @@ class GroupLayer(RetrieverLayer):
     async def getGroupMembers_(self, groupId):
         groupId = self.valid_chatId(groupId)
         membersIds = await self.getGroupMembersIds_(groupId)
-        return [await self.getContact_(memberId.get("_serialized")) for memberId in membersIds]
+        return [await self.getContact_((memberId.get("_serialized") if isinstance(memberId, dict) else memberId)) for memberId in membersIds]
 
     async def getGroupInviteLink_(self, chatId):
         chatId = self.valid_chatId(chatId)
@@ -124,7 +124,8 @@ class GroupLayer(RetrieverLayer):
         invite_code = invite_code.replace('http://', '')
         return await self.ThreadsafeBrowser.page_evaluate("(inviteCode) => WPP.group.getGroupInfoFromInviteCode(inviteCode)", invite_code, page=self.page)
 
-    async def createGroup_(self, groupName, contacts=[]):
+    async def createGroup_(self, groupName, contacts=None):
+        contacts = [self.valid_chatId(c) for c in (contacts or [])]
         return await self.ThreadsafeBrowser.page_evaluate("({ groupName, contacts }) => WPP.group.create(groupName, contacts)",
                                         {"groupName": groupName, "contacts": contacts}, page=self.page)
 
@@ -180,6 +181,7 @@ class GroupLayer(RetrieverLayer):
     async def setGroupIcon_(self, groupId: str, pathOrBase64: str, options: Optional[GroupIconOptions] = None):
         """Set group icon - async implementation"""
         groupId = self.valid_chatId(groupId)
+        pathOrBase64 = await self._media_to_base64(pathOrBase64, "image")
         return await self.ThreadsafeBrowser.page_evaluate(
             """({ groupId, pathOrBase64 }) => {
                 return WPP.group.setIcon(groupId, pathOrBase64);
@@ -221,7 +223,7 @@ class GroupLayer(RetrieverLayer):
         groupId = self.valid_chatId(groupId)
         return await self.ThreadsafeBrowser.page_evaluate(
             """({ groupId, value }) => {
-                return WPP.group.setMessagesAdminsOnly(groupId, value);
+                return WPP.group.setProperty(groupId, "announcement", value);
             }""",
             {"groupId": groupId, "value": option},
             page=self.page
@@ -243,7 +245,7 @@ class GroupLayer(RetrieverLayer):
         groupId = self.valid_chatId(groupId)
         return await self.ThreadsafeBrowser.page_evaluate(
             """({ groupId, membershipIds }) => {
-                return WPP.group.approveMembershipRequest(groupId, membershipIds);
+                return WPP.group.approve(groupId, membershipIds);
             }""",
             {"groupId": groupId, "membershipIds": membershipIds},
             page=self.page
@@ -254,8 +256,26 @@ class GroupLayer(RetrieverLayer):
         groupId = self.valid_chatId(groupId)
         return await self.ThreadsafeBrowser.page_evaluate(
             """({ groupId, membershipIds }) => {
-                return WPP.group.rejectMembershipRequest(groupId, membershipIds);
+                return WPP.group.reject(groupId, membershipIds);
             }""",
             {"groupId": groupId, "membershipIds": membershipIds},
             page=self.page
         )
+
+    def promoteParticipant(self, groupId, participantId, timeout=60):
+        """Promote one or more group participants."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.promoteParticipant_, groupId, participantId, timeout_=timeout)
+
+    async def promoteParticipant_(self, groupId, participantId):
+        groupId = self.valid_chatId(groupId)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({groupId, participantId}) => WPP.group.promoteParticipants(groupId, participantId)", {"groupId": groupId, "participantId": participantId}, page=self.page)
+
+    def demoteParticipant(self, groupId, participantId, timeout=60):
+        """Demote one or more group admins."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.demoteParticipant_, groupId, participantId, timeout_=timeout)
+
+    async def demoteParticipant_(self, groupId, participantId):
+        groupId = self.valid_chatId(groupId)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({groupId, participantId}) => WPP.group.demoteParticipants(groupId, participantId)", {"groupId": groupId, "participantId": participantId}, page=self.page)

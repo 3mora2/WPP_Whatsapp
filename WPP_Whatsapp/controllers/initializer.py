@@ -66,10 +66,21 @@ class Create:
         self.autoClose = autoClose
         self.__kwargs = kwargs
 
+    def __enter__(self):
+        return self.start()
+
     def __exit__(self, *args):
         self.sync_close()
 
+    async def __aenter__(self):
+        return await self.start_()
+
+    async def __aexit__(self, *args):
+        await self.close()
+
     async def close(self):
+        if self.waitLoginPromise:
+            self.waitLoginPromise.cancel()
         if self.client:
             self.client.isClosed = True
         if hasattr(self, "ThreadsafeBrowser"):
@@ -77,6 +88,8 @@ class Create:
         self._onStateChange("CLOSED")
 
     def sync_close(self):
+        if self.waitLoginPromise:
+            self.waitLoginPromise.cancel()
         if self.client:
             self.client.isClosed = True
         if hasattr(self, "ThreadsafeBrowser"):
@@ -86,21 +99,20 @@ class Create:
 
     def _onStateChange(self, state):
         self.state = state
-        if hasattr(self, "ThreadsafeBrowser") and not self.client.page.is_closed():
-            # TODO::
-            connected = self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isRegistered()",
-                                                                  page=self.client.page)
-            if not connected:
-                self.ThreadsafeBrowser.sleep(2)
-                if not self.waitLoginPromise:
-                    try:
-                        self.waitLoginPromise = self.client.waitForLogin
-                    except:
-                        Logger.exception("waitForLogin")
-                    finally:
-                        self.waitLoginPromise = None
-                if self.waitLoginPromise:
-                    self.waitLoginPromise()
+        client = self.client
+        browser = getattr(self, 'ThreadsafeBrowser', None)
+        if (state not in ('CLOSED', 'browserClose', 'serverClose') and client is not None
+                and not client.page.is_closed() and browser is not None
+                and browser.loop.is_running() and not self.waitLoginPromise):
+            async def check_connection():
+                if not await browser.page_evaluate("() => WPP.conn.isRegistered()", page=client.page):
+                    await client.waitForLogin_()
+            self.waitLoginPromise = asyncio.run_coroutine_threadsafe(check_connection(), browser.loop)
+            def finished(future):
+                self.waitLoginPromise = None
+                if not future.cancelled() and future.exception():
+                    Logger.error("Session reconnection failed: %s", future.exception())
+            self.waitLoginPromise.add_done_callback(finished)
 
         if state == "CONNECTED":
             Logger.info("Ready ....")

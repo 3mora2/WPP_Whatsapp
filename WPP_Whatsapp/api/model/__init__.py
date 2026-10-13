@@ -20,6 +20,9 @@ class SendTextOptions(TypedDict, total=False):
     """Options for sending text messages"""
     quotedMsg: Optional[str]
     mentions: Optional[List[str]]
+    mentionedList: Optional[List[str]]
+    detectMentioned: Optional[bool]
+    messageId: Optional[str]
     linkPreview: Optional[bool]
     waitForAck: Optional[bool]
 
@@ -166,10 +169,15 @@ class PollOptions(TypedDict, total=False):
 
 
 # Order Options
-class OrderItem(TypedDict):
+class OrderItem(TypedDict, total=False):
     """Item in an order"""
     productId: str
     quantity: int
+    type: Literal['product', 'custom']
+    id: Union[str, List[str]]
+    name: str
+    price: int
+    qnt: int
 
 
 class OrderMessageOptions(TypedDict, total=False):
@@ -179,6 +187,10 @@ class OrderMessageOptions(TypedDict, total=False):
     tax: Optional[float]
     shipping: Optional[float]
     discount: Optional[float]
+    notes: str
+    offset: int
+    pix: dict
+    payment_instruction: str
 
 
 # Community Options
@@ -198,6 +210,7 @@ class NewsletterOptions(TypedDict, total=False):
     """Options for creating newsletters"""
     description: Optional[str]
     picture: Optional[str]
+    name: str
 
 
 # Group Management Options
@@ -232,6 +245,9 @@ class CollectionOptions(TypedDict, total=False):
     """Options for collections"""
     name: str
     products: Optional[List[str]]
+    collectionName: str
+    productsToAdd: List[str]
+    productsToRemove: List[str]
 
 
 class ProductOptions(TypedDict, total=False):
@@ -247,11 +263,12 @@ class ProductOptions(TypedDict, total=False):
 
 
 # UI Options
-class AutoDownloadOptions(TypedDict):
+class AutoDownloadOptions(TypedDict, total=False):
     """Options for auto download settings"""
-    wifi: bool
-    cellular: bool
-    roaming: bool
+    photos: bool
+    audio: bool
+    videos: bool
+    documents: bool
 
 
 class ThemeOptions(TypedDict):
@@ -268,6 +285,24 @@ class BusinessProfileOptions(TypedDict, total=False):
     websites: Optional[List[str]]
     vertical: Optional[str]  # Business category
     hours: Optional[dict]  # Business hours
+    website: List[str]
+    businessHours: dict
+    categories: dict
+    timezone: str
+
+
+class GetMessagesOptions(TypedDict, total=False):
+    count: int
+    direction: Literal['before', 'after']
+    id: str
+    onlyUnread: bool
+    media: Literal['url', 'document', 'all', 'image']
+    includeCallMessages: bool
+
+
+class GetMessagesFromRowIdOptions(TypedDict, total=False):
+    minRowId: int
+    limit: int
 
 
 # File Operations Options

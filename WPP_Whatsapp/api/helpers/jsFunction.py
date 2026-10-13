@@ -1,5 +1,6 @@
 import asyncio
 import traceback
+from threading import Event
 
 # from threading import Thread, Event
 #
@@ -101,7 +102,15 @@ class EventEmitter:
 
 
 def setInterval(loop, func, interval, *args, **kwargs):
-    stopped = asyncio.Event()
+    class Interval(Event):
+        task = None
+
+        def set(self):
+            super().set()
+            if self.task is not None and not self.task.done() and not loop.is_closed():
+                loop.call_soon_threadsafe(self.task.cancel)
+
+    stopped = Interval()
 
     async def loop_():
         while not stopped.is_set():
@@ -111,5 +120,11 @@ def setInterval(loop, func, interval, *args, **kwargs):
                 func(*args, **kwargs)
             await asyncio.sleep(interval)
 
-    loop.create_task(loop_())
+    def start():
+        if not stopped.is_set():
+            stopped.task = loop.create_task(loop_())
+
+    # Schedule coroutine creation on its owning loop; an idle/closed loop no
+    # longer leaves unawaited coroutine objects behind.
+    loop.call_soon_threadsafe(start)
     return stopped

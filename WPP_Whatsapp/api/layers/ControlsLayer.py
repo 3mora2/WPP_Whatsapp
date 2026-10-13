@@ -53,12 +53,12 @@ class ControlsLayer(UILayer):
         return self.ThreadsafeBrowser.run_threadsafe(self.deleteMessage_, chatId, messageId, onlyLocal,
                                                      deleteMediaInDevice, timeout_=timeout)
 
-    async def editMessage(self, msgId: str, newText: str, options=None, timeout=60):
+    def editMessage(self, msgId: str, newText: str, options=None, timeout=60):
         if options is None:
             options = {}
         return self.ThreadsafeBrowser.run_threadsafe(self.editMessage_, msgId, newText, options, timeout_=timeout)
 
-    async def setLimit(self, key, value: bool | int, timeout=60):
+    def setLimit(self, key, value: bool | int, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.setLimit_, key, value, timeout_=timeout)
 
     ######################################
@@ -89,7 +89,7 @@ class ControlsLayer(UILayer):
     async def pinChat_(self, chatId, option, nonExistent=False):
         chatId = self.valid_chatId(chatId)
         if nonExistent:
-            await self.ThreadsafeBrowser.page_evaluate("({ chatId }) => WPP.chat.find(chatId)", chatId, page=self.page)
+            await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.chat.find(chatId)", chatId, page=self.page)
 
         return await self.ThreadsafeBrowser.page_evaluate("({ chatId, option }) => WPP.chat.pin(chatId, option)",
                                                           {"chatId": chatId, "option": option}, page=self.page)
@@ -105,6 +105,7 @@ class ControlsLayer(UILayer):
            */
         """
 
+        chatId = self.valid_chatId(chatId)
         result = await self.ThreadsafeBrowser.page_evaluate(
             "({ chatId, keepStarred }) => WPP.chat.clear(chatId, keepStarred)",
             {"chatId": chatId, "keepStarred": keepStarred}, page=self.page)
@@ -122,6 +123,7 @@ class ControlsLayer(UILayer):
             Defaults to false.
            */
         """
+        chatId = self.valid_chatId(chatId)
         await self.ThreadsafeBrowser.page_evaluate(
             """({ chatId, messageId, onlyLocal, deleteMediaInDevice }) => WPP.chat.deleteMessage(
             chatId,messageId,deleteMediaInDevice,!onlyLocal
@@ -152,6 +154,15 @@ class ControlsLayer(UILayer):
 
     async def setLimit_(self, key, value: bool | int):
         return await self.ThreadsafeBrowser.page_evaluate(
-            "({ key, value }) => WPP.conn.setLimit(key as any, value)",
+            "({ key, value }) => WPP.conn.setLimit(key, value)",
             {"key": key, "value": value}, page=self.page
         )
+
+    def setTemporaryMessages(self, chatId, value, timeout=60):
+        """Enable or disable temporary messages."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.setTemporaryMessages_, chatId, value, timeout_=timeout)
+
+    async def setTemporaryMessages_(self, chatId, value):
+        chatId = self.valid_chatId(chatId)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({chatId, value}) => WAPI.setTemporaryMessages(chatId, value)", {"chatId": chatId, "value": value}, page=self.page)

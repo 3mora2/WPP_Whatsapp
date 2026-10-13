@@ -96,12 +96,8 @@ class CommunityLayer(HostLayer):
 
         result = await self.ThreadsafeBrowser.page_evaluate(
             """({ name, description, groupIds, options }) => {
-                return WPP.community.create({
-                    name,
-                    description,
-                    groupIds,
-                    ...options
-                });
+                return WPP.community.create(options.name ?? name,
+                    options.description ?? description, options.groupIds ?? groupIds);
             }""",
             {"name": name, "description": description, "groupIds": groupIds, "options": options},
             page=self.page
@@ -148,7 +144,7 @@ class CommunityLayer(HostLayer):
 
         result = await self.ThreadsafeBrowser.page_evaluate(
             """({ communityId, participantIds }) => {
-                return WPP.community.promoteParticipant(communityId, participantIds);
+                return WPP.community.promoteParticipants(communityId, participantIds);
             }""",
             {"communityId": communityId, "participantIds": participantId},
             page=self.page
@@ -162,7 +158,7 @@ class CommunityLayer(HostLayer):
 
         result = await self.ThreadsafeBrowser.page_evaluate(
             """({ communityId, participantIds }) => {
-                return WPP.community.demoteParticipant(communityId, participantIds);
+                return WPP.community.demoteParticipants(communityId, participantIds);
             }""",
             {"communityId": communityId, "participantIds": participantId},
             page=self.page

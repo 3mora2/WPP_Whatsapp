@@ -46,7 +46,7 @@ class UILayer(GroupLayer):
         @category UI
         @param chatId
         """
-        chatId = self.valid_chatId(chatId)
+        chatId = await self.get_chat_id_(chatId)
         return await self.ThreadsafeBrowser.page_evaluate("(chatId) => WPP.chat.openChatBottom(chatId, undefined)", chatId, page=self.page)
 
     async def openChatAt_(self, chatId, messageId):
@@ -56,7 +56,7 @@ class UILayer(GroupLayer):
         @param chatId Chat id
         @param messageId Message id (For example: '06D3AB3D0EEB9D077A3F9A3EFF4DD030')
         """
-        chatId = self.valid_chatId(chatId)
+        chatId = await self.get_chat_id_(chatId)
         return await self.ThreadsafeBrowser.page_evaluate(
             "({chatId, messageId}) => WPP.chat.openChatAt(chatId, messageId, undefined)",
             {"chatId": chatId, "messageId": messageId}, page=self.page)
@@ -77,3 +77,19 @@ class UILayer(GroupLayer):
         @category UI
         """
         return await self.ThreadsafeBrowser.page_evaluate("() => WPP.chat.getActiveChat()", page=self.page)
+
+    def getAutoDownloadSettings(self, timeout=60):
+        """Get media auto-download settings."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.getAutoDownloadSettings_, timeout_=timeout)
+
+    async def getAutoDownloadSettings_(self):
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "() => WPP.conn.getAutoDownloadSettings()", page=self.page)
+
+    def setAutoDownloadSettings(self, settings, timeout=60):
+        """Set media auto-download settings; WhatsApp reloads to apply them."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.setAutoDownloadSettings_, settings, timeout_=timeout)
+
+    async def setAutoDownloadSettings_(self, settings):
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({settings}) => WPP.conn.setAutoDownloadSettings(settings)", {"settings": settings}, page=self.page)

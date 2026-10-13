@@ -34,7 +34,7 @@ class ProfileLayer(StatusLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.getProfileName_, timeout_=timeout)
 
-    def setProfilePic(self, pathOrBase64, to, timeout=60):
+    def setProfilePic(self, pathOrBase64, to=None, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.setProfilePic_, pathOrBase64, to, timeout_=timeout)
 
@@ -63,7 +63,7 @@ class ProfileLayer(StatusLayer):
            */
         """
         chatId = self.valid_chatId(chatId)
-        return await self.ThreadsafeBrowser.page_evaluate("(id, time, type) => WAPI.sendMute(id, time, type)",
+        return await self.ThreadsafeBrowser.page_evaluate("({id, time, type}) => WAPI.sendMute(id, time, type)",
                                                           {"id": chatId, "time": time, "type": type}, page=self.page)
 
     async def setTheme_(self, type_):
@@ -82,28 +82,37 @@ class ProfileLayer(StatusLayer):
            * @param status
            */
         """
-        return await self.ThreadsafeBrowser.page_evaluate("""({ status }) => {
-            WPP.profile.setMyStatus(status);
-          }""", status, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "(status) => WPP.profile.setMyStatus(status)", status, page=self.page)
 
     async def getProfileStatus_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("""() => WPP.profile.getMyStatus());""", page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.profile.getMyStatus()", page=self.page)
 
     async def getProfileName_(self):
         """Get profile name - async implementation"""
-        return await self.ThreadsafeBrowser.page_evaluate("""() => WPP.profile.getMyName());""", page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.profile.getMyProfileName()", page=self.page)
 
     async def editBusinessProfile_(self, options: BusinessProfileOptions):
         """Edit business profile - async implementation"""
+        options = dict(options)
+        for old, new in [('websites', 'website'), ('hours', 'businessHours')]:
+            if old in options and new not in options:
+                options[new] = options.pop(old)
         return await self.ThreadsafeBrowser.page_evaluate(
             """({ options }) => {
-                return WPP.profile.setBusinessProfile(options);
+                return WPP.profile.editBusinessProfile(options);
             }""",
             {"options": options},
             page=self.page
         )
-    async def setProfilePic_(self, pathOrBase64, to):
-        pass
+    async def setProfilePic_(self, pathOrBase64, to=None):
+        base64 = await self._media_to_base64(pathOrBase64, 'image')
+        if to:
+            return await self.ThreadsafeBrowser.page_evaluate(
+                "({to, base64}) => WPP.group.setIcon(to, base64)",
+                {"to": self.valid_chatId(to), "base64": base64}, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "(base64) => WPP.profile.setMyProfilePicture(base64)", base64, page=self.page)
         # ToDO:
         # base64 = ''
         # if pathOrBase64.startswith('data:'):
@@ -121,7 +130,8 @@ class ProfileLayer(StatusLayer):
         #     return
 
     async def setProfileName_(self, name):
-        return await self.ThreadsafeBrowser.page_evaluate("({ name }) => {WAPI.setMyName(name);}", name, page=self.page)
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "(name) => WPP.profile.setMyProfileName(name)", name, page=self.page)
 
     async def removeMyProfilePicture_(self):
         return await self.ThreadsafeBrowser.page_evaluate("() => WPP.profile.removeMyProfilePicture()", page=self.page)

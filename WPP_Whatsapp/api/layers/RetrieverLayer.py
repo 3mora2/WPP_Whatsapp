@@ -141,7 +141,7 @@ class RetrieverLayer(SenderLayer):
     ########################################################
     async def getListMutes_(self, type_):
         # @returns string light or dark
-        return await self.ThreadsafeBrowser.page_evaluate("(type: string) => WAPI.getListMute(type),", type_,
+        return await self.ThreadsafeBrowser.page_evaluate("(type) => WAPI.getListMute(type)", type_,
                                                           page=self.page)
 
     async def getSessionTokenBrowser_(self, removePath):
@@ -149,7 +149,7 @@ class RetrieverLayer(SenderLayer):
         if removePath:
             await self.ThreadsafeBrowser.page_evaluate("() => {window['pathSession'] = true;}", page=self.page)
 
-        if self.isMultiDevice():
+        if await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.isMultiDevice()", page=self.page):
             return await self.ThreadsafeBrowser.page_evaluate("""() => {
           if (window.localStorage) {
             return {
@@ -264,7 +264,7 @@ class RetrieverLayer(SenderLayer):
 
     async def getAllChatsWithMessages_(self, withNewMessageOnly=False):
         # @returns array of [Chat]
-        return await self.ThreadsafeBrowser.page_evaluate("""(withNewMessageOnly: boolean) =>
+        return await self.ThreadsafeBrowser.page_evaluate("""(withNewMessageOnly) =>
         WAPI.getAllChatsWithMessages(withNewMessageOnly)""", withNewMessageOnly, page=self.page)
 
     async def getAllGroups_(self, withNewMessagesOnly):
@@ -280,7 +280,7 @@ class RetrieverLayer(SenderLayer):
         );
 
         return groups.map((g) => WAPI._serializeChatObj(g));
-      }""", withNewMessagesOnly, page=self.page)
+      }""", {"withNewMessagesOnly": withNewMessagesOnly}, page=self.page)
 
     async def getAllBroadcastList_(self):
         # @returns array of broadcast list
@@ -306,7 +306,7 @@ class RetrieverLayer(SenderLayer):
 
     async def getChat_(self, contactId):
         contactId = self.valid_chatId(contactId)
-        return self.getChatById(contactId)
+        return await self.getChatById_(contactId)
 
     async def getProfilePicFromServer_(self, chatId):
         # @returns url of the chat picture or unasync defined if there is no picture for the chat.
@@ -315,7 +315,7 @@ class RetrieverLayer(SenderLayer):
                                                           page=self.page)
 
     async def loadEarlierMessages_(self, contactId):
-        contactId = self.valid_chatId(contactId)
+        contactId = await self.get_chat_id_(contactId)
         return await self.ThreadsafeBrowser.page_evaluate("(contactId) => WAPI.loadEarlierMessages(contactId)",
                                                           contactId, page=self.page)
 
@@ -326,7 +326,7 @@ class RetrieverLayer(SenderLayer):
 
                                         return {
                                           id: contactId,
-                                          status: (status as any)?.status || status,
+                                          status: status?.status || status,
                                         };
                                       }""", contactId, page=self.page)
 
@@ -350,7 +350,7 @@ class RetrieverLayer(SenderLayer):
         return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getAllNewMessages()", page=self.page)
 
     async def getAllMessagesInChat_(self, chatId: str, includeMe=False, includeNotifications=False):
-        chatId = self.valid_chatId(chatId)
+        chatId = await self.get_chat_id_(chatId)
         """
         * Retrieves all messages already loaded in a chat
         * For loading every message use loadAndGetAllMessagesInChat
@@ -415,3 +415,12 @@ class RetrieverLayer(SenderLayer):
         return await self.ThreadsafeBrowser.page_evaluate("(phoneOrLid) => WPP.contact.getPnLidEntry(phoneOrLid)",
                                                           phoneOrLid,
                                                           page=self.page)
+
+    def getMessagesFromRowId(self, options, timeout=60):
+        """Read IndexedDB messages after options.minRowId."""
+        return self.ThreadsafeBrowser.run_threadsafe(self.getMessagesFromRowId_, options, timeout_=timeout)
+
+    async def getMessagesFromRowId_(self, options):
+        options = {} if options is None else options
+        return await self.ThreadsafeBrowser.page_evaluate(
+            "({options}) => WPP.indexdb.getMessagesFromRowId(options)", {"options": options}, page=self.page)
