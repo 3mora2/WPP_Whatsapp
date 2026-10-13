@@ -24,7 +24,7 @@ close their profiles. Real-account tests are described in
 | `mcp/runtime.py` | Serialize MCP operations with session lifecycle changes. |
 | `mcp/models.py` | Typed structured MCP results and delivery lookup schema. |
 | `mcp/server.py` | Explicit tool schemas, redacted errors and delivery receipts. |
-| `mcp/cli.py` | Application startup, stdio logging and loopback HTTP settings. |
+| `mcp/cli.py` | Application startup, stdio logging and authenticated HTTP settings. |
 
 Keep these responsibilities separate. Browser errors must not include message
 bodies, tokens or recipient details. Storage adapters receive metadata only.
@@ -116,3 +116,27 @@ with `python tools/verify_docs.py --write-api` after service changes.
 Legacy public method names remain unchanged. Enable Chrome tests for changes
 to ownership, concurrency or callbacks. The
 [architecture guide](ARCHITECTURE.md) describes runtime behavior and release recovery.
+
+## Upstream review
+
+Run `python tools/check_upstream.py --output archive/upstream-report.json` to
+compare the recorded immutable WPPConnect/WA-JS sources against their current
+default-branch commits. The audit pins commits, downloads bounded archives,
+reads TypeScript without executing/extracting it, records SHA-256 provenance
+and reports public export/method/parameter differences. Potential removals or
+signature changes return exit code 2. Network/parser failures fail the run.
+
+The [upstream workflow](../.github/workflows/upstream-review.yml) runs weekly
+and manually, uploads its report and leaves bundled code/contracts unchanged.
+Manual `propose_update=true` opens a draft PR containing the report for review;
+GitHub must permit Actions to create PRs. Nothing is automatically merged or
+released. Signature review, contract tests, browser capabilities and opt-in
+authenticated tests are still required before adopting changes. Static names
+alone do not establish compatibility. Public re-exports exclude internal helpers.
+
+Common typed views live in `core/models.py`; keep unknown fields available as
+copied raw data. Media transfers belong in `core/media.py`, with byte limits,
+cleanup and explicit uncertainty. Use `sync_wrapper` only for unchanged argument
+forwarding; keep custom normalization in its existing method. Every new MCP tool
+must select its runtime through `mcp/accounts.py` with the appropriate scope
+before accessing account data or dispatching work.

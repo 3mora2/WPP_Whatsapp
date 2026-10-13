@@ -15,6 +15,11 @@ from WPP_Whatsapp.core.options import validate_options
 class Whatsapp:
     interval: Event
 
+    def diagnostics(self):
+        """Return an allowlisted support report without message or profile data."""
+        from WPP_Whatsapp.core.diagnostics import snapshot
+        return snapshot(self.lifecycle.state, self)
+
     def __init__(self, session, threadsafe_browser, page, loop=None, version=None, wa_js_version=None, **kwargs):
         kwargs = validate_options(kwargs)
         self.connected = None

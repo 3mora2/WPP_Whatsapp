@@ -67,8 +67,10 @@ wpp-whatsapp-mcp --session mybot --transport http --port 8765
 
 Elige stdio o HTTP local (`http://127.0.0.1:8765/mcp`). Llama a
 `whatsapp_connect`, inicia sesión en el navegador y consulta `whatsapp_status`
-hasta que esté listo. Hay 12 herramientas; `--read-only` omite envío y
-reconciliación. Cada servidor comparte una cuenta entre sus clientes MCP.
+hasta que esté listo. La versión 2.2.0 incluye 21 herramientas (16 con
+`--read-only`), cuentas aisladas, permisos JWT, eventos, búsqueda y archivos.
+Estas mejoras están disponibles desde 2.2.0; la versión 2.1.0 tiene
+las 12 herramientas originales. Consulta también las [lecturas tipadas y archivos](docs/TYPED_MEDIA.md).
 Consulta la [guía FastMCP](docs/FASTMCP.md).
 
 ## Compatibilidad y ayuda

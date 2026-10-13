@@ -4,10 +4,13 @@ from typing import Optional
 from WPP_Whatsapp.api.layers.HostLayer import HostLayer
 from WPP_Whatsapp.api.model import NewsletterOptions
 
+from WPP_Whatsapp.core.sync_api import sync_wrapper
+
 
 class NewsletterLayer(HostLayer):
     """Layer for managing WhatsApp Newsletters"""
 
+    @sync_wrapper("createNewsletter_")
     def createNewsletter(self, name: str, options: Optional[NewsletterOptions] = None, timeout=60):
         """
         Create a new newsletter
@@ -16,9 +19,9 @@ class NewsletterLayer(HostLayer):
         @param options: Additional options (description, picture)
         @return: Newsletter ID
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.createNewsletter_, name, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("editNewsletter_")
     def editNewsletter(self, id: str, options: Optional[NewsletterOptions] = None, timeout=60):
         """
         Edit a newsletter
@@ -27,9 +30,9 @@ class NewsletterLayer(HostLayer):
         @param options: Options to update (name, description, picture)
         @return: Success status
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.editNewsletter_, id, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("destroyNewsletter_")
     def destroyNewsletter(self, id: str, timeout=60):
         """
         Destroy a newsletter
@@ -37,9 +40,9 @@ class NewsletterLayer(HostLayer):
         @param id: Newsletter ID
         @return: Success status
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.destroyNewsletter_, id, timeout_=timeout)
+        ...
 
+    @sync_wrapper("muteNewsletter_")
     def muteNewsletter(self, id: str, timeout=60):
         """
         Mute a newsletter
@@ -47,8 +50,7 @@ class NewsletterLayer(HostLayer):
         @param id: Newsletter ID
         @return: Success status
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.muteNewsletter_, id, timeout_=timeout)
+        ...
 
     # ##########################################################################
     # Async implementations

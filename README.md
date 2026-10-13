@@ -71,11 +71,15 @@ Choose one command: the first uses stdio, the second exposes
 `http://127.0.0.1:8765/mcp`. Starting the server does not start WhatsApp. Call
 `whatsapp_connect`, log in in the browser, then poll `whatsapp_status` until ready.
 
-The 12 tools cover session control, paginated chat/history reads, complete
-message-ID lookup, contacts, group members, tracked text sending and receipt
-inspection/reconciliation. `--read-only` omits send/reconciliation tools.
-One server owns one account shared by its MCP clients. See
+Version 2.2.0 provides 21 tools, adding account isolation, bounded search,
+incoming events, diagnostics, replies and tracked media to the original 2.1.0 tools.
+`--read-only` leaves 16 tools. Account policies use verified JWT identity/scopes;
+each configured account has its own profile, delivery ledger and event buffer. See
 [FastMCP configuration and delivery semantics](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/FASTMCP.md).
+
+Opt-in [typed reads, diagnostics and bounded media](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/TYPED_MEDIA.md)
+are available from 2.2.0 without changing legacy raw results. Version 2.1.0
+has the original 12 tools.
 
 ## Runtime, sessions and compatibility
 

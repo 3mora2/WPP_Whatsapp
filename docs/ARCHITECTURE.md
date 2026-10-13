@@ -168,9 +168,17 @@ WA-JS discovery/download; WhatsApp Web itself still requires network access.
 The [FastMCP server](FASTMCP.md) uses the native client and creates it lazily
 per server lifespan. Its explicit tools serialize browser operations with
 connect/disconnect, while local status remains available during startup. One
-server owns one profile shared by its MCP clients. It defaults to persistent
+server defaults to one account and supports administrator-configured accounts
+with independent profiles, locks, ledgers and event buffers. Verified JWT scopes
+and a principal/account policy restrict access. It defaults to persistent
 session-scoped delivery metadata, exposes structured uncertain receipts and
 keeps QR/login in the browser. Injected clients retain caller ownership/options.
+
+The additive [typed view and media APIs](TYPED_MEDIA.md) preserve raw legacy
+results. Reviewed sync declarations use `core/sync_api.py` to share forwarding
+without changing their names, defaults or binding. Static
+[upstream review](DEVELOPMENT.md#upstream-review) proposes source differences;
+runtime adoption still requires tests and review.
 
 ## Releases and recovery
 

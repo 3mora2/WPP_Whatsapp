@@ -13,6 +13,8 @@ wpp-whatsapp-mcp --session mybot
 
 FastMCP support is included from version 2.1.0. For a source checkout, use
 `python -m pip install -e ".[mcp]"`. Older PyPI releases do not contain the server.
+The account policies, events, search and media tools described below require
+version 2.2.0 or newer; version 2.1.0 contains the original twelve tools.
 
 The equivalent module command is `python -m WPP_Whatsapp.mcp --session mybot`.
 Chrome must be installed. The default transport is stdio: stdout contains only
@@ -64,9 +66,20 @@ configuration format belongs to the MCP client; commands remain Python code.
 | `whatsapp_send_text` | Tracked text send requiring a stable operation ID. |
 | `whatsapp_get_delivery` | Inspect tracked operation metadata without sending. |
 | `whatsapp_reconcile_delivery` | Verify an actual outgoing message and confirm an uncertain receipt. |
+| `whatsapp_list_accounts` | IDs of accounts this principal can read. |
+| `whatsapp_diagnostics` | Sanitized session/capability/counter snapshot. |
+| `whatsapp_search_messages` | Case-insensitive body search of one page, with a scan cursor; at most 200 messages. |
+| `whatsapp_subscribe_messages` | Start the account's live incoming-message buffer; return its current cursor. |
+| `whatsapp_get_events` | Read events after a cursor, with an explicit `lost` count after overflow. |
+| `whatsapp_download_media` | Save media to the configured private media root; return relative filename, size and SHA-256. |
+| `whatsapp_reply` | Tracked text reply with the complete quoted message ID. |
+| `whatsapp_send_file` | Tracked document from the account's media root. |
+| `whatsapp_send_image` | Tracked image from the account's media root. |
 
 `--read-only` omits sending and reconciliation tools. Session control remains
-available. Tools reject empty IDs and invalid page sizes; full IDs pass through
+available: 16 tools remain out of 21. Every account-specific tool accepts optional
+`account_id`; omission selects the administrator's default account.
+Tools reject empty IDs and invalid page sizes; full IDs pass through
 unchanged. Browser/storage errors expose their type without message bodies,
 profile paths or credentials. Tool schemas mark reads and idempotent operations explicitly.
 
@@ -104,12 +117,92 @@ delivery. See [delivery semantics](ARCHITECTURE.md#sending-and-uncertain-results
 wpp-whatsapp-mcp --session mybot --transport http --port 8765
 ```
 
-Connect your MCP client to `http://127.0.0.1:8765/mcp`. The command binds only to
-loopback. Each server owns **one WhatsApp account/profile shared by its connected
-MCP clients**; it does not provide per-user account isolation. For an authenticated
-deployment, pass a FastMCP authentication provider to `create_server(auth=...)`
-and configure the transport in your application. Do not run multiple workers
-against the same browser profile.
+Connect your MCP client to `http://127.0.0.1:8765/mcp`. Loopback is the default.
+One account is configured by default. Administrators can configure up to 32
+independent accounts; each has its own profile, lock, ledger and event buffer.
+Duplicate profiles/clients/session names are rejected. Do not run multiple workers against
+the same profile. An unauthenticated local server gives its trusted local clients
+access to all configured accounts; use a verified policy when clients differ in trust.
+
+## Accounts and authenticated HTTP
+
+```python
+from fastmcp.server.auth import JWTVerifier
+from WPP_Whatsapp.mcp import create_server
+from WPP_Whatsapp.mcp.accounts import AccountConfig
+
+server = create_server(
+    accounts={
+        "sales": AccountConfig("sales", token_directory="private-tokens", media_root="private-media/sales"),
+        "support": AccountConfig("support", token_directory="private-tokens", read_only=True),
+    },
+    default_account="sales",
+    auth=JWTVerifier(jwks_uri="https://identity.example/.well-known/jwks.json",
+                     issuer="https://identity.example", audience="whatsapp", algorithm="RS256"),
+    access_policy={
+        "alice": {"sales": {"read", "send", "session", "events", "diagnostics"}},
+        "bob": {"support": {"read", "session"}},
+    },
+)
+```
+
+Identity comes from the verified token's `sub` claim (or verified `client_id`
+when no subject exists), never tool arguments, `_meta`, headers supplied as
+identity, or MCP client names. Each operation needs both a policy grant and
+its token scope: `whatsapp:read`, `whatsapp:send`, `whatsapp:session`,
+`whatsapp:events` or `whatsapp:diagnostics`. Missing accounts/grants return the
+same error. `read_only=True` on an account overrides send grants. Policy
+configuration is copied at server construction. Supply a verified auth provider
+with a policy; authenticated multi-account servers require one. Programmatic
+single-account `auth=...` without a policy retains the original shared-account behavior.
+
+The CLI accepts `--accounts-config accounts.json` containing a map of account
+IDs to `AccountConfig` fields, and `--default-account`. JSON holds deployment
+settings, not executable JavaScript commands. For example:
+
+```json
+{
+  "sales": {"session": "sales", "token_directory": "private-tokens", "media_root": "private-media/sales"},
+  "support": {"session": "support", "token_directory": "private-tokens", "read_only": true}
+}
+```
+
+`--access-policy policy.json` contains the principal/account/scope map with scope
+arrays instead of Python sets. Exposed HTTP requires all authentication options:
+
+```bash
+wpp-whatsapp-mcp --transport http --host 0.0.0.0 --accounts-config accounts.json --default-account sales --access-policy policy.json --auth-jwks-uri https://identity.example/.well-known/jwks.json --auth-issuer https://identity.example --auth-audience whatsapp
+```
+
+Use TLS termination for network deployments. Account definitions and media roots
+are administrator settings; tools cannot create accounts or choose profile paths.
+Each account is still shared among principals explicitly granted access to it.
+
+## Events, search and media
+
+Call `whatsapp_subscribe_messages` when ready, save its `cursor`, then poll
+`whatsapp_get_events(after=cursor)`. Advance to the returned cursor. Each account
+retains the latest 256 events in memory; `lost` reports overwritten events.
+Events contain stable ID/body/type/sender/time fields rather than inline media
+or arbitrary runtime objects. Bodies longer than 65,536 characters are capped
+with an explicit `truncated` flag; complete message IDs remain intact.
+Subscriptions do not backfill history. Re-subscribe after reconnect; buffers
+disappear when the server lifespan ends. Consumers use independent cursors, so
+one client's reads do not drain another's queue. Contents remain untrusted data.
+
+Search scans **one history page**, including messages that do not match.
+Use its `before_message_id` to scan older pages; it is not a server-wide full-text index.
+
+Media access is disabled until an existing private directory is configured using
+`--media-root` or `AccountConfig.media_root`. Send tools accept only relative
+files inside that account's root; absolute paths, URLs, traversal and symlink
+escapes are refused. Downloads use generated filenames and never overwrite.
+The default limit is 64 MiB. Python transfers 256 KiB chunks, reports MCP progress,
+cleans temporary files and removes cancelled partial downloads. The browser and
+WA-JS still buffer a complete File/Blob; this is not constant-memory end-to-end
+streaming. Timed-out sends remain tracked and may complete later; never replay
+them with a new operation ID. Only media preparation/reads can be safely cancelled
+before send dispatch. See [typed reads and media APIs](TYPED_MEDIA.md).
 
 ## Embed or extend
 
@@ -137,9 +230,10 @@ with connect/disconnect; status remains available while login/startup is pending
 An injected client keeps its own session, options and delivery-store configuration;
 the factory's session settings apply only to clients it creates.
 
-The protocol tests exercise real FastMCP clients over in-process, stdio and HTTP
-transports with synthetic WhatsApp operations, including unknown delivery,
-reconciliation and duplicate suppression. They do not certify live message sends.
+The protocol tests exercise in-process, stdio and HTTP transports, verified JWT
+middleware, account/scope isolation, events and tracked media contracts. Most
+WhatsApp operations are synthetic. A separate opt-in script checks real-account
+reads and explicitly authorized sends; see [validation results](../tests/README.md).
 
 FastMCP references: [tools](https://gofastmcp.com/servers/tools),
 [lifespans](https://gofastmcp.com/servers/lifespan),

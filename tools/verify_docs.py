@@ -61,7 +61,14 @@ def generated_api():
             operations.update(
                 {
                     name: getattr(MessagesService, name)
-                    for name in ("send_text", "get_message", "reconcile")
+                    for name in (
+                        "send_text",
+                        "get_message",
+                        "reconcile",
+                        "search",
+                        "send_media",
+                        "download_media_to",
+                    )
                 }
             )
         lines += [
@@ -112,6 +119,23 @@ def generated_api():
         "The inventory describes the Python surface, not live upstream/account permissions.",
         "",
     ]
+    lines += [
+        "## typed",
+        "",
+        "Opt-in dataclass results; raw services keep their original results.",
+        "",
+    ]
+    for name in ("get_message", "get_messages", "list_chats", "get_group", "get_group_members"):
+        bound = signature(getattr(service_hub().typed, name))
+        plain = bound.replace(
+            return_annotation=inspect.Signature.empty,
+            parameters=[
+                parameter.replace(annotation=inspect.Parameter.empty)
+                for parameter in bound.parameters.values()
+            ],
+        )
+        lines.append(f"- `typed.{name}{plain}`")
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -186,6 +210,8 @@ def recipe_errors(source, location):
                 return None
             if value in (Whatsapp, AsyncClient) and name in ("services", "async_services"):
                 value = service_hub()
+            elif value is AsyncClient and name == "typed":
+                value = service_hub().typed
             elif value is AsyncClient and name in (*service_hub().names,):
                 value = getattr(service_hub(), name)
             elif isinstance(value, MessagesService) and name == "deliveries":

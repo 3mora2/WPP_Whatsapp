@@ -4,31 +4,33 @@ from typing import List, Dict, Any
 
 from WPP_Whatsapp.api.layers.ListsLayer import ListsLayer
 
+from WPP_Whatsapp.core.sync_api import sync_wrapper
+
 
 class LabelsLayer(ListsLayer):
+    @sync_wrapper("addNewLabel_")
     def addNewLabel(self, name, options=None, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.addNewLabel_, name, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("addOrRemoveLabels_")
     def addOrRemoveLabels(self, chatIds, options, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.addOrRemoveLabels_, chatIds, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getAllLabels_")
     def getAllLabels(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getAllLabels_, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getLabelById_")
     def getLabelById(self, Id, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getLabelById_, Id, timeout_=timeout)
+        ...
 
+    @sync_wrapper("deleteAllLabels_")
     def deleteAllLabels(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.deleteAllLabels_, timeout_=timeout)
+        ...
 
+    @sync_wrapper("deleteLabel_")
     def deleteLabel(self, Id, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.deleteLabel_, Id, timeout_=timeout)
+        ...
 
     ######################################
     async def addNewLabel_(self, name, options=None):

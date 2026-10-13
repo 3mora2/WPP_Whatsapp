@@ -4,10 +4,13 @@ from typing import List, Optional
 from WPP_Whatsapp.api.layers.HostLayer import HostLayer
 from WPP_Whatsapp.api.model import CollectionOptions, ProductOptions
 
+from WPP_Whatsapp.core.sync_api import sync_wrapper
+
 
 class CatalogLayer(HostLayer):
     """Layer for managing WhatsApp Business Catalog"""
 
+    @sync_wrapper("createProduct_")
     def createProduct(self,
                       name: str, image: str, description: str, price: float, isHidden: bool = False,
                       url: str = "", retailerId: str = "", currency: str = "USD", timeout=60):
@@ -22,68 +25,67 @@ class CatalogLayer(HostLayer):
            * @param retailerId Product own ID system
            * @param currency Product currency
         """
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.createProduct_, name, image, description, price, isHidden, url, retailerId, currency, timeout_=timeout)
+        ...
 
+    @sync_wrapper("delProducts_")
     def delProducts(self, productsId: List[str], timeout=60):
         """Delete product(s) on catalog"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.delProducts_, productsId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getProducts_")
     def getProducts(self, id: str, qnt: int, timeout=60):
         """Query all products"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getProducts_, id, qnt, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getProductById_")
     def getProductById(self, id: str, productId: str, timeout=60):
         """Get product by ID"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getProductById_, id, productId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getCollections_")
     def getCollections(self, id: str, qnt: str, maxProducts: str, timeout=60):
         """Query all collections"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getCollections_, id, qnt, maxProducts, timeout_=timeout)
+        ...
 
+    @sync_wrapper("createCollection_")
     def createCollection(self, collectionName: str, productsId: List[str], timeout=60):
         """Create new collection"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.createCollection_, collectionName, productsId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("deleteCollection_")
     def deleteCollection(self, collectionId: str, timeout=60):
         """Delete a collection"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.deleteCollection_, collectionId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("editCollection_")
     def editCollection(self, collectionId: str, options: CollectionOptions, timeout=60):
         """Edit a collection"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.editCollection_, collectionId, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("editProduct_")
     def editProduct(self, productId: str, options: ProductOptions, timeout=60):
         """Edit product on catalog"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.editProduct_, productId, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("addProductImage_")
     def addProductImage(self, productId: str, image: str, timeout=60):
         """Add image on product"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.addProductImage_, productId, image, timeout_=timeout)
+        ...
 
+    @sync_wrapper("changeProductImage_")
     def changeProductImage(self, productId: str, image: str, timeout=60):
         """Change main image of product"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.changeProductImage_, productId, image, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getBusinessProfilesProducts_")
     def getBusinessProfilesProducts(self, id_: str, timeout=60):
         """Query product catalog"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getBusinessProfilesProducts_, id_, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getOrderbyMsg_")
     def getOrderbyMsg(self, messageId: str, timeout=60):
         """Query order catalog"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getOrderbyMsg_, messageId, timeout_=timeout)
+        ...
 
     # ##########################################################################
     # Async implementations
@@ -199,25 +201,28 @@ class CatalogLayer(HostLayer):
             page=self.page
         )
 
+    @sync_wrapper("removeProductImage_")
     def removeProductImage(self, productId, index, timeout=60):
         """Remove an additional product image."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.removeProductImage_, productId, index, timeout_=timeout)
+        ...
 
     async def removeProductImage_(self, productId, index):
         return await self._evaluate_js(
             'CatalogLayer.removeProductImage_.0', {"productId": productId, "index": index}, page=self.page)
 
+    @sync_wrapper("setProductVisibility_")
     def setProductVisibility(self, productId, value, timeout=60):
         """Set product visibility."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.setProductVisibility_, productId, value, timeout_=timeout)
+        ...
 
     async def setProductVisibility_(self, productId, value):
         return await self._evaluate_js(
             'CatalogLayer.setProductVisibility_.0', {"productId": productId, "value": value}, page=self.page)
 
+    @sync_wrapper("updateCartEnabled_")
     def updateCartEnabled(self, value, timeout=60):
         """Enable or disable the business cart."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.updateCartEnabled_, value, timeout_=timeout)
+        ...
 
     async def updateCartEnabled_(self, value):
         return await self._evaluate_js(

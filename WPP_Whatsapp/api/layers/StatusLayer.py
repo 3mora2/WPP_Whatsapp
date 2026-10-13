@@ -1,6 +1,8 @@
 from WPP_Whatsapp.api.layers.LabelsLayer import LabelsLayer
 from WPP_Whatsapp.api.helpers.download_file import downloadFileToBase64
 
+from WPP_Whatsapp.core.sync_api import sync_wrapper
+
 
 class StatusLayer(LabelsLayer):
     def sendImageStatus(self, pathOrBase64: str, options: dict = None, timeout=60):
@@ -57,6 +59,7 @@ class StatusLayer(LabelsLayer):
         return self.ThreadsafeBrowser.run_threadsafe(
             self.sendTextStatus_, text, options, timeout_=timeout)
 
+    @sync_wrapper("sendReadStatus_")
     def sendReadStatus(self, chatId: str, statusId: str, timeout=60):
         """/**
            * Mark status as read/seen
@@ -69,8 +72,7 @@ class StatusLayer(LabelsLayer):
            * @param chatId Chat ID of contact
            * @param statusId ID of status msg
            */"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.sendReadStatus_, chatId, statusId, timeout_=timeout)
+        ...
 
     ##########################################################################
     async def sendImageStatus_(self, pathOrBase64: str, options=None):

@@ -10,85 +10,98 @@ from WPP_Whatsapp.api.model import (
     GroupMembershipRequestOptions,
 )
 
+from WPP_Whatsapp.core.sync_api import sync_wrapper
+
 
 class GroupLayer(RetrieverLayer):
+    @sync_wrapper("leaveGroup_")
     def leaveGroup(self, groupId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.leaveGroup_, groupId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getGroupMembersIds_")
     def getGroupMembersIds(self, groupId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getGroupMembersIds_, groupId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getGroupMembers_")
     def getGroupMembers(self, groupId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getGroupMembers_, groupId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getGroupInviteLink_")
     def getGroupInviteLink(self, chatId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getGroupInviteLink_, chatId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("revokeGroupInviteLink_")
     def revokeGroupInviteLink(self, chatId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.revokeGroupInviteLink_, chatId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getGroupInfoFromInviteLink_")
     def getGroupInfoFromInviteLink(self, invite_code, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getGroupInfoFromInviteLink_, invite_code, timeout_=timeout)
+        ...
 
+    @sync_wrapper("createGroup_")
     def createGroup(self, groupName, contacts=None, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.createGroup_, groupName, contacts, timeout_=timeout)
+        ...
 
+    @sync_wrapper("removeParticipant_")
     def removeParticipant(self, groupId, participantId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.removeParticipant_, groupId, participantId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("addParticipant_")
     def addParticipant(self, groupId, participantId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.addParticipant_, groupId, participantId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getGroupAdmins_")
     def getGroupAdmins(self, chatId, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getGroupAdmins_, chatId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("joinGroup_")
     def joinGroup(self, invite_code, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.joinGroup_, invite_code, timeout_=timeout)
+        ...
 
+    @sync_wrapper("setGroupDescription_")
     def setGroupDescription(self, groupId: str, description: str, options: Optional[GroupDescriptionOptions] = None, timeout=60):
         """Set group description"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.setGroupDescription_, groupId, description, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("setGroupSubject_")
     def setGroupSubject(self, groupId: str, title: str, options: Optional[GroupSubjectOptions] = None, timeout=60):
         """Set group subject/title"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.setGroupSubject_, groupId, title, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("setGroupIcon_")
     def setGroupIcon(self, groupId: str, pathOrBase64: str, options: Optional[GroupIconOptions] = None, timeout=60):
         """Set group icon"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.setGroupIcon_, groupId, pathOrBase64, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("removeGroupIcon_")
     def removeGroupIcon(self, groupId: str, timeout=60):
         """Remove group icon"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.removeGroupIcon_, groupId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("setGroupProperty_")
     def setGroupProperty(self, groupId: str, property: str, value: bool, options: Optional[GroupPropertyOptions] = None, timeout=60):
         """Set group property (restrict, announce, ephemeral, noFrequentlyForwarded)"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.setGroupProperty_, groupId, property, value, options, timeout_=timeout)
+        ...
 
+    @sync_wrapper("setMessagesAdminsOnly_")
     def setMessagesAdminsOnly(self, groupId: str, option: bool, timeout=60):
         """Allow only admins to send messages"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.setMessagesAdminsOnly_, groupId, option, timeout_=timeout)
+        ...
 
+    @sync_wrapper("getGroupMembershipRequests_")
     def getGroupMembershipRequests(self, groupId: str, timeout=60):
         """Get group membership requests"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.getGroupMembershipRequests_, groupId, timeout_=timeout)
+        ...
 
+    @sync_wrapper("approveGroupMembershipRequest_")
     def approveGroupMembershipRequest(self, groupId: str, membershipIds: List[str], timeout=60):
         """Approve membership request"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.approveGroupMembershipRequest_, groupId, membershipIds, timeout_=timeout)
+        ...
 
+    @sync_wrapper("rejectGroupMembershipRequest_")
     def rejectGroupMembershipRequest(self, groupId: str, membershipIds: List[str], timeout=60):
         """Reject membership request"""
-        return self.ThreadsafeBrowser.run_threadsafe(
-            self.rejectGroupMembershipRequest_, groupId, membershipIds, timeout_=timeout)
+        ...
 
     ##################################################################################
     async def leaveGroup_(self, groupId):
@@ -238,18 +251,20 @@ class GroupLayer(RetrieverLayer):
             page=self.page
         )
 
+    @sync_wrapper("promoteParticipant_")
     def promoteParticipant(self, groupId, participantId, timeout=60):
         """Promote one or more group participants."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.promoteParticipant_, groupId, participantId, timeout_=timeout)
+        ...
 
     async def promoteParticipant_(self, groupId, participantId):
         groupId = self.valid_chatId(groupId)
         return await self._evaluate_js(
             'GroupLayer.promoteParticipant_.0', {"groupId": groupId, "participantId": participantId}, page=self.page)
 
+    @sync_wrapper("demoteParticipant_")
     def demoteParticipant(self, groupId, participantId, timeout=60):
         """Demote one or more group admins."""
-        return self.ThreadsafeBrowser.run_threadsafe(self.demoteParticipant_, groupId, participantId, timeout_=timeout)
+        ...
 
     async def demoteParticipant_(self, groupId, participantId):
         groupId = self.valid_chatId(groupId)

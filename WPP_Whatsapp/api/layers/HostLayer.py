@@ -23,6 +23,8 @@ from WPP_Whatsapp.core.lifecycle import Deadline, SessionLifecycle, SessionState
 from WPP_Whatsapp.core.errors import SessionTimeoutError, RuntimeCompatibilityError
 from playwright.async_api import Error as BrowserError
 
+from WPP_Whatsapp.core.sync_api import sync_wrapper
+
 
 class HostLayer:
     page: Page
@@ -1008,14 +1010,16 @@ class HostLayer:
 
         return result
 
+    @sync_wrapper("refreshLinkCode_")
     def refreshLinkCode(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.refreshLinkCode_, timeout_=timeout)
+        ...
 
     async def refreshLinkCode_(self):
         return await self._evaluate_js('HostLayer.refreshLinkCode_.0', page=self.page)
 
+    @sync_wrapper("getQrCode_")
     def getQrCode(self, timeout=60):
-        return self.ThreadsafeBrowser.run_threadsafe(self.getQrCode_, timeout_=timeout)
+        ...
 
     async def getQrCode_(self):
         return await self.__getQrCode()

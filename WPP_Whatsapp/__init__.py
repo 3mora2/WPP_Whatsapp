@@ -5,5 +5,6 @@ from WPP_Whatsapp.controllers.init_multi import MultiCreate
 from WPP_Whatsapp.core.client import AsyncClient
 from WPP_Whatsapp.core.delivery import DeliveryReceipt, DeliveryState
 from WPP_Whatsapp.core.lifecycle import SessionState
+from WPP_Whatsapp.core.models import Chat, Group, GroupMember, Message
 
 

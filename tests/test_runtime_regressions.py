@@ -54,7 +54,11 @@ def test_ffmpeg_uses_path_and_cleans_temporary_files():
 
 @pytest.mark.asyncio
 async def test_download_mime_parameters_are_normalized():
-    reply = Mock(headers={'content-type': 'image/png; charset=utf-8'}, read=AsyncMock(return_value=b'png'))
+    async def chunks(size):
+        yield b'png'
+    reply = Mock(headers={'content-type': 'image/png; charset=utf-8'},
+                 content_type='image/png; charset=utf-8', content_length=3,
+                 content=Mock(iter_chunked=chunks))
     reply.raise_for_status = Mock()
     request = Mock(__aenter__=AsyncMock(return_value=reply), __aexit__=AsyncMock(return_value=False))
     session = Mock(get=Mock(return_value=request))
