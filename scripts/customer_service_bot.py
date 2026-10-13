@@ -10,16 +10,15 @@ This is a comprehensive example showing:
 - Analytics tracking
 """
 
-from WPP_Whatsapp import Create
 import logging
 from datetime import datetime
-from typing import Dict, List
-import json
+from typing import Dict
+
+from WPP_Whatsapp import Create
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -32,26 +31,26 @@ class CustomerServiceBot:
         self.tickets: Dict[str, dict] = {}
         self.faq: Dict[str, str] = {}
         self.analytics = {
-            'messages_received': 0,
-            'tickets_created': 0,
-            'tickets_resolved': 0,
-            'faq_matches': 0
+            "messages_received": 0,
+            "tickets_created": 0,
+            "tickets_resolved": 0,
+            "faq_matches": 0,
         }
         self._load_faq()
 
     def _load_faq(self):
         """Load frequently asked questions"""
         self.faq = {
-            'hours': 'We are open Monday-Friday, 9 AM - 6 PM EST',
-            'location': 'We are located at 123 Main St, New York, NY 10001',
-            'return': 'Our return policy is 30 days from purchase date',
-            'shipping': 'We offer free shipping on orders over $50',
-            'payment': 'We accept Visa, MasterCard, PayPal, and Apple Pay',
-            'tracking': 'You can track your order using the link sent to your email',
-            'cancel': 'You can cancel your order within 24 hours of placing it',
-            'refund': 'Refunds are processed within 5-7 business days',
-            'warranty': 'All products come with a 1-year manufacturer warranty',
-            'contact': 'You can reach us at support@example.com or 1-800-123-4567'
+            "hours": "We are open Monday-Friday, 9 AM - 6 PM EST",
+            "location": "We are located at 123 Main St, New York, NY 10001",
+            "return": "Our return policy is 30 days from purchase date",
+            "shipping": "We offer free shipping on orders over $50",
+            "payment": "We accept Visa, MasterCard, PayPal, and Apple Pay",
+            "tracking": "You can track your order using the link sent to your email",
+            "cancel": "You can cancel your order within 24 hours of placing it",
+            "refund": "Refunds are processed within 5-7 business days",
+            "warranty": "All products come with a 1-year manufacturer warranty",
+            "contact": "You can reach us at support@example.com or 1-800-123-4567",
         }
 
     def _find_faq(self, text: str) -> str:
@@ -59,21 +58,21 @@ class CustomerServiceBot:
         text = text.lower()
 
         keywords = {
-            'hours': ['hour', 'time', 'open', 'close', 'when'],
-            'location': ['where', 'location', 'address', 'store'],
-            'return': ['return', 'refund', 'exchange'],
-            'shipping': ['ship', 'delivery', 'deliver', 'postage'],
-            'payment': ['pay', 'payment', 'card', 'visa', 'mastercard', 'paypal'],
-            'tracking': ['track', 'tracking', 'status', 'where is my order'],
-            'cancel': ['cancel', 'cancellation'],
-            'refund': ['refund', 'money back', 'return money'],
-            'warranty': ['warranty', 'guarantee', 'guaranty'],
-            'contact': ['contact', 'email', 'phone', 'reach', 'support']
+            "hours": ["hour", "time", "open", "close", "when"],
+            "location": ["where", "location", "address", "store"],
+            "return": ["return", "refund", "exchange"],
+            "shipping": ["ship", "delivery", "deliver", "postage"],
+            "payment": ["pay", "payment", "card", "visa", "mastercard", "paypal"],
+            "tracking": ["track", "tracking", "status", "where is my order"],
+            "cancel": ["cancel", "cancellation"],
+            "refund": ["refund", "money back", "return money"],
+            "warranty": ["warranty", "guarantee", "guaranty"],
+            "contact": ["contact", "email", "phone", "reach", "support"],
         }
 
         for key, words in keywords.items():
             if any(word in text for word in words):
-                self.analytics['faq_matches'] += 1
+                self.analytics["faq_matches"] += 1
                 return self.faq.get(key)
 
         return None
@@ -83,34 +82,34 @@ class CustomerServiceBot:
         ticket_id = f"TKT-{len(self.tickets) + 1:04d}"
 
         self.tickets[ticket_id] = {
-            'user_id': user_id,
-            'message': message,
-            'created_at': datetime.now(),
-            'status': 'open',
-            'messages': [message]
+            "user_id": user_id,
+            "message": message,
+            "created_at": datetime.now(),
+            "status": "open",
+            "messages": [message],
         }
 
-        self.analytics['tickets_created'] += 1
+        self.analytics["tickets_created"] += 1
 
         return ticket_id
 
     def handle_message(self, message: dict):
         """Handle incoming message"""
         try:
-            self.analytics['messages_received'] += 1
+            self.analytics["messages_received"] += 1
 
-            user_id = message.get('from')
-            text = message.get('body', '').strip()
-            is_group = message.get('isGroupMsg', False)
+            user_id = message.get("from")
+            text = (message.get("body") or "").strip()
+            is_group = message.get("isGroupMsg", False)
 
             # Ignore group messages
-            if is_group:
+            if is_group or message.get("fromMe"):
                 return
 
-            logger.info(f"Message from {user_id}: {text}")
+            logger.info("Incoming customer-service message")
 
             # Check for commands
-            if text.startswith('/'):
+            if text.startswith("/"):
                 self._handle_command(user_id, text)
                 return
 
@@ -156,31 +155,27 @@ Or type /help for more options
 
         except Exception as e:
             logger.error(f"Error handling message: {e}")
-            self.client.sendText(
-                user_id,
-                "Sorry, I encountered an error. Please try again later."
-            )
+            self.client.sendText(user_id, "Sorry, I encountered an error. Please try again later.")
 
     def _handle_command(self, user_id: str, text: str):
         """Handle bot commands"""
         command = text.split()[0].lower()
 
-        if command == '/start':
+        if command == "/start":
             self._cmd_start(user_id)
-        elif command == '/help':
+        elif command == "/help":
             self._cmd_help(user_id)
-        elif command == '/status':
+        elif command == "/status":
             self._cmd_status(user_id, text)
-        elif command == '/tickets':
+        elif command == "/tickets":
             self._cmd_tickets(user_id)
-        elif command == '/agent':
+        elif command == "/agent":
             self._cmd_agent(user_id)
-        elif command == '/faq':
+        elif command == "/faq":
             self._cmd_faq(user_id)
         else:
             self.client.sendText(
-                user_id,
-                f"❌ Unknown command: {command}\nType /help for available commands"
+                user_id, f"❌ Unknown command: {command}\nType /help for available commands"
             )
 
     def _cmd_start(self, user_id: str):
@@ -226,10 +221,7 @@ Just type your question naturally and I'll try to help!
 
         if len(parts) < 2:
             # Show all user tickets
-            user_tickets = [
-                t for t in self.tickets.values()
-                if t['user_id'] == user_id
-            ]
+            user_tickets = [t for t in self.tickets.values() if t["user_id"] == user_id]
 
             if not user_tickets:
                 self.client.sendText(user_id, "You have no tickets")
@@ -245,7 +237,7 @@ Just type your question naturally and I'll try to help!
             ticket_id = parts[1]
             ticket = self.tickets.get(ticket_id)
 
-            if not ticket or ticket['user_id'] != user_id:
+            if not ticket or ticket["user_id"] != user_id:
                 self.client.sendText(user_id, f"Ticket {ticket_id} not found")
                 return
 
@@ -253,29 +245,23 @@ Just type your question naturally and I'll try to help!
 🎫 *Ticket Status*
 
 ID: {ticket_id}
-Status: {ticket['status']}
-Created: {ticket['created_at'].strftime('%Y-%m-%d %H:%M')}
-Messages: {len(ticket['messages'])}
+Status: {ticket["status"]}
+Created: {ticket["created_at"].strftime("%Y-%m-%d %H:%M")}
+Messages: {len(ticket["messages"])}
             """
             self.client.sendText(user_id, response)
 
     def _cmd_tickets(self, user_id: str):
         """Handle /tickets command"""
-        user_tickets = [
-            t for t in self.tickets.values()
-            if t['user_id'] == user_id
-        ]
+        user_tickets = [t for t in self.tickets.values() if t["user_id"] == user_id]
 
         if not user_tickets:
-            self.client.sendText(
-                user_id,
-                "You have no tickets. Type /start to begin."
-            )
+            self.client.sendText(user_id, "You have no tickets. Type /start to begin.")
             return
 
         response = "🎫 *Your Tickets:*\n\n"
         for ticket_id, ticket in user_tickets.items():
-            status_emoji = '🟢' if ticket['status'] == 'open' else '🔴'
+            status_emoji = "🟢" if ticket["status"] == "open" else "🔴"
             response += f"{status_emoji} {ticket_id} - {ticket['status']}\n"
 
         self.client.sendText(user_id, response)
@@ -283,10 +269,7 @@ Messages: {len(ticket['messages'])}
     def _cmd_agent(self, user_id: str):
         """Handle /agent command - connect to human agent"""
         # Create urgent ticket
-        ticket_id = self._create_ticket(
-            user_id,
-            "Request to speak with human agent"
-        )
+        ticket_id = self._create_ticket(user_id, "Request to speak with human agent")
 
         response = f"""
 👤 *Human Agent Request*
@@ -331,34 +314,14 @@ Example: "What time do you close?"
 
 
 def main():
-    logger.info("Starting Customer Service Bot...")
+    from threading import Event
 
-    # Create client
-    creator = Create(session="test")
-    client = creator.start()
-
-    # Create bot instance
-    bot = CustomerServiceBot(client)
-
-    # Message handler
-    def on_message(message):
-        bot.handle_message(message)
-
-    client.on_message(on_message)
-
-    # State handler
-    def on_state_change(state):
-        logger.info(f"State: {state}")
-
-        if state == 'CONNECTED':
-            logger.info("✅ Bot is connected and ready!")
-            logger.info(f"📊 FAQ entries: {len(bot.faq)}")
-            logger.info(f"📈 Analytics: {bot.analytics}")
-
-    client.on_state_change(on_state_change)
-
-    logger.info("Bot starting... Scan QR code")
-    client.start()
+    with Create(session="customer-service-example", autoClose=0) as client:
+        bot = CustomerServiceBot(client)
+        client.onMessage(bot.handle_message)
+        client.onStateChange(lambda state: logger.info("State: %s", state))
+        logger.info("Sample replies enabled; press Ctrl+C to close.")
+        Event().wait()
 
 
 if __name__ == "__main__":

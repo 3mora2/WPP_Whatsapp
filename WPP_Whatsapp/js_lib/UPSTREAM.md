@@ -44,7 +44,14 @@ rate limit, missing asset, or invalid response), it loads the bundled version.
 The full attempt is limited to 30 seconds and requests have a 5-second connect
 timeout. A warning identifies when the bundled fallback is used.
 
-Use `wa_js_version="bundled"` to skip the network entirely. Users can also
+Stable release discovery happens before the verified asset cache is consulted.
+Cached bytes are checked with SHA-256 metadata and refetched on corruption.
+If an automatically selected latest runtime cannot initialize required
+capabilities, startup reloads once and tries the bundled runtime. Mutable nightly
+and custom URLs bypass the stable cache. See [architecture](../../docs/ARCHITECTURE.md).
+
+Use `wa_js_version="bundled"` to skip WA-JS discovery/download; WhatsApp Web
+still requires a network connection. Users can also
 select `wa_js_version="nightly"`, a version constraint, a URL, or a local
 JavaScript file. Explicit selections surface errors instead of silently
 loading another runtime. Version constraints search up to ten pages of 100

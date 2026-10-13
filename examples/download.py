@@ -1,43 +1,35 @@
+"""Download caller-selected media to a new output file; existing files are preserved."""
+
+import argparse
 import base64
-import mimetypes
+from pathlib import Path
 
 from WPP_Whatsapp import Create
-import logging
-
-logger = logging.getLogger(name="WPP_Whatsapp")
-logger.setLevel(logging.DEBUG)
-
-# start client with your session name
-your_session_name = "test"
-creator = Create(session=your_session_name, browser="firefox")
-client = creator.start()
-# Now scan Whatsapp Qrcode in browser
-
-# check state of login
-if creator.state != 'CONNECTED':
-    raise Exception(creator.state)
-
-message_id = "false_0@c.us_898814798703028-1_0@c.us"
-
-media = client.downloadMedia(message_id)
-# OR
-# message = client.getMessageById(message_id)
-# media = client.downloadMedia(message)
-
-# Remove the "data:video/mp4;base64," prefix
-base64_data = media.split(',')[1]
-# Decode the Base64 string
-video_data = base64.b64decode(base64_data)
 
 
-# Specify the file path where you want to save the video
-mime_type = media.split(',')[0].split(";")[0].split(":")[1]
-file_extension = mimetypes.guess_extension(mime_type)
-if not file_extension:
-    file_extension = f'.{mime_type.split("/")[1]}'
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("message_id")
+    parser.add_argument("output", type=Path)
+    args = parser.parse_args()
+    if args.output.exists():
+        parser.error("Choose a new output file; the path already exists")
+    if not args.output.parent.is_dir():
+        parser.error("The output directory must already exist")
+    with Create("download-example", autoClose=0) as client:
+        media = client.downloadMedia(args.message_id)
+        if not isinstance(media, str) or not media:
+            raise ValueError("No media returned for that message")
+        payload = media
+        if media.startswith("data:"):
+            header, separator, payload = media.partition(",")
+            if not separator or ";base64" not in header:
+                raise ValueError("Expected base64 media data")
+        contents = base64.b64decode(payload, validate=True)
+        with args.output.open("xb") as stream:
+            stream.write(contents)
+        print("Saved bytes:", len(contents))
 
-file_path = f'output_video{file_extension}'
 
-# Write the binary data to the file
-with open(file_path, 'wb') as file:
-    file.write(video_data)
+if __name__ == "__main__":
+    main()

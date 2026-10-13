@@ -1,6 +1,6 @@
 [project]
 name = "WPP_Whatsapp"
-version = "2.0.0"
+version = "2.1.0"
 description = "WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python"
 requires-python = ">=3.9"
 authors = [
@@ -28,12 +28,16 @@ dependencies = [
 
 [project.optional-dependencies]
 stealth = ["playwright-stealth>=2.0.0"]
+mcp = ["fastmcp>=4.1,<5; python_version >= '3.10'"]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "ruff==0.11.10",
 ]
+
+[project.scripts]
+wpp-whatsapp-mcp = "WPP_Whatsapp.mcp.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/3mora2/WPP_Whatsapp"
