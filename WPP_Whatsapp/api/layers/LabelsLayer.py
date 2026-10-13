@@ -49,9 +49,7 @@ class LabelsLayer(ListsLayer):
            * @param options options of label
            */
         """
-        return await self.ThreadsafeBrowser.page_evaluate("""({ name, options }) => {
-        return WPP.labels.addNewLabel(name, options);
-      }""", {"name": name, "options": options}, page=self.page)
+        return await self._evaluate_js('LabelsLayer.addNewLabel_.0', {"name": name, "options": options}, page=self.page)
 
     async def addOrRemoveLabels_(self, chatIds: List[str], options: List[Dict[str, Any]]):
         """
@@ -72,20 +70,18 @@ class LabelsLayer(ListsLayer):
            * @param options options to remove or add
            */
         """
-        return await self.ThreadsafeBrowser.page_evaluate("""({ chatIds, options }) => {
-        return WPP.labels.addOrRemoveLabels(chatIds, options);
-      }""", {"chatIds": chatIds, "options": options}, page=self.page)
+        return await self._evaluate_js('LabelsLayer.addOrRemoveLabels_.0', {"chatIds": chatIds, "options": options}, page=self.page)
 
     async def getAllLabels_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.labels.getAllLabels()", page=self.page)
+        return await self._evaluate_js('LabelsLayer.getAllLabels_.0', page=self.page)
 
     async def getLabelById_(self, Id):
-        return await self.ThreadsafeBrowser.page_evaluate("""({ id }) => {return WPP.labels.getLabelById(id); }""", {"id": Id},
+        return await self._evaluate_js('LabelsLayer.getLabelById_.0', {"id": Id},
                                                           page=self.page)
 
     async def deleteAllLabels_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("""() => {return WPP.labels.deleteAllLabels();}""", page=self.page)
+        return await self._evaluate_js('LabelsLayer.deleteAllLabels_.0', page=self.page)
 
     async def deleteLabel_(self, Id):
-        return await self.ThreadsafeBrowser.page_evaluate("""({ id }) => {return WPP.labels.deleteLabel(id); }""", {"id": Id},
+        return await self._evaluate_js('LabelsLayer.deleteLabel_.0', {"id": Id},
                                                           page=self.page)

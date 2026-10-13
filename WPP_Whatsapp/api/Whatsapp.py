@@ -8,12 +8,15 @@ from WPP_Whatsapp.api.helpers.jsFunction import setInterval
 from WPP_Whatsapp.api.layers.BusinessLayer import BusinessLayer
 from WPP_Whatsapp.api.layers.HostLayer import HostLayer
 from WPP_Whatsapp.api.layers.ListenerLayer import ListenerLayer
+from WPP_Whatsapp.core.compat import install_compatibility
+from WPP_Whatsapp.core.options import validate_options
 
 
-class Whatsapp(BusinessLayer):
+class Whatsapp:
     interval: Event
 
     def __init__(self, session, threadsafe_browser, page, loop=None, version=None, wa_js_version=None, **kwargs):
+        kwargs = validate_options(kwargs)
         self.connected = None
         self.options = {}
         self.options.update(defaultOptions)
@@ -83,8 +86,8 @@ class Whatsapp(BusinessLayer):
     async def __intervalHandel(self):
         try:
             # Add window, when WPP not  create yet
-            newConnected = await self.ThreadsafeBrowser.page_evaluate(
-                "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page
+            newConnected = await self._evaluate_js(
+                'Whatsapp.__intervalHandel.0', page=self.page
             )
         except:
             newConnected = None
@@ -101,8 +104,8 @@ class Whatsapp(BusinessLayer):
     async def afterPageScriptInjected(self):
         await self._afterPageScriptInjectedHost()
         await self._afterPageScriptInjectedListener()
-        is_authenticated = await self.ThreadsafeBrowser.page_evaluate(
-            "() => typeof window.WPP !== 'undefined' &&  WPP.conn.isRegistered()", page=self.page)
+        is_authenticated = await self._evaluate_js(
+            'Whatsapp.afterPageScriptInjected.0', page=self.page)
         self.connected = is_authenticated
 
     def downloadFile(self, data: str, timeout=120):
@@ -143,8 +146,8 @@ class Whatsapp(BusinessLayer):
            * @returns Decrypted file buffer (null otherwise)
            */
         """
-        return await self.ThreadsafeBrowser.page_evaluate(
-            "(data) => WAPI.downloadFile(data)", data,
+        return await self._evaluate_js(
+            'Whatsapp.downloadFile_.0', data,
             page=self.page)
 
     async def downloadMedia_(self, messageId: str | dict):
@@ -157,8 +160,8 @@ class Whatsapp(BusinessLayer):
         """
         if not isinstance(messageId, str):
             messageId = messageId.get("id")
-        return await self.ThreadsafeBrowser.page_evaluate(
-            "async (messageId) => WPP.util.blobToBase64(await WPP.chat.downloadMedia(messageId))", messageId,
+        return await self._evaluate_js(
+            'Whatsapp.downloadMedia_.0', messageId,
             page=self.page)
 
     async def takeScreenshot_(self, **kwargs):
@@ -167,13 +170,13 @@ class Whatsapp(BusinessLayer):
         )
 
     async def useHere_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.takeOver()", page=self.page)
+        return await self._evaluate_js('Whatsapp.useHere_.0', page=self.page)
 
     async def logout_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.logout()", page=self.page)
+        return await self._evaluate_js('Whatsapp.logout_.0', page=self.page)
 
     async def getMessageById_(self, messageId):
-        return await self.ThreadsafeBrowser.page_evaluate("(messageId) => WAPI.getMessageById(messageId)", messageId,
+        return await self._evaluate_js('Whatsapp.getMessageById_.0', messageId,
                                                           page=self.page)
 
     async def getMessages_(self, chatId, params=None):
@@ -185,12 +188,12 @@ class Whatsapp(BusinessLayer):
         if not params:
             params = {}
         chatId = await self.get_chat_id_(chatId)
-        return await self.ThreadsafeBrowser.page_evaluate("({ chatId, params }) => WAPI.getMessages(chatId, params)",
+        return await self._evaluate_js('Whatsapp.getMessages_.0',
                                                           {"chatId": chatId, "params": params}, page=self.page)
 
     async def rejectCall_(self, callId=""):
-        return await self.ThreadsafeBrowser.page_evaluate(
-            "(callId) => WPP.call.rejectCall(callId)", callId, page=self.page)
+        return await self._evaluate_js(
+            'Whatsapp.rejectCall_.0', callId, page=self.page)
 
     # Context Manager Support
     def __enter__(self):
@@ -211,6 +214,9 @@ class Whatsapp(BusinessLayer):
 
     def close(self):
         """Close the session (sync)"""
+        if getattr(self, '_closed_resources', False):
+            return
+        self._closed_resources = True
         self.isClosed = True
         for name in ('interval', 'autoCloseInterval', 'checkStartInterval'):
             interval = getattr(self, name, None)
@@ -218,12 +224,55 @@ class Whatsapp(BusinessLayer):
                 interval.set()
         self.logger.info(f'{self.session}: Closing session...')
         if hasattr(self, 'ThreadsafeBrowser'):
-            self.ThreadsafeBrowser.sync_close()
+            try:
+                self.ThreadsafeBrowser.run_threadsafe(self._shutdown_session, timeout_=30)
+            finally:
+                if getattr(self, '_owns_transport', True):
+                    self.ThreadsafeBrowser.sync_close()
+                else:
+                    self.ThreadsafeBrowser.run_threadsafe(self.page.context.close())
 
     async def close_async(self):
         """Close the session (async)"""
+        if getattr(self, '_closed_resources', False):
+            return
+        self._closed_resources = True
         self.isClosed = True
-        await self.clear_all_interval()
-        self.logger.info(f'{self.session}: Closing session...')
-        if hasattr(self, 'ThreadsafeBrowser'):
-            await self.ThreadsafeBrowser.close()
+        try:
+            await self.ThreadsafeBrowser.create_task(self._shutdown_session())
+        finally:
+            self.logger.info(f'{self.session}: Closing session...')
+            if getattr(self, '_owns_transport', True):
+                await self.ThreadsafeBrowser.close()
+            else:
+                await self.ThreadsafeBrowser.create_task(self.page.context.close())
+
+    async def _shutdown_session(self):
+        if getattr(self, '_shutdown_done', False):
+            return
+        self._shutdown_done = True
+        from WPP_Whatsapp.core.lifecycle import SessionState
+        if hasattr(self, 'lifecycle') and self.lifecycle.state != SessionState.CLOSED:
+            self.lifecycle.transition(SessionState.CLOSING)
+        try:
+            await self.close_listeners()
+        finally:
+            await self.clear_all_interval()
+            tracker = getattr(self, '_delivery_tracker', None)
+            if tracker is not None:
+                await tracker.aclose()
+
+    @property
+    def async_services(self):
+        from WPP_Whatsapp.core.services import ServiceHub
+        if not hasattr(self, '_service_hub'):
+            self._service_hub = ServiceHub(self)
+        return self._service_hub
+
+    @property
+    def services(self):
+        from WPP_Whatsapp.core.services import SyncServices
+        return SyncServices(self.async_services)
+
+
+install_compatibility(Whatsapp, BusinessLayer)

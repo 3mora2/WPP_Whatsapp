@@ -14,6 +14,7 @@ Welcome to the WPP_Whatsapp documentation! This folder contains comprehensive gu
 ### Core Documentation
 - **[API Reference](API_REFERENCE.md)** - Complete API documentation with examples
 - **[Architecture](ARCHITECTURE.md)** - Library architecture and design
+- **[Development](DEVELOPMENT.md)** - Extension boundaries and quality checks
 - **[Configuration](CONFIGURATION.md)** - Configuration options and settings
 
 ### Advanced Topics

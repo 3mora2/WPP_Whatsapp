@@ -331,7 +331,7 @@ async def test_multi_factory_constructs_without_initial_page_or_browser():
         creator = MultiCreate()
     assert creator.loop is browser.loop
     context = Mock(close=AsyncMock())
-    client = Mock(clear_all_interval=AsyncMock())
+    client = Mock(_shutdown_session=AsyncMock())
     creator.Sessions['a'] = {'client': client, 'context': context, 'state': 'CONNECTED'}
     browser.create_task = AsyncMock(side_effect=lambda task: task)
     async def run(task):
@@ -339,5 +339,6 @@ async def test_multi_factory_constructs_without_initial_page_or_browser():
     browser.create_task.side_effect = run
     browser.close = AsyncMock()
     await creator.close_all_()
+    client._shutdown_session.assert_awaited_once()
     context.close.assert_awaited_once()
     assert creator.Sessions['a']['state'] == 'CLOSED' and client.isClosed

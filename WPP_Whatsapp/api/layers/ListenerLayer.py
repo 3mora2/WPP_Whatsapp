@@ -1,6 +1,6 @@
 import asyncio
 
-from event_emitter import EventEmitter
+from WPP_Whatsapp.core.events import EVENT_NAMES, EventEmitter, EventDispatcher
 from playwright.async_api import Error
 
 from WPP_Whatsapp.api.layers.ProfileLayer import ProfileLayer
@@ -53,85 +53,38 @@ class ListenerLayer(ProfileLayer):
 
     async def _afterPageScriptInjectedListener(self):
         self.logger.debug(f'{self.session}: Start Exposing function')
-        functions = ['onMessage', 'onAnyMessage', 'onMessageEdit', 'onAck', 'onNotificationMessage', 'onParticipantsChanged', 'onStateChange', 'onStreamChange', 'onStreamModeChanged', 'onStreamInfoChanged', 'onIncomingCall', 'onInterfaceChange', 'onPresenceChanged', 'onLiveLocation', 'onAddedToGroup', 'onRevokedMessage', 'onReactionMessage', 'onPollResponse', 'onBackendEvent', 'onUpdateLabel', 'onOrderStatusUpdate', 'onNewChat']
+        functions = EVENT_NAMES
 
         for func in functions:
-            has = await self.ThreadsafeBrowser.page_evaluate("(func) => typeof window[func] === 'function'", func,
+            has = await self._evaluate_js('ListenerLayer._afterPageScriptInjectedListener.1', func,
                                                              page=self.page)
             if not has:
                 self.logger.debug(f'{self.session}: Exposing {func} function')
                 handel_func = HandelFunc(func, self.session, self.logger, self.__listenerEmitter).handel_func
                 async def dispatch(*args, _handler=handel_func, **kwargs):
-                    # User callbacks commonly call synchronous client methods.
-                    # Keep them off the browser loop so those calls can finish.
-                    return await asyncio.to_thread(_handler, *args, **kwargs)
+                    return await self._event_dispatcher().submit(_handler.__self__.func, *args, **kwargs)
                 try:
                     await self.ThreadsafeBrowser.expose_function(func, dispatch, page=self.page)
                 except Error as e:
                     if "has been already registered" not in e.message:
                         raise e
 
-        await self.ThreadsafeBrowser.page_evaluate("""() => {
-          function register(name, subscribe) {
-            const callback = window[name];
-            if (typeof callback !== 'function' || callback.exposed) return;
-            try {
-              subscribe(callback);
-              callback.exposed = true;
-            } catch (error) { console.error('[WPP] ' + name, error); }
-          }
-          const id = (value) => {
-            if (value == null || typeof value === 'string') return value;
-            const text = value._serialized || value.toString?.();
-            return text && text !== '[object Object]' ? text : undefined;
-          };
-          register('onMessage', (cb) => WPP.on('chat.new_message', (msg) => {
-            if (msg.isSentByMe || msg.id?.fromMe || msg.isStatusV3 || msg.isNotification) return;
-            const value = WAPI.processMessageObj(msg, false, false);
-            if (value) cb(value);
-          }));
-          register('onAnyMessage', (cb) => WPP.on('chat.new_message', (msg) => {
-            const value = WAPI.processMessageObj(msg, true, false);
-            if (value) cb(value);
-          }));
-          register('onAck', (cb) => WPP.on('chat.msg_ack_change', (data) => cb({
-            ...data, id: id(data.id), chat: id(data.chat)
-          })));
-          register('onMessageEdit', (cb) => WPP.on('chat.msg_edited', (data) => cb({
-            ...data, id: id(data.id), chat: id(data.chat),
-            msg: WAPI.processMessageObj(data.msg, true, false)
-          })));
-          for (const name of ['onStateChange', 'onStreamChange', 'onStreamModeChanged',
-              'onStreamInfoChanged', 'onAddedToGroup', 'onIncomingCall',
-              'onInterfaceChange', 'onNotificationMessage', 'onLiveLocation']) {
-            register(name, (cb) => WAPI[name](cb));
-          }
-          for (const [name, event] of Object.entries({
-            onPresenceChanged: 'chat.presence_change',
-            onReactionMessage: 'chat.new_reaction',
-            onPollResponse: 'chat.poll_response',
-            onOrderStatusUpdate: 'order.payment_status',
-            onParticipantsChanged: 'group.participant_changed'
-          })) {
-            register(name, (cb) => WPP.on(event, (data) => {
-              // Normalize public key objects without dropping other event fields.
-              const value = {...data};
-              for (const key of ['id', 'msgId', 'chatId', 'refId']) {
-                if (data[key] != null) value[key] = id(data[key]) || data[key];
-              }
-              cb(value);
-            }));
-          }
-          register('onNewChat', (cb) => WPP.on('chat.new_chat', (chat) => cb(WAPI._serializeChatObj(chat))));
-          register('onUpdateLabel', (cb) => WPP.on('chat.update_label', (data) => cb({
-            ...data, chat: WAPI._serializeChatObj(data.chat)
-          })));
-          register('onRevokedMessage', (cb) => WPP.on('chat.msg_revoke', (data) => cb({
-            ...data, id: id(data.id), refId: id(data.refId),
-            from: id(data.from), to: id(data.to), author: id(data.author)
-          })));
-          register('onBackendEvent', (cb) => WPP.on('conn.backend_event', (name, ...args) => cb(name, ...args)));
-        }""", page=self.page)
+        await self._evaluate_js('ListenerLayer._afterPageScriptInjectedListener.0', page=self.page)
+
+    def _event_dispatcher(self):
+        dispatcher = getattr(self, '_dispatcher', None)
+        if dispatcher is None:
+            options = getattr(self, 'options', {})
+            self._dispatcher = dispatcher = EventDispatcher(
+                self.__listenerEmitter, maxsize=options.get('eventQueueSize', 256),
+                on_error=lambda kind: self.logger.warning('Event callback failed (%s)', kind))
+        return dispatcher
+
+    async def close_listeners(self):
+        dispatcher = getattr(self, '_dispatcher', None)
+        if dispatcher is not None:
+            await dispatcher.close()
+        self.__listenerEmitter.remove_all_listeners()
 
     def __registerEvent(self, event, listener):
         """
@@ -260,10 +213,10 @@ class ListenerLayer(ProfileLayer):
            * @returns number of subscribed
            */
         """
-        return await self.ThreadsafeBrowser.page_evaluate("(id) => WAPI.subscribePresence(id)", id_, page=self.page)
+        return await self._evaluate_js('ListenerLayer.subscribePresence.0', id_, page=self.page)
 
     async def unsubscribePresence(self, id_):
-        return await self.ThreadsafeBrowser.page_evaluate("(id) => WAPI.unsubscribePresence(id)", id_, page=self.page)
+        return await self._evaluate_js('ListenerLayer.unsubscribePresence.0', id_, page=self.page)
 
     def onRevokedMessage(self, callback):
         """ """

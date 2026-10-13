@@ -59,10 +59,8 @@ class NewsletterLayer(HostLayer):
         if options is None:
             options = {}
 
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            """({ name, options }) => {
-                return WPP.newsletter.create(name, options);
-            }""",
+        result = await self._evaluate_js(
+            'NewsletterLayer.createNewsletter_.0',
             {"name": name, "options": options},
             page=self.page
         )
@@ -73,10 +71,8 @@ class NewsletterLayer(HostLayer):
         if options is None:
             options = {}
 
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            """({ id, options }) => {
-                return WPP.newsletter.edit(id, options);
-            }""",
+        result = await self._evaluate_js(
+            'NewsletterLayer.editNewsletter_.0',
             {"id": id, "options": options},
             page=self.page
         )
@@ -84,10 +80,8 @@ class NewsletterLayer(HostLayer):
 
     async def destroyNewsletter_(self, id: str):
         """Destroy a newsletter - async implementation"""
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            """({ id }) => {
-                return WPP.newsletter.destroy(id);
-            }""",
+        result = await self._evaluate_js(
+            'NewsletterLayer.destroyNewsletter_.0',
             {"id": id},
             page=self.page
         )
@@ -95,10 +89,8 @@ class NewsletterLayer(HostLayer):
 
     async def muteNewsletter_(self, id: str):
         """Mute a newsletter - async implementation"""
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            """({ id }) => {
-                return WPP.newsletter.mute(id);
-            }""",
+        result = await self._evaluate_js(
+            'NewsletterLayer.muteNewsletter_.0',
             {"id": id},
             page=self.page
         )

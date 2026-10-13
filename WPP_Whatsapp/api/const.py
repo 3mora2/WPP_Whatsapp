@@ -2,9 +2,9 @@ import logging
 import os
 import tempfile
 
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s',
-                    datefmt='%d-%b-%y %H:%M:%S')
 Logger = logging.getLogger(name="WPP_Whatsapp")
+if not any(isinstance(handler, logging.NullHandler) for handler in Logger.handlers):
+    Logger.addHandler(logging.NullHandler())
 
 
 useragentOverride = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -49,8 +49,6 @@ chromiumArgs = [
 
 
 TemporaryTokens = os.path.join(tempfile.gettempdir(), "Tokens")
-if not os.path.exists(TemporaryTokens):
-    os.mkdir(TemporaryTokens)
 
 
 defaultOptions = {

@@ -5,6 +5,8 @@ import mimetypes
 import re
 from datetime import datetime
 from threading import Event
+import time
+import math
 from typing import Callable
 
 from playwright._impl._errors import TargetClosedError
@@ -16,6 +18,10 @@ from WPP_Whatsapp.api.helpers.jsFunction import setInterval
 from WPP_Whatsapp.api.helpers.wa_version import getPageContent, getWaJs
 from WPP_Whatsapp.api.helpers.wapi import WAPI
 from WPP_Whatsapp.controllers.browser import ThreadsafeBrowser
+from WPP_Whatsapp.core.bridge import JavascriptBridge
+from WPP_Whatsapp.core.lifecycle import Deadline, SessionLifecycle, SessionState
+from WPP_Whatsapp.core.errors import SessionTimeoutError, RuntimeCompatibilityError
+from playwright.async_api import Error as BrowserError
 
 
 class HostLayer:
@@ -48,10 +54,28 @@ class HostLayer:
     catchLinkCode: Callable[[str], None] = None
 
     def __init__(self):
+        self.lifecycle = SessionLifecycle()
+        self.bridge = JavascriptBridge(self.ThreadsafeBrowser, self.page)
         self.isInChat = False
         self.isLogged = False
         self.isClosed = False
         self.__initialize()
+
+    def _get_bridge(self):
+        bridge = getattr(self, 'bridge', None)
+        if bridge is None:
+            bridge = self.bridge = JavascriptBridge(self.ThreadsafeBrowser, self.page)
+        return bridge
+
+    async def _evaluate_js(self, command, arg=None, page=None):
+        if page is not None and page is not self.page:
+            raise ValueError('Bridge page does not belong to this session')
+        return await self._get_bridge().call(command, arg)
+
+    def _evaluate_js_sync(self, command, arg=None, page=None, timeout_=120):
+        if page is not None and page is not self.page:
+            raise ValueError('Bridge page does not belong to this session')
+        return self._get_bridge().call_sync(command, arg, timeout_=timeout_)
 
     def catchQR(self, **kwargs):
         # self.catchQR_dict = kwargs
@@ -70,12 +94,19 @@ class HostLayer:
 
     async def on_close(self, _=None):
         self.isClosed = True
+        lifecycle = getattr(self, 'lifecycle', None)
+        if lifecycle is not None:
+            lifecycle.transition(SessionState.CLOSED)
         self.logger.info(f'{self.session}: Page Closed')
         self.cancelAutoClose()
+        shutdown = getattr(self, '_shutdown_session', None)
+        if shutdown:
+            await shutdown()
 
     async def on_load(self, _=None):
-        if self.isClosed:
+        if self.isClosed or getattr(self, '_runtime_reloading', False) or getattr(self, '_initializing', False):
             return
+        self._initializing = True
         try:
             self.logger.info(f'{self.session}: Page loaded')
             await self._afterPageLoad()
@@ -84,10 +115,20 @@ class HostLayer:
             self.logger.info(f'{self.session}: Stop App, Auto Close')
             self.isClosed = True
             await self.tryAutoClose()
+        except Exception as error:
+            self._initialization_error = error
+            if not self.isClosed:
+                self.lifecycle.transition(SessionState.FAILED)
+            self.logger.error('Session initialization failed (%s)', type(error).__name__)
+        finally:
+            self._initializing = False
 
     async def _afterPageLoad(self):
+        if self.lifecycle.state == SessionState.READY:
+            self.lifecycle.transition(SessionState.RECONNECTING)
+            self.isInChat = False
         self.logger.info(f'{self.session}: Injecting wapi.js')
-        options = {
+        options = self._runtime_config = {
             "deviceName": self.options.get("deviceName"),
             "disableGoogleAnalytics": self.options.get("disableGoogleAnalytics"),
             "googleAnalyticsId": self.options.get("googleAnalyticsId"),
@@ -95,7 +136,7 @@ class HostLayer:
             "poweredBy": self.options.get("poweredBy"),
         }
         self.logger.info(f'{self.session}: Start WPPConfig')
-        await self.ThreadsafeBrowser.page_evaluate("""(options) => {window.WPPConfig = options;}""", options,
+        await self._evaluate_js('HostLayer._afterPageLoad.0', options,
                                                    page=self.page)
         # await self.page.page_evaluate("""(options) => {window.WPPConfig = options;}""", options)
         self.logger.info(f'{self.session}: WPPConfig')
@@ -115,9 +156,9 @@ class HostLayer:
         version = await self.getWAJSVersion()
         self.logger.info(f'{self.session}: WA-JS version: {version}')
         try:
-            await self.ThreadsafeBrowser.page_evaluate("() => {WPP.on('conn.auth_code_change', window.checkQrCode);}",
+            await self._evaluate_js('HostLayer._afterPageScriptInjectedHost.0',
                                                        page=self.page)
-            await self.ThreadsafeBrowser.page_evaluate("() => {WPP.on('conn.main_ready', window.checkInChat);}",
+            await self._evaluate_js('HostLayer._afterPageScriptInjectedHost.1',
                                                        page=self.page)
         except:
             Logger.exception("window.checkQrCode")
@@ -135,6 +176,7 @@ class HostLayer:
             return
 
         self.isStarted = True
+        self.lifecycle.transition(SessionState.STARTING)
         # ToDo:
         await self.initWhatsapp()
 
@@ -158,33 +200,14 @@ class HostLayer:
         self.logger.info(f'{self.session}: Loading WhatsApp WEB')
         # TODO: Unkown Error
         await self.ThreadsafeBrowser.goto(
-            whatsappUrl, wait_until="load", timeout=0, referer='https://whatsapp.com/', page=self.page
+            whatsappUrl, wait_until="load", timeout=self.options.get('navigationTimeout', 60000), referer='https://whatsapp.com/', page=self.page
         )
         # self.ThreadsafeBrowser.sync_goto(whatsappUrl, wait_until="domcontentloaded")
         self.logger.info(f'{self.session}: WhatsApp WEB loaded')
 
     async def unregisterServiceWorker(self):
         try:
-            await self.ThreadsafeBrowser.page_evaluate("""() => {
-                    setInterval(() => {
-                      window.onerror = console.error;
-                      window.onunhandledrejection = console.error;
-                    }, 500);
-
-                    // Remove existent service worker
-                    navigator.serviceWorker
-                      .getRegistrations()
-                      .then((registrations) => {
-                        for (let registration of registrations) {
-                          registration.unregister();
-                        }
-                      })
-                      .catch((err) => null);
-
-                    // Disable service worker registration
-                    // @ts-ignore
-                    navigator.serviceWorker.register = new Promise(() => {});
-                  }""", page=self.page)
+            await self._evaluate_js('HostLayer.unregisterServiceWorker.0', page=self.page)
         except:
             pass
 
@@ -248,13 +271,10 @@ class HostLayer:
             attempt=self.attempt,
             urlCode=result.get("urlCode")
         )
+        self.lifecycle.transition(SessionState.WAITING_QR)
 
     async def __loginByCode(self, phone: str):
-        code = await self.ThreadsafeBrowser.page_evaluate("""async ({ phone }) => {
-        return JSON.parse(
-          JSON.stringify(await WPP.conn.genLinkDeviceCodeForPhoneNumber(phone))
-        );
-          }""", {"phone": phone}, page=self.page)
+        code = await self._evaluate_js('HostLayer.__loginByCode.0', {"phone": phone}, page=self.page)
         if self.logQR:
             Logger.info(f'Waiting for Login By Code (Code: {code})\n')
         else:
@@ -268,6 +288,8 @@ class HostLayer:
         if not in_chat:
             return
 
+        self.lifecycle.transition(SessionState.READY)
+
         self.logger.info(f'{self.session}: http => Connected')
         self.statusFind('inChat', self.session)
 
@@ -276,7 +298,7 @@ class HostLayer:
             self.logger.info(f'{self.session}: Closing the page')
             self.statusFind('autocloseCalled', self.session)
             if not self.page.is_closed():
-                await self.ThreadsafeBrowser.close()
+                await self.close_async()
             if hasattr(self, "autoCloseInterval") and self.autoCloseInterval:
                 self.cancelAutoClose()
             return
@@ -297,14 +319,14 @@ class HostLayer:
             self.isClosed = True
             self.statusFind('autocloseCalled', self.session)
             if not self.page.is_closed():
-                await self.ThreadsafeBrowser.close()
+                await self.close_async()
 
     def sync_tryAutoClose(self):
         if self.isClosed:
             self.logger.info(f'{self.session}: Closing the page')
             self.statusFind('autocloseCalled', self.session)
             if not self.page.is_closed():
-                self.ThreadsafeBrowser.sync_close()
+                self.close()
 
         if not hasattr(self, "autoCloseInterval"):
             return
@@ -321,19 +343,19 @@ class HostLayer:
             self.isClosed = True
             self.statusFind('autocloseCalled', self.session)
             if not self.page.is_closed():
-                self.ThreadsafeBrowser.sync_close()
+                self.close()
 
     def startAutoClose(self, _time=None):
         if _time is None:
             _time = self.autoClose
 
         if _time > 0 and (not hasattr(self, "autoCloseInterval") or not self.autoCloseInterval):
-            # seconds = round(time / 1000)
-            seconds = round(_time)
+            seconds = _time
+            self._auto_close_deadline = Deadline(seconds)
             self.logger.info(f'{self.session}: Auto close configured to {seconds}s')
             self.remain = seconds
 
-            self.autoCloseInterval = setInterval(self.loop, self.autoCloseIntervalHandel, 5)
+            self.autoCloseInterval = setInterval(self.loop, self.autoCloseIntervalHandel, 1)
 
     # @staticmethod
     # def __setInterval(func, interval, *args, **kwargs):
@@ -362,7 +384,8 @@ class HostLayer:
             self.cancelAutoClose()
             return
 
-        self.remain -= 1
+        deadline = getattr(self, '_auto_close_deadline', None)
+        self.remain = math.ceil(deadline.remaining) if deadline and deadline.remaining is not None else self.remain
         if self.remain % 10 == 0 or self.remain <= 5:
             self.logger.info(f'{self.session}: http => Auto close remain: {self.remain}s')
 
@@ -374,6 +397,7 @@ class HostLayer:
         if hasattr(self, "autoCloseInterval"):
             self.clearInterval(self.autoCloseInterval)
         self.autoCloseInterval = None
+        self._auto_close_deadline = None
 
     async def __getQrCode(self):
         try:
@@ -409,9 +433,9 @@ class HostLayer:
             Logger.info(f"not Logged")
             return False
 
-        start = datetime.now()
+        deadline = Deadline.milliseconds(self.options.get('deviceSyncTimeout', 0))
         while not self.page.is_closed() and self.isLogged and not self.isInChat and not self.isClosed:
-            if 0 < self.options.get("deviceSyncTimeout") <= (datetime.now() - start).seconds:
+            if deadline.expired:
                 Logger.info(f"deviceSyncTimeout:{self.options.get('deviceSyncTimeout')} timeout")
                 return False
 
@@ -431,9 +455,9 @@ class HostLayer:
             Logger.info(f"not Logged")
             return False
 
-        start = datetime.now()
+        deadline = Deadline.milliseconds(self.options.get('deviceSyncTimeout', 0))
         while not self.page.is_closed() and self.isLogged and not self.isInChat and not self.isClosed:
-            if 0 < self.options.get("deviceSyncTimeout") <= (datetime.now() - start).seconds:
+            if deadline.expired:
                 Logger.info(f"deviceSyncTimeout:{self.options.get('deviceSyncTimeout')} timeout")
                 return False
 
@@ -446,7 +470,12 @@ class HostLayer:
         return self.isInChat
 
     def waitForPageLoad(self):
+        deadline = Deadline(self.options.get('pageLoadTimeout', 120))
         while not self.isInjected:
+            if getattr(self, '_initialization_error', None):
+                raise self._initialization_error
+            if deadline.expired:
+                raise SessionTimeoutError('Page initialization timed out')
             if self.page.is_closed():
                 return
             # Stop when close
@@ -460,7 +489,12 @@ class HostLayer:
             page=self.page)
 
     async def waitForPageLoad_(self):
+        deadline = Deadline(self.options.get('pageLoadTimeout', 120))
         while not self.isInjected:
+            if getattr(self, '_initialization_error', None):
+                raise self._initialization_error
+            if deadline.expired:
+                raise SessionTimeoutError('Page initialization timed out')
             if self.page.is_closed():
                 return
             # Stop when close
@@ -510,7 +544,8 @@ class HostLayer:
             #  Wait for interface update
             # TODO::
             await asyncio.sleep(.2)
-            self.startAutoClose(self.options.get("deviceSyncTimeout"))
+            self.lifecycle.transition(SessionState.SYNCING)
+            self.startAutoClose(self.options.get("deviceSyncTimeout", 0) / 1000)
 
             self.logger.info(f'{self.session}: http => Checking phone is connected...')
             inChat = await self.waitForInChat_()
@@ -520,6 +555,7 @@ class HostLayer:
                 await self.tryAutoClose()
                 raise Exception(f"Phone not connected {self.isLogged=} {inChat=}")
             self.cancelAutoClose()
+            self.lifecycle.transition(SessionState.READY)
             return True
         if authenticated is False:
             await self.tryAutoClose()
@@ -575,7 +611,8 @@ class HostLayer:
             #  Wait for interface update
             # TODO::
             self.ThreadsafeBrowser.sleep(.2)
-            self.startAutoClose(self.options.get("deviceSyncTimeout"))
+            self.lifecycle.transition(SessionState.SYNCING)
+            self.startAutoClose(self.options.get("deviceSyncTimeout", 0) / 1000)
 
             self.logger.info(f'{self.session}: http => Checking phone is connected...')
             inChat = self.waitForInChat()
@@ -585,6 +622,7 @@ class HostLayer:
                 self.sync_tryAutoClose()
                 raise Exception(f"Phone not connected {self.isLogged=} {inChat=}")
             self.cancelAutoClose()
+            self.lifecycle.transition(SessionState.READY)
             return True
         if authenticated is False:
             self.sync_tryAutoClose()
@@ -605,70 +643,70 @@ class HostLayer:
 
     def getHostDevice(self):
         """@returns Current host device details"""
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.getHost()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.getHostDevice.0', page=self.page)
 
     def getWid(self):
         """@returns Current wid connected"""
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.getWid()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.getWid.0', page=self.page)
 
     async def getWAVersion(self):
         """Retrieves WA version"""
         await self.ThreadsafeBrowser.page_wait_for_function("() => WAPI.getWAVersion()", page=self.page)
-        return await self.ThreadsafeBrowser.page_evaluate("() => WAPI.getWAVersion()", page=self.page)
+        return await self._evaluate_js('HostLayer.getWAVersion.0', page=self.page)
 
     async def getWAJSVersion(self):
         await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP.version", page=self.page)
-        return await self.ThreadsafeBrowser.page_evaluate("() => window.WPP.version", page=self.page)
+        return await self._evaluate_js('HostLayer.getWAJSVersion.0', page=self.page)
 
     def getConnectionState(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => {return window.WPP.whatsapp.Socket.state;}",
+        return self._evaluate_js_sync('HostLayer.getConnectionState.0',
                                                          page=self.page)
 
     def isConnected(self):
         """Retrieves if the phone is online. Please note that this may not be real time."""
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.isConnected()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.isConnected.0', page=self.page)
 
     def isOnline(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isOnline()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.isOnline.0', page=self.page)
 
     def isLoggedIn(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.isLoggedIn()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.isLoggedIn.0', page=self.page)
 
     def getBatteryLevel(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.getBatteryLevel()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.getBatteryLevel.0', page=self.page)
 
     def startPhoneWatchdog(self, interval=15000):
-        return self.ThreadsafeBrowser.page_evaluate_sync("(interval) => WAPI.startPhoneWatchdog(interval)", interval,
+        return self._evaluate_js_sync('HostLayer.startPhoneWatchdog.0', interval,
                                                          page=self.page)
 
     def stopPhoneWatchdog(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => WAPI.stopPhoneWatchdog()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.stopPhoneWatchdog.0', page=self.page)
 
     def isMultiDevice(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => window.WPP.conn.isMultiDevice()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.isMultiDevice.0', page=self.page)
 
     def isMainLoaded(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => window.WPP.conn.isMainLoaded()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.isMainLoaded.0', page=self.page)
 
     def isMainInit(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => window.WPP.conn.isMainInit()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.isMainInit.0', page=self.page)
 
     def joinWebBeta(self, value: bool):
-        return self.ThreadsafeBrowser.page_evaluate_sync("(value) => WPP.conn.joinWebBeta(value)", value,
+        return self._evaluate_js_sync('HostLayer.joinWebBeta.0', value,
                                                          page=self.page)
 
     def getBuildConstants(self, ):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.getBuildConstants()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.getBuildConstants.0', page=self.page)
 
     def isLidMigrated(self, ):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.whatsapp.functions.isLidMigrated()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.isLidMigrated.0', page=self.page)
 
     async def isAuthenticated(self):
         try:
             if self.page.is_closed() or self.isClosed:
                 return None
-            return await self.ThreadsafeBrowser.page_evaluate(
-                "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page)
+            return await self._evaluate_js(
+                'HostLayer.isAuthenticated.0', page=self.page)
         except Exception as e:
             self.logger.debug(e)
             return None
@@ -677,8 +715,8 @@ class HostLayer:
         try:
             if self.page.is_closed() or self.isClosed:
                 return False
-            return self.ThreadsafeBrowser.page_evaluate_sync(
-                "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isRegistered()", page=self.page)
+            return self._evaluate_js_sync(
+                'HostLayer.sync_isAuthenticated.0', page=self.page)
         except Exception as e:
             self.logger.debug(e)
             return False
@@ -700,17 +738,7 @@ class HostLayer:
                                                                 page=self.page)
         except:
             pass
-        click = await self.ThreadsafeBrowser.page_evaluate("""() => {
-              const selectorImg = document.querySelector('canvas');
-              const selectorUrl = selectorImg.closest('[data-ref]');
-              //const buttonReload = selectorUrl.querySelector('[role="button"]') as HTMLButtonElement;
-              const buttonReload = selectorUrl.querySelector('button');
-              if (buttonReload != null) {
-                buttonReload.click();
-                return true;
-              }
-              return false;
-            }""", page=self.page)
+        click = await self._evaluate_js('HostLayer.scrapeImg.0', page=self.page)
         if click:
             await self.ThreadsafeBrowser.page_wait_for_function("""() => {
               const selectorImg = document.querySelector('canvas');
@@ -718,30 +746,17 @@ class HostLayer:
               return selectorUrl.getAttribute('data-ref');
             }""", page=self.page)
 
-        result = await self.ThreadsafeBrowser.page_evaluate("""() => {
-              const selectorImg = document.querySelector('canvas');
-              const selectorUrl = selectorImg.closest('[data-ref]');
-
-              if (selectorImg != null && selectorUrl != null) {
-                let data = {
-                  base64Image: selectorImg.toDataURL(),
-                  urlCode: selectorUrl.getAttribute('data-ref'),
-                };
-                return data;
-              } else {
-                return undefined;
-              }
-            }""", page=self.page)
+        result = await self._evaluate_js('HostLayer.scrapeImg.1', page=self.page)
         return result
 
     async def isInsideChat(self):
-        result = await self.ThreadsafeBrowser.page_evaluate(
-            "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isMainReady()", page=self.page)
+        result = await self._evaluate_js(
+            'HostLayer.isInsideChat.0', page=self.page)
         return result if result else False
 
     def sync_isInsideChat(self):
-        result = self.ThreadsafeBrowser.page_evaluate_sync(
-            "() => typeof window.WPP !== 'undefined' && window.WPP.conn.isMainReady()", page=self.page)
+        result = self._evaluate_js_sync(
+            'HostLayer.sync_isInsideChat.0', page=self.page)
         return result if result else False
 
     # /**
@@ -749,15 +764,12 @@ class HostLayer:
     #  * @returns {Promise<string>}
     #  */
     async def getWWebVersion(self):
-        return await self.ThreadsafeBrowser.page_evaluate("""() => {
-            return window.Debug.VERSION;
-        }""", page=self.page)
+        return await self._evaluate_js('HostLayer.getWWebVersion.0', page=self.page)
 
     async def inject_api(self):
         self.logger.debug(f'{self.session}: start inject')
         try:
-            injected = await self.ThreadsafeBrowser.page_evaluate("""() => {
-                        return window.WAPI?._wppWhatsappReady === true;}"""
+            injected = await self._evaluate_js('HostLayer.inject_api.0'
                                                                   , page=self.page)
         except:
             injected = False
@@ -790,15 +802,26 @@ class HostLayer:
         self.logger.info(f'{self.session}: inject wppconnect-wa.js')
         # await self.ThreadsafeBrowser.add_script_tag(
         #     url="https://github.com/wppconnect-team/wa-js/releases/download/nightly/wppconnect-wa.js")
-        await self.ThreadsafeBrowser.add_script_tag(**(await getWaJs(self.wa_js_version)), page=self.page)
-        await self.ThreadsafeBrowser.page_wait_for_function(
-            "() => window.WPP?.isReady", page=self.page)
+        source = await getWaJs(self.wa_js_version, cache_dir=self.options.get('runtimeCacheDir'))
+        try:
+            await self._inject_runtime(source)
+        except (BrowserError, RuntimeCompatibilityError):
+            from WPP_Whatsapp.api.helpers.wa_version import _bundled_wajs
+            bundled = _bundled_wajs()
+            if self.wa_js_version not in (None, 'latest') or source == bundled:
+                raise
+            self.logger.warning('Latest WA-JS is incompatible; restarting initialization with bundled runtime')
+            self._runtime_reloading = True
+            try:
+                await self.ThreadsafeBrowser.create_task(self.page.reload(wait_until='load', timeout=self.options.get('navigationTimeout', 60000)))
+            finally:
+                self._runtime_reloading = False
+            await self.ThreadsafeBrowser.page_wait_for_function('window.Debug?.VERSION != undefined', page=self.page)
+            await self._evaluate_js('HostLayer._afterPageLoad.0', getattr(self, '_runtime_config', {}), page=self.page)
+            await self._inject_runtime(bundled)
         # await self.ThreadsafeBrowser.page_wait_for_function("() => window.WPP?.isReady", page=self.page)
         try:
-            await self.ThreadsafeBrowser.page_evaluate("""() => {
-                                  window.WPP.chat.defaultSendMessageOptions.createChat = true;
-                                  window.WPP.conn.setKeepAlive(true);
-                                }""", page=self.page)
+            await self._evaluate_js('HostLayer.inject_api.1', page=self.page)
         except:
             pass
         self.logger.info(f'{self.session}: inject wapi.js')
@@ -823,6 +846,12 @@ class HostLayer:
         #     pass
         return True
 
+    async def _inject_runtime(self, source):
+        await self.ThreadsafeBrowser.add_script_tag(**source, page=self.page)
+        await self.ThreadsafeBrowser.page_wait_for_function(
+            '() => window.WPP?.isReady', timeout=self.options.get('runtimeReadyTimeout', 30000), page=self.page)
+        self.runtime_capabilities = await self._get_bridge().capabilities()
+
     def loadingScreen(self, percent, message):
         self.logger.info(f'{self.session}: loadingScreen: {percent}, {message}')
         if self.lastPercent != percent or self.lastPercentMessage != message:
@@ -831,63 +860,14 @@ class HostLayer:
             self.lastPercentMessage = message
 
     async def _onLoadingScreen(self):
-        await self.ThreadsafeBrowser.page_evaluate("""function getElementByXpath(path) {
-        return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-            }""", page=self.page)
+        await self._evaluate_js('HostLayer._onLoadingScreen.0', page=self.page)
         try:
             await self.ThreadsafeBrowser.expose_function('loadingScreen', self.loadingScreen, page=self.page)
         except:
             # Function "loadingScreen" has been already registered
             pass
-        await self.ThreadsafeBrowser.page_evaluate(
-            """
-     function load_ (selectors) {
-      let observer = new MutationObserver(function () {
-        let window2 = window;
-
-        let progressBar = window2.getElementByXpath(selectors.PROGRESS);
-        let progressBarNewTheme = window2.getElementByXpath(
-          selectors.PROGRESS_NEW_THEME
-        );
-        let progressMessage = window2.getElementByXpath(
-          selectors.PROGRESS_MESSAGE
-        );
-        let progressMessageNewTheme = window2.getElementByXpath(
-          selectors.PROGRESS_MESSAGE_NEW_THEME
-        );
-
-        if (progressBar) {
-          if (
-            this.lastPercent !== progressBar.value ||
-            this.lastPercentMessage !== progressMessage.innerText
-          ) {
-            window2.loadingScreen(progressBar.value, progressMessage.innerText);
-            this.lastPercent = progressBar.value;
-            this.lastPercentMessage = progressMessage.innerText;
-          }
-        } else if (progressBarNewTheme) {
-          if (
-            this.lastPercent !== progressBarNewTheme.value ||
-            this.lastPercentMessage !== progressMessageNewTheme.innerText
-          ) {
-            const progressMsg =
-              progressMessageNewTheme.innerText != 'WhatsApp'
-                ? progressMessageNewTheme.innerText
-                : '';
-            window2.loadingScreen(progressBarNewTheme.value, progressMsg);
-            this.lastPercent = progressBarNewTheme.value;
-            this.lastPercentMessage = progressMsg;
-          }
-        }
-      });
-
-      observer.observe(document, {
-        attributes: true,
-        childList: true,
-        characterData: true,
-        subtree: true,
-      });
-    }""",
+        await self._evaluate_js(
+            'HostLayer._onLoadingScreen.1',
             {
                 "PROGRESS": "//*[@id='app']/div/div/div[2]/progress",
                 "PROGRESS_NEW_THEME": "//*[@id='app']/div/div/div[3]/progress",
@@ -1032,7 +1012,7 @@ class HostLayer:
         return self.ThreadsafeBrowser.run_threadsafe(self.refreshLinkCode_, timeout_=timeout)
 
     async def refreshLinkCode_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.refreshLinkDeviceCode()", page=self.page)
+        return await self._evaluate_js('HostLayer.refreshLinkCode_.0', page=self.page)
 
     def getQrCode(self, timeout=60):
         return self.ThreadsafeBrowser.run_threadsafe(self.getQrCode_, timeout_=timeout)
@@ -1041,7 +1021,7 @@ class HostLayer:
         return await self.__getQrCode()
 
     def isMainReady(self):
-        return self.ThreadsafeBrowser.page_evaluate_sync("() => WPP.conn.isMainReady()", page=self.page)
+        return self._evaluate_js_sync('HostLayer.isMainReady.0', page=self.page)
 
     async def isMainReady_(self):
-        return await self.ThreadsafeBrowser.page_evaluate("() => WPP.conn.isMainReady()", page=self.page)
+        return await self._evaluate_js('HostLayer.isMainReady_.0', page=self.page)

@@ -16,8 +16,8 @@ class BusinessLayer(ControlsLayer, CommunityLayer, NewsletterLayer):
         return self.ThreadsafeBrowser.run_threadsafe(self.getBusinessProfile_, id, timeout_=timeout)
 
     async def getBusinessProfile_(self, id):
-        return await self.ThreadsafeBrowser.page_evaluate(
-            "({id}) => WPP.contact.getBusinessProfile(id)", {"id": id}, page=self.page)
+        return await self._evaluate_js(
+            'BusinessLayer.getBusinessProfile_.0', {"id": id}, page=self.page)
 
     def sendImageWithProduct(self, to, base64, caption, businessId, productId, timeout=60):
         """Send an image containing product information."""
@@ -25,5 +25,5 @@ class BusinessLayer(ControlsLayer, CommunityLayer, NewsletterLayer):
 
     async def sendImageWithProduct_(self, to, base64, caption, businessId, productId):
         to = self.valid_chatId(to)
-        return await self.ThreadsafeBrowser.page_evaluate(
-            "({to, base64, caption, businessId, productId}) => WAPI.sendImageWithProduct(base64, to, caption, businessId, productId)", {"to": to, "base64": base64, "caption": caption, "businessId": businessId, "productId": productId}, page=self.page)
+        return await self._evaluate_js(
+            'BusinessLayer.sendImageWithProduct_.0', {"to": to, "base64": base64, "caption": caption, "businessId": businessId, "productId": productId}, page=self.page)

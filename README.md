@@ -12,6 +12,11 @@
 
 📚 **Looking for documentation?** Check out our [Complete Documentation](docs/README.md)
 
+The native `AsyncClient`, composed services, tracked sending and release recovery
+are documented in the [architecture and migration guide](docs/ARCHITECTURE.md).
+Existing `Create` / `Whatsapp` methods remain available. See the
+[native asyncio example](examples/native_async.py).
+
 ---
 
 ## ✨ Features
@@ -61,7 +66,7 @@ def on_message(msg):
         client.sendText(msg.get('from'), "Thanks for your message! 🤖")
 
 # Register handler
-client.on_message(on_message)
+client.onMessage(on_message)
 
 print("Bot started!")
 ```

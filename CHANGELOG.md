@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Maintainability
+- Separate explicit service definitions, structural interfaces, delivery models
+  and memory/SQLite adapters. Cache bound operations and sync adapters while
+  preserving inspectable signatures and excluding internal session helpers.
+- Validate known session options before browser startup, preserving extension
+  settings. Centralize supported event names and reject internal event handlers.
+- Preserve the active owner's pending delivery state when opening another
+  tracker. Offload blocking claims/state writes, handle persistence failure as
+  uncertain, and prohibit sends after tracker shutdown.
+- Share concurrent startup of the same multi-session profile. Support partial
+  and callable callbacks, including async callable interval handlers.
+- Remove dead interval code and redundant directory handling. Library imports
+  no longer configure root logging or create the temporary token directory.
+- Add pinned Ruff checks/formatting for the core in CI and a development guide
+  for future services, commands, events and persistence adapters.
+
+### Added
+- Native `AsyncClient` on the caller's event loop, with composed message, chat,
+  group, catalog, community, newsletter, profile, label, list, status and event services.
+- Central JavaScript command registry in a typed Python module and page-bound bridge with safe errors,
+  capability checks and aggregate timing/failure metrics.
+- Explicit session lifecycle, monotonic deadlines, exclusive profile leases,
+  idempotent owned-resource cleanup and native reconnect without operation replay.
+- Bounded, ordered event dispatch supporting sync/async callbacks, failure
+  isolation, recent message-ID deduplication and explicit overflow statistics.
+- Delivery receipts and optional per-session SQLite metadata storage for service
+  sends. Reserved operation IDs cannot be replayed; uncertain sends can be
+  confirmed later or reconciled against a verified outgoing message.
+- Verified WA-JS asset caching after live latest-release discovery, and one
+  initialization fallback for incompatible latest runtimes. Mutable nightly
+  and custom URLs bypass the cache; explicit runtime selections remain strict.
+- Manual published-tag release recovery, immutable source selection, complete
+  wheel/sdist payload checks and post-upload PyPI verification.
+- Fault-path regressions, native Chrome checks, migration documentation and a
+  read-only real-account smoke test for the native async client.
+
+### Fixed
+- Interpret `deviceSyncTimeout` in milliseconds and measure auto-close using
+  actual elapsed time. Return sessions to ready after successful login/sync.
+- Construct clients and bind browser callbacks on the owning browser loop.
+  Closing one multi-session client no longer closes other session contexts.
+- Shut down listeners, timers, storage, contexts, profile leases and the owned
+  driver on startup failure and repeated close calls.
+- Preserve the browser's `wait_for_first_selectors` helper with concurrent waits,
+  bounded timeout accounting and cleanup of outstanding selector tasks.
+- Preserve legacy method signatures and raw return values through a flat
+  compatibility facade. Remove the PlaywrightSafeThread dependency; stealth
+  support is available through the optional `stealth` extra.
+
+### Compatibility
+- Automatic profile takeover (`close_already_profile=True`) is rejected; close
+  that profile's owner explicitly. Service sends return `DeliveryReceipt` while
+  existing flat send methods keep their return types. See the migration guide.
+
 ## [1.1.0] - 2026-10-13
 
 ### Upstream API audit (2026-10-13)
