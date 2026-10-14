@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2.3.1 (candidate)
+
+- Add isolated installed-wheel checks, minimum dependency constraints and modern
+  Python compatibility jobs on Linux and Windows.
+- Add an opt-in two-real-account endurance probe with owned-browser memory,
+  handle/task measurements, recovery cycles and incoming callback ID lookup.
+
 ## [2.3.0] - 2026-10-14
 
 - Bind tracked send IDs to canonical request digests; reject changed payloads,
