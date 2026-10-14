@@ -266,6 +266,9 @@ class Whatsapp:
             tracker = getattr(self, '_delivery_tracker', None)
             if tracker is not None:
                 await tracker.aclose()
+            observer = getattr(self, '_ack_observer', None)
+            if observer is not None:
+                await observer.close()
 
     @property
     def async_services(self):

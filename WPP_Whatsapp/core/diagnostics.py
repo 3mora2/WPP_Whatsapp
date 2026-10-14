@@ -58,6 +58,7 @@ def snapshot(state, context=None, failure: Optional[DiagnosticFailure] = None) -
             if key in {"submitted", "delivered", "rejected", "duplicates", "callback_errors"}
             and type(value) is int
         },
+        "operations": dict(getattr(getattr(context, "_work_controller", None), "stats", {})),
         "capabilities": {
             key: value
             for key, value in capabilities.items()

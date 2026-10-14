@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+import asyncio
 import inspect
+from contextlib import AsyncExitStack
 from functools import wraps
 from typing import Any, Callable, Optional, Sequence
 
+from .acknowledgements import Acknowledgement, AckObserver, AckTarget, wait_for_ack
 from .contracts import Callback, Operation, OperationContext
 from .delivery import DeliveryReceipt, DeliveryTracker
 from .events import EVENT_NAMES
 from .media import DEFAULT_MAX_BYTES, Progress, download_to, prepare_media, send_prepared
 from .models import TypedServices
+from .requests import fingerprint
 from .service_registry import ServiceDefinition, service_definitions
 from .service_registry import snake as snake
+from .work import controller
 
 UNTRACKED_SENDS = frozenset({"send_seen", "send_reaction_to_message"})
 
@@ -37,7 +42,9 @@ class Service:
     async def _execute(self, operation: str, *args: Any, **kwargs: Any) -> Any:
         async def on_owner() -> Any:
             self.context.lifecycle.require_ready()
-            return await getattr(self.context, operation)(*args, **kwargs)
+            async with controller(self.context).slot(send=operation.startswith(("send", "reply"))):
+                self.context.lifecycle.require_ready()
+                return await getattr(self.context, operation)(*args, **kwargs)
 
         return await self.context.ThreadsafeBrowser.create_task(on_owner())
 
@@ -78,6 +85,43 @@ class Service:
 
 
 class MessagesService(Service):
+    def _ack_observer(self) -> AckObserver:
+        observer = getattr(self.context, "_ack_observer", None)
+        if observer is None:
+            observer = self.context._ack_observer = AckObserver(self.context)
+        return observer
+
+    async def delivery_status(self, operation_id: str) -> Acknowledgement:
+        async def status():
+            self.context.lifecycle.require_ready()
+            observer = self._ack_observer()
+            receipt = await self.deliveries.get_async(operation_id)
+            if receipt is None:
+                raise ValueError("Unknown delivery operation")
+            ident = receipt.message_id
+            if ident is not None:
+                message = await self.get_message(ident)
+                if message and message.get("id") == ident and message.get("fromMe"):
+                    await observer.observe({"id": ident, "ack": message.get("ack")})
+            ack = observer.values.get(ident)
+            return {
+                "operation_id": operation_id,
+                "message_id": ident,
+                "ack": ack,
+                "delivered": ack is not None and ack >= 2,
+                "read": ack is not None and ack >= 3,
+                "played": ack is not None and ack >= 4,
+            }
+
+        return await self.context.ThreadsafeBrowser.create_task(status())
+
+    async def wait_for_delivery(
+        self, operation_id: str, *, target: AckTarget = "delivered", timeout: float = 30
+    ) -> Acknowledgement:
+        return await self.context.ThreadsafeBrowser.create_task(
+            wait_for_ack(self, operation_id, target, timeout)
+        )
+
     @staticmethod
     def _tracked(name: str) -> bool:
         return (name.startswith("send_") and name not in UNTRACKED_SENDS) or name == "reply"
@@ -116,12 +160,28 @@ class MessagesService(Service):
     ) -> DeliveryReceipt:
         async def send() -> DeliveryReceipt:
             self.context.lifecycle.require_ready()
+            # Bind defaults so positional/keyword spelling identifies the same request.
+            method = getattr(self.context, operation)
+            try:
+                signature = inspect.signature(method)
+            except (TypeError, ValueError):
+                # Callable adapters may not expose a valid inspect signature.
+                # Use the authoritative legacy declaration, never repr(arguments).
+                source = next(
+                    value for value in self._definitions.values() if value.__name__ == operation
+                )
+                signature = inspect.signature(source)
+                signature = signature.replace(parameters=list(signature.parameters.values())[1:])
+            arguments = signature.bind(*args, **kwargs)
+            arguments.apply_defaults()
+            request = fingerprint(operation, arguments.arguments)
             return await self.deliveries.send(
                 lambda: self._execute(operation, *args, **kwargs),
                 operation_id,
                 timeout=timeout
                 if timeout is not None
                 else self.context.options.get("operationTimeout", 60),
+                request_fingerprint=request,
             )
 
         return await self.context.ThreadsafeBrowser.create_task(send())
@@ -157,30 +217,62 @@ class MessagesService(Service):
     ) -> DeliveryReceipt:
         """Tracked, bounded file send. Timeout never triggers an automatic resend.
 
-        Preparation/transfer happens inside the reserved operation. A timed-out
-        send owns its temporary file until it finishes, including late completion.
+        An immutable bounded copy identifies the request. Once adopted by the
+        reserved send it stays alive until dispatch finishes, even after timeout.
         """
         if kind not in {"document", "image", "video", "audio"}:
             raise ValueError("Unsupported media kind")
 
         async def on_owner():
             self.context.lifecycle.require_ready()
+            stack = AsyncExitStack()
+            adopted = False
+            work = controller(self.context)
+            try:
+                await stack.enter_async_context(work.slot())
+                media = await stack.enter_async_context(prepare_media(source, max_bytes=max_bytes))
+                request = fingerprint(
+                    "media",
+                    {
+                        "to": to,
+                        "kind": kind,
+                        "caption": caption,
+                        "quoted": quoted_message_id,
+                        "sha256": media.sha256,
+                        "filename": media.filename,
+                        "mimetype": media.mimetype,
+                    },
+                )
 
-            async def dispatch():
-                async with prepare_media(source, max_bytes=max_bytes) as media:
-                    return await send_prepared(
-                        self.context,
-                        to,
-                        media,
-                        kind=kind,
-                        caption=caption,
-                        quoted_message_id=quoted_message_id,
-                        progress=progress,
-                    )
+                async def dispatch():
+                    nonlocal adopted
+                    adopted = True
+                    try:
+                        await work.pace_send()
+                        self.context.lifecycle.require_ready()
+                        return await send_prepared(
+                            self.context,
+                            to,
+                            media,
+                            kind=kind,
+                            caption=caption,
+                            quoted_message_id=quoted_message_id,
+                            progress=progress,
+                        )
+                    finally:
+                        await stack.aclose()
 
-            return await self.deliveries.send(
-                dispatch, operation_id, timeout=timeout if timeout is not None else 120
-            )
+                return await self.deliveries.send(
+                    dispatch,
+                    operation_id,
+                    timeout=timeout if timeout is not None else 120,
+                    request_fingerprint=request,
+                )
+            finally:
+                # A shielded task may be scheduled when its caller is cancelled.
+                await asyncio.sleep(0)
+                if not adopted:
+                    await stack.aclose()
 
         return await self.context.ThreadsafeBrowser.create_task(on_owner())
 
@@ -227,9 +319,11 @@ class MessagesService(Service):
     ) -> dict:
         async def on_owner():
             self.context.lifecycle.require_ready()
-            return await download_to(
-                self.context, message_id, destination, max_bytes=max_bytes, progress=progress
-            )
+            async with controller(self.context).slot():
+                self.context.lifecycle.require_ready()
+                return await download_to(
+                    self.context, message_id, destination, max_bytes=max_bytes, progress=progress
+                )
 
         return await self.context.ThreadsafeBrowser.create_task(on_owner())
 

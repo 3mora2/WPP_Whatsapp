@@ -1,0 +1,30 @@
+name: Synthetic runtime endurance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'WPP_Whatsapp/core/**'
+      - 'WPP_Whatsapp/mcp/**'
+      - 'tools/soak_runtime.py'
+      - '.github/workflows/runtime-endurance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  endurance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.12'
+      - run: uv sync --extra dev
+      - run: uv run python tools/soak_runtime.py --iterations 2000 --cycles 5 --report runtime-soak.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-runtime-endurance
+          path: runtime-soak.json
+          if-no-files-found: error

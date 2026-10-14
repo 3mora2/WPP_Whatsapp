@@ -14,6 +14,7 @@ accept `operation_id` and `timeout`; flat methods retain raw results. See
 | Native service signature | Flat operation(s) |
 | --- | --- |
 | `messages.check_number_status(contactId)` | `client.checkNumberStatus`, `await client.checkNumberStatus_` |
+| `messages.delivery_status(operation_id)` | Service helper |
 | `messages.download_file(data)` | `client.downloadFile`, `await client.downloadFile_` |
 | `messages.download_media(messageId)` | `client.downloadMedia`, `await client.downloadMedia_` |
 | `messages.download_media_to(message_id, destination, *, max_bytes=67108864, progress=None)` | Service helper |
@@ -98,6 +99,7 @@ accept `operation_id` and `timeout`; flat methods retain raw results. See
 | `messages.stop_typing(to)` | `client.stopTyping`, `await client.stopTyping_` |
 | `messages.take_screenshot(**kwargs)` | `client.takeScreenshot`, `await client.takeScreenshot_` |
 | `messages.use_here()` | `client.useHere`, `await client.useHere_` |
+| `messages.wait_for_delivery(operation_id, *, target='delivered', timeout=30)` | Service helper |
 
 ## groups
 

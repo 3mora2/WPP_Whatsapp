@@ -24,9 +24,11 @@ def _runtime(ctx: Context, account_id=None, scope="read") -> SessionRuntime:
     return ctx.lifespan_context["accounts"].select(account_id, scope)
 
 
-async def _call(runtime: SessionRuntime, action: Callable[[], Awaitable[T]], *, ready=True) -> T:
+async def _call(
+    runtime: SessionRuntime, action: Callable[[], Awaitable[T]], *, ready=True, exclusive=False
+) -> T:
     try:
-        return await runtime.run(action, ready=ready)
+        return await runtime.run(action, ready=ready, exclusive=exclusive)
     except SessionNotReadyError:
         raise ToolError("Connect WhatsApp and finish login in the browser first") from None
     except ToolError:

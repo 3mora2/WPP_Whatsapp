@@ -1,15 +1,15 @@
 [project]
 name = "WPP_Whatsapp"
-version = "2.2.0"
+version = "2.3.0"
 description = "WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python"
 requires-python = ">=3.9"
 authors = [
     {name = "Ammar Alkotb", email = "ammar.alkotb@gmail.com"}
 ]
-license = {text = "MIT License"}
+license = "MIT"
+license-files = ["LICENSE"]
 
 classifiers = [
-    "License :: OSI Approved :: MIT License",
     "Intended Audience :: Developers",
     "Programming Language :: Python",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -29,11 +29,13 @@ dependencies = [
 [project.optional-dependencies]
 stealth = ["playwright-stealth>=2.0.0"]
 mcp = ["fastmcp>=4.1,<5; python_version >= '3.10'"]
+web = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1"]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "ruff==0.11.10",
+    "mypy>=1.14,<2",
 ]
 
 [project.scripts]
@@ -67,3 +69,19 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "B"]
+
+[tool.mypy]
+python_version = "3.9"
+files = ["WPP_Whatsapp/core/requests.py", "WPP_Whatsapp/core/delivery_models.py", "WPP_Whatsapp/core/contracts.py", "WPP_Whatsapp/core/acknowledgements.py", "WPP_Whatsapp/core/event_store.py", "WPP_Whatsapp/core/work.py", "WPP_Whatsapp/core/subscriptions.py", "WPP_Whatsapp/core/recovery.py"]
+follow_imports = "silent"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["pydantic.*", "fastmcp.*", "mcp.*"]
+follow_imports = "skip"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional, Protocol
 
 from .delivery_models import DeliveryReceipt, DeliveryState
+from .errors import OperationConflictError
 
 
 class DeliveryStore(Protocol):
@@ -20,6 +21,10 @@ class DeliveryStore(Protocol):
         """Reserve atomically; return the existing receipt if already reserved."""
         ...
 
+    def claim_request(
+        self, receipt: DeliveryReceipt, fingerprint: str
+    ) -> Optional[DeliveryReceipt]: ...
+
     def save(self, receipt: DeliveryReceipt) -> None: ...
 
     def close(self) -> None: ...
@@ -30,6 +35,7 @@ class MemoryDeliveryStore:
 
     def __init__(self) -> None:
         self._records: dict[str, DeliveryReceipt] = {}
+        self._fingerprints: dict[str, str] = {}
         self._lock = threading.RLock()
 
     def get(self, operation_id: str) -> Optional[DeliveryReceipt]:
@@ -46,6 +52,18 @@ class MemoryDeliveryStore:
     def save(self, receipt: DeliveryReceipt) -> None:
         with self._lock:
             self._records[receipt.operation_id] = receipt
+
+    def claim_request(
+        self, receipt: DeliveryReceipt, fingerprint: str
+    ) -> Optional[DeliveryReceipt]:
+        with self._lock:
+            previous = self._records.get(receipt.operation_id)
+            if previous is not None and self._fingerprints.get(receipt.operation_id) != fingerprint:
+                raise OperationConflictError("Operation ID does not match the reserved request")
+            if previous is None:
+                self._records[receipt.operation_id] = receipt
+                self._fingerprints[receipt.operation_id] = fingerprint
+            return previous
 
     def close(self) -> None:
         pass
@@ -66,6 +84,22 @@ class SQLiteDeliveryStore:
         try:
             with self._connection:
                 self._connection.execute(self.SCHEMA)
+                columns = {
+                    row[1] for row in self._connection.execute("PRAGMA table_info(deliveries)")
+                }
+                if "fingerprint" not in columns:
+                    try:
+                        self._connection.execute(
+                            "ALTER TABLE deliveries ADD COLUMN fingerprint TEXT"
+                        )
+                    except sqlite3.OperationalError:
+                        # Another process can finish the additive migration first.
+                        columns = {
+                            row[1]
+                            for row in self._connection.execute("PRAGMA table_info(deliveries)")
+                        }
+                        if "fingerprint" not in columns:
+                            raise
         except BaseException:
             self._connection.close()
             raise
@@ -81,15 +115,41 @@ class SQLiteDeliveryStore:
     def claim(self, receipt: DeliveryReceipt) -> Optional[DeliveryReceipt]:
         with self._lock, self._connection:
             cursor = self._connection.execute(
-                "INSERT OR IGNORE INTO deliveries VALUES (?, ?, ?, NULL, ?)",
+                "INSERT OR IGNORE INTO deliveries(namespace,id,state,message_id,updated) VALUES (?, ?, ?, NULL, ?)",
                 (self.namespace, receipt.operation_id, receipt.state.value, time.time()),
             )
             return self.get(receipt.operation_id) if cursor.rowcount == 0 else None
 
+    def claim_request(
+        self, receipt: DeliveryReceipt, fingerprint: str
+    ) -> Optional[DeliveryReceipt]:
+        with self._lock, self._connection:
+            cursor = self._connection.execute(
+                "INSERT OR IGNORE INTO deliveries(namespace,id,state,updated,fingerprint) VALUES (?,?,?,?,?)",
+                (
+                    self.namespace,
+                    receipt.operation_id,
+                    receipt.state.value,
+                    time.time(),
+                    fingerprint,
+                ),
+            )
+            if cursor.rowcount:
+                return None
+            row = self._connection.execute(
+                "SELECT fingerprint FROM deliveries WHERE namespace=? AND id=?",
+                (self.namespace, receipt.operation_id),
+            ).fetchone()
+            if row[0] != fingerprint:
+                raise OperationConflictError("Operation ID does not match the reserved request")
+            return self.get(receipt.operation_id)
+
     def save(self, receipt: DeliveryReceipt) -> None:
         with self._lock, self._connection:
             self._connection.execute(
-                "INSERT OR REPLACE INTO deliveries VALUES (?, ?, ?, ?, ?)",
+                """INSERT INTO deliveries(namespace,id,state,message_id,updated) VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(namespace,id) DO UPDATE SET state=excluded.state,
+                message_id=excluded.message_id,updated=excluded.updated""",
                 (
                     self.namespace,
                     receipt.operation_id,

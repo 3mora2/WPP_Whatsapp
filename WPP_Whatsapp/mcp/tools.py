@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from dataclasses import asdict
 from typing import Annotated, Optional
@@ -10,6 +11,7 @@ from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
 from pydantic import Field
 
+from WPP_Whatsapp.core.acknowledgements import Acknowledgement, AckTarget
 from WPP_Whatsapp.core.delivery_models import DeliveryState
 from WPP_Whatsapp.core.errors import DeliveryUncertainError
 
@@ -18,6 +20,35 @@ from .tool_api import READ, SESSION, Identifier, Limit, OperationId, _call, _ide
 
 
 def register_tools(server: FastMCP, *, read_only: bool):
+    @server.tool(annotations=READ)
+    async def whatsapp_delivery_status(
+        ctx: Context,
+        operation_id: OperationId,
+        account_id: Optional[Identifier] = None,
+    ) -> Acknowledgement:
+        """Read observed ACK evidence separately from the queued send receipt. Never sends."""
+        runtime = _runtime(ctx, account_id)
+        return await _call(
+            runtime, lambda: runtime.client.messages.delivery_status(_identifier(operation_id))
+        )
+
+    @server.tool(annotations=READ)
+    async def whatsapp_wait_for_delivery(
+        ctx: Context,
+        operation_id: OperationId,
+        target: AckTarget = "delivered",
+        timeout: Annotated[float, Field(ge=0, le=120)] = 30,
+        account_id: Optional[Identifier] = None,
+    ) -> Acknowledgement:
+        """Wait at most 120s for server/delivery/read/play evidence; timeout never resends."""
+        runtime = _runtime(ctx, account_id)
+        return await _call(
+            runtime,
+            lambda: runtime.client.messages.wait_for_delivery(
+                _identifier(operation_id), target=target, timeout=timeout
+            ),
+        )
+
     @server.tool(annotations={**READ, "openWorldHint": False})
     async def whatsapp_list_accounts(ctx: Context) -> list[str]:
         """List only administrator-configured accounts this verified principal can read."""
@@ -61,7 +92,10 @@ def register_tools(server: FastMCP, *, read_only: bool):
 
         async def subscribe():
             runtime.subscribe()
-            return {"cursor": runtime.events.sequence, "capacity": runtime.events.items.maxlen}
+            return {
+                "cursor": await asyncio.to_thread(lambda: runtime.events.sequence),
+                "capacity": runtime.events.items.maxlen,
+            }
 
         return await _call(runtime, subscribe)
 
@@ -76,7 +110,7 @@ def register_tools(server: FastMCP, *, read_only: bool):
         runtime = _runtime(ctx, account_id, "events")
 
         async def read():
-            return runtime.events.read(after, limit)
+            return await asyncio.to_thread(runtime.events.read, after, limit)
 
         return await _call(runtime, read, ready=False)
 

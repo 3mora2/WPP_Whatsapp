@@ -16,6 +16,7 @@ from pydantic import Field
 from WPP_Whatsapp import AsyncClient
 from WPP_Whatsapp.core.delivery_models import DeliveryState
 from WPP_Whatsapp.core.errors import DeliveryUncertainError, SessionNotReadyError
+from WPP_Whatsapp.core.options import validate_options
 
 from .accounts import SCOPES, AccountConfig, AccountManager, validate_accounts
 from .models import DeliveryLookup, DeliveryResult, SessionStatus
@@ -55,6 +56,8 @@ def build_server(
         }
     )
     validate_accounts(configs)
+    for config in configs.values():
+        validate_options(config.options)
     configs = {
         key: replace(config, options=deepcopy(config.options)) for key, config in configs.items()
     }
@@ -125,9 +128,13 @@ def build_server(
                 runtime.unsubscribe()
             # Shut down every owned account even when one close fails.
             await asyncio.gather(
-                *(runtime.run(runtime.client.close, ready=False) for runtime in owned),
+                *(
+                    runtime.run(runtime.client.close, ready=False, exclusive=True)
+                    for runtime in owned
+                ),
                 return_exceptions=True,
             )
+            await asyncio.gather(*(runtime.events.close() for runtime in runtimes.values()))
 
     server = FastMCP(
         "WPP WhatsApp",
@@ -158,7 +165,7 @@ def build_server(
     ) -> SessionStatus:
         """Open/reuse the configured session. Scan its QR in the browser, then poll status."""
         runtime = _runtime(ctx, account_id, "session")
-        await _call(runtime, runtime.client.connect, ready=False)
+        await _call(runtime, runtime.client.connect, ready=False, exclusive=True)
         return runtime.status()
 
     @server.tool(annotations={**SESSION, "idempotentHint": True})
@@ -168,7 +175,7 @@ def build_server(
         """Close this session's browser, preserving its saved login and delivery metadata."""
         runtime = _runtime(ctx, account_id, "session")
         runtime.unsubscribe()
-        await _call(runtime, runtime.client.close, ready=False)
+        await _call(runtime, runtime.client.close, ready=False, exclusive=True)
         return runtime.status()
 
     @server.tool(annotations=SESSION)
@@ -177,8 +184,11 @@ def build_server(
     ) -> SessionStatus:
         """Reopen the same saved profile without replaying earlier operations."""
         runtime = _runtime(ctx, account_id, "session")
+        subscribed = runtime._unsubscribe is not None
         runtime.unsubscribe()
-        await _call(runtime, runtime.client.reconnect, ready=False)
+        await _call(runtime, runtime.client.reconnect, ready=False, exclusive=True)
+        if subscribed:
+            runtime.subscribe()
         return runtime.status()
 
     @server.tool(annotations=READ)
@@ -257,7 +267,7 @@ def build_server(
                 runtime.tracker = runtime.client.messages.deliveries
             if runtime.tracker is None:
                 raise SessionNotReadyError("Connect first to access delivery metadata")
-            receipt = await asyncio.to_thread(runtime.tracker.get, _identifier(operation_id))
+            receipt = await runtime.tracker.get_async(_identifier(operation_id))
             return {"receipt": asdict(receipt) if receipt is not None else None}
 
         return await _call(runtime, lookup, ready=False)

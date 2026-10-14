@@ -1,5 +1,15 @@
 # Tests and validation boundaries
 
+The 2.3.0 reliability cases in `test_reliability.py` and `test_mcp_reliability.py`
+cover request conflicts, legacy schema migration, actual process termination,
+persistent event cursors/retention, subscriptions, bounded recovery, admission,
+cancellation and ACK evidence. `test_web_example.py` validates authenticated HTTP
+with synthetic operations. `tools/soak_runtime.py` measures synthetic allocation,
+latency and restart behavior without accessing WhatsApp.
+See the [2.3.0 candidate validation](../docs/VALIDATION_2.3.0.md) for measured
+results and the live-account limits. `live_reliability_smoke.py` is read-only;
+its optional page-close test closes only the page it opened itself.
+
 Run from the repository root. The core supports Python 3.9+; optional MCP tests
 need Python 3.10+ and the `mcp` extra. Node.js 18+ is required for executable
 JavaScript contract tests. Native Chrome tests are opt-in and need installed Chrome.

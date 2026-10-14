@@ -140,15 +140,20 @@ Cuando el servidor esté en marcha:
 2. Completa el inicio de sesión de WhatsApp en el navegador.
 3. Consulta `whatsapp_status` hasta que `ready` sea `true`.
 
-Iniciar el servidor MCP por sí solo no abre WhatsApp. La versión **2.2.0** ofrece
-**21 herramientas** para sesiones, chats, mensajes, búsqueda, eventos, archivos
+Iniciar el servidor MCP por sí solo no abre WhatsApp. La versión **2.3.0** ofrece
+**23 herramientas** para sesiones, chats, mensajes, búsqueda, eventos, archivos
 multimedia y diagnósticos. Utiliza `--read-only` para excluir las herramientas de
-envío y conciliación de resultados de envío; quedan **16 herramientas** disponibles.
+envío y conciliación de resultados de envío; quedan **18 herramientas** disponibles.
 
 La [guía de FastMCP](docs/FASTMCP.md) explica la configuración del cliente, el uso
 de varias cuentas, las políticas de acceso basadas en JWT verificados y el
 seguimiento de los envíos. El soporte MCP se introdujo en la versión 2.1.0 con
 12 herramientas; el conjunto ampliado requiere la versión 2.2.0 o posterior.
+
+La versión 2.3.0 vincula cada operación a su solicitud y añade eventos persistentes
+opcionales, recuperación limitada, espera de entrega/lectura y límites de concurrencia.
+Consulta la [guía de fiabilidad y migración](docs/RELIABILITY.md),
+el [estado de publicación](CHANGELOG.md) y los ejemplos HTTP/MCP.
 
 ## Trabajar con sesiones y resultados de envío
 

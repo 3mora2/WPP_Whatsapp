@@ -127,6 +127,12 @@ Profile leases reject concurrent ownership without terminating another browser.
 `MultiCreate` closes only the selected session's context when that client closes;
 `close_all()` releases all contexts and stops its own worker loop.
 
+From 2.3.0 native client-owned subscriptions rebind across contexts and bounded
+automatic recovery is opt-in. Tracked sends bind request fingerprints atomically;
+durable incoming journals are separately opt-in. MCP serializes lifecycle changes
+against active operations while allowing bounded concurrent reads and transfers.
+See [reliability](RELIABILITY.md) for identity migration, ACK semantics and limits.
+
 | Option | Unit / default |
 | --- | --- |
 | `autoClose` | Seconds; legacy QR auto-close, `0` disables it. |

@@ -29,6 +29,14 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     )
     parser.add_argument("--wa-js-version", default=None, help="WA-JS selection, e.g. bundled")
     parser.add_argument("--media-root", help="Existing private directory for media files")
+    parser.add_argument("--event-store", help="Opt-in private SQLite incoming-message journal")
+    parser.add_argument("--event-buffer-size", type=int, default=256)
+    parser.add_argument("--event-retention-seconds", type=float, default=86400)
+    parser.add_argument("--reconnect-attempts", type=int, default=0)
+    parser.add_argument("--max-concurrent-operations", type=int, default=4)
+    parser.add_argument("--max-pending-operations", type=int, default=64)
+    parser.add_argument("--send-rate-calls", type=int, default=0)
+    parser.add_argument("--send-rate-period", type=float, default=60)
     parser.add_argument(
         "--accounts-config", type=Path, help="Administrator JSON map of account configs"
     )
@@ -83,6 +91,17 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         parser.error(f"Invalid MCP configuration ({type(error).__name__})")
     logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
     options = {"headless": args.headless}
+    options.update(
+        eventBufferSize=args.event_buffer_size,
+        eventRetentionSeconds=args.event_retention_seconds,
+        reconnectAttempts=args.reconnect_attempts,
+        maxConcurrentOperations=args.max_concurrent_operations,
+        maxPendingOperations=args.max_pending_operations,
+        sendRateCalls=args.send_rate_calls,
+        sendRatePeriod=args.send_rate_period,
+    )
+    if args.event_store is not None:
+        options["eventStore"] = args.event_store
     if args.delivery_store is not None:
         options["deliveryStore"] = args.delivery_store
     try:

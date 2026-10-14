@@ -1,5 +1,11 @@
 # Maintaining and extending the library
 
+From 2.3.0, `uv.lock` is tracked for reproducible development/CI. Run `uv lock
+--check` and `uv run mypy` alongside core/MCP Ruff checks. The type-check scope
+covers eight reliability/contract modules; the entire legacy dynamic API is not
+statically checked. `uv sync --extra dev --extra mcp --extra web` enables optional
+integration tests on supported Python versions.
+
 Use Python 3.9+ and Node.js for executable JavaScript contract tests. Install
 development tools with `uv sync --extra dev` and run `uv run pytest tests/ -q`.
 Native Chrome tests are opt-in with `RUN_WHATSAPP_BROWSER_TESTS=1`; they own and
