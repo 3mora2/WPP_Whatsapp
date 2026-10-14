@@ -68,6 +68,8 @@ def generated_api():
                         "search",
                         "send_media",
                         "download_media_to",
+                        "delivery_status",
+                        "wait_for_delivery",
                     )
                 }
             )

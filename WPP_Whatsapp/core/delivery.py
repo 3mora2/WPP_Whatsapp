@@ -67,12 +67,18 @@ class DeliveryTracker:
     async def _io(self, call: Callable[..., Any], *args: Any) -> Any:
         return await asyncio.to_thread(call, *args) if self._store.blocking else call(*args)
 
-    def _claim(self, ident: str) -> Optional[DeliveryReceipt]:
+    def _claim(
+        self, ident: str, request_fingerprint: Optional[str] = None
+    ) -> Optional[DeliveryReceipt]:
         with self._lock:
             if self._closed:
                 raise SessionClosedError("Delivery tracker is closed")
             pending = DeliveryReceipt(ident, DeliveryState.PENDING)
-            previous = self._store.claim(pending)
+            previous = (
+                self._store.claim_request(pending, request_fingerprint)
+                if request_fingerprint is not None
+                else self._store.claim(pending)
+            )
             if previous is None:
                 self._active.add(ident)
                 self.records[ident] = pending
@@ -105,10 +111,12 @@ class DeliveryTracker:
             self._io(self._record, DeliveryReceipt(ident, state, message_id))
         )
 
-    async def _reserve(self, ident: str) -> Optional[DeliveryReceipt]:
+    async def _reserve(
+        self, ident: str, request_fingerprint: Optional[str] = None
+    ) -> Optional[DeliveryReceipt]:
         if not self._store.blocking:
-            return self._claim(ident)
-        claim = asyncio.create_task(self._io(self._claim, ident))
+            return self._claim(ident, request_fingerprint)
+        claim = asyncio.create_task(self._io(self._claim, ident, request_fingerprint))
         try:
             return await asyncio.shield(claim)
         except asyncio.CancelledError:
@@ -124,6 +132,8 @@ class DeliveryTracker:
         call: Callable[[], Awaitable[Any]],
         operation_id: Optional[str] = None,
         timeout: Optional[float] = None,
+        *,
+        request_fingerprint: Optional[str] = None,
     ) -> DeliveryReceipt:
         if timeout is not None and (
             not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout < 0
@@ -132,7 +142,7 @@ class DeliveryTracker:
         ident = uuid.uuid4().hex if operation_id is None else operation_id
         if not isinstance(ident, str) or not ident or len(ident) > 128:
             raise ValueError("operation_id must be a nonempty string of at most 128 characters")
-        previous = await self._reserve(ident)
+        previous = await self._reserve(ident, request_fingerprint)
         if previous is not None:
             if previous.state == DeliveryState.CONFIRMED:
                 return previous
@@ -227,6 +237,10 @@ class DeliveryTracker:
 
     async def aclose(self) -> None:
         await self._io(self.close)
+
+    async def get_async(self, operation_id: str) -> Optional[DeliveryReceipt]:
+        """Inspect persisted metadata without blocking an async owner's loop."""
+        return await self._io(self.get, operation_id)
 
     async def reconcile_async(self, operation_id: str, message_id: str) -> DeliveryReceipt:
         return await self._io(self.reconcile, operation_id, message_id)

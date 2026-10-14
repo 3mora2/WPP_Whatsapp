@@ -136,14 +136,19 @@ Once the server is running:
 2. Complete WhatsApp login in the browser.
 3. Poll `whatsapp_status` until `ready` is true.
 
-Starting the MCP server alone does not open WhatsApp. Version **2.2.0** provides
-**21 tools** for sessions, chats, messages, search, events, media, and diagnostics.
-Use `--read-only` to omit sending and reconciliation tools, leaving **16 tools**.
+Starting the MCP server alone does not open WhatsApp. Version **2.3.0** provides
+**23 tools** for sessions, chats, messages, search, events, media, diagnostics and ACK evidence.
+Use `--read-only` to omit sending and reconciliation tools, leaving **18 tools**.
 
 The [FastMCP guide](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/FASTMCP.md)
 covers client configuration, multiple accounts, verified JWT access policies,
 and delivery tracking. MCP was introduced in 2.1.0 with 12 tools; the expanded
 toolset requires 2.2.0 or newer.
+
+Version 2.3.0 adds request-bound operation IDs, optional durable event journals,
+bounded connection recovery, delivery/read ACK waits, and admission/rate controls.
+See the [reliability and migration guide](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/RELIABILITY.md),
+[release status](https://github.com/3mora2/WPP_Whatsapp/blob/main/CHANGELOG.md), and runnable HTTP/MCP examples.
 
 ## Working with sessions and delivery
 

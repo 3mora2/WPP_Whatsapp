@@ -1,5 +1,9 @@
 # Configuration
 
+The [2.3.0 reliability guide](RELIABILITY.md) documents incoming event persistence,
+bounded recovery, operation admission and optional send pacing. All settings are
+validated before browser startup; persistence and automatic recovery are opt-in.
+
 ## Factories and profile paths
 
 ```python

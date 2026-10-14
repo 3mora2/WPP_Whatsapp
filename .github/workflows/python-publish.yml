@@ -90,6 +90,13 @@ jobs:
             uvx ruff@0.11.10 check WPP_Whatsapp/mcp
             uvx ruff@0.11.10 format --check WPP_Whatsapp/mcp
           fi
+      - name: Check typed public contracts
+        run: |
+          if [ -f WPP_Whatsapp/core/acknowledgements.py ]; then
+            uv lock --check
+            uv sync --extra dev
+            uv run mypy
+          fi
       - name: Validate documentation and example API contracts
         run: |
           if [ -f tools/verify_docs.py ]; then
@@ -116,12 +123,42 @@ jobs:
         # Older published tags can still be recovered with the current workflow.
         run: |
           if [ -f tests/test_mcp.py ]; then
-            uv sync --extra dev --extra mcp
+            if [ -f examples/fastapi_app.py ]; then
+              uv sync --extra dev --extra mcp --extra web
+            else
+              uv sync --extra dev --extra mcp
+            fi
             uv run pytest tests/test_mcp*.py -v --tb=short
+            if [ -f tests/test_web_example.py ]; then uv run pytest tests/test_web_example.py -q; fi
           fi
 
+  windows-test:
+    needs: release-check
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.12']
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.release-check.outputs.ref }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Test native filesystem, restart and runtime contracts
+        shell: pwsh
+        run: |
+          if ('${{ matrix.python-version }}' -eq '3.12' -and (Test-Path examples/fastapi_app.py)) {
+            uv sync --extra dev --extra mcp --extra web
+          } else {
+            uv sync --extra dev
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run pytest tests/ -q --tb=short
+
   build:
-    needs: [release-check, test, lint, mcp-test]
+    needs: [release-check, test, lint, mcp-test, windows-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

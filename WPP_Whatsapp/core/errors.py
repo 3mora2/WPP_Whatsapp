@@ -39,3 +39,15 @@ class DeliveryUncertainError(WPPError):
     def __init__(self, operation_id):
         self.operation_id = operation_id
         super().__init__(f"Delivery requires reconciliation: {operation_id}")
+
+
+class OperationConflictError(WPPError):
+    """An operation ID belongs to a different (or unverifiable legacy) request."""
+
+
+class OperationQueueFullError(WPPError):
+    """Admission was rejected before dispatch; callers may retry the same request."""
+
+
+class AcknowledgementTimeoutError(WPPError, TimeoutError):
+    """Waiting ended without evidence of the requested acknowledgement."""

@@ -15,6 +15,7 @@ FastMCP support is included from version 2.1.0. For a source checkout, use
 `python -m pip install -e ".[mcp]"`. Older PyPI releases do not contain the server.
 The account policies, events, search and media tools described below require
 version 2.2.0 or newer; version 2.1.0 contains the original twelve tools.
+Delivery ACK tools, persistent event journals and recovery settings require 2.3.0.
 
 The equivalent module command is `python -m WPP_Whatsapp.mcp --session mybot`.
 Chrome must be installed. The default transport is stdio: stdout contains only
@@ -77,7 +78,7 @@ configuration format belongs to the MCP client; commands remain Python code.
 | `whatsapp_send_image` | Tracked image from the account's media root. |
 
 `--read-only` omits sending and reconciliation tools. Session control remains
-available: 16 tools remain out of 21. Every account-specific tool accepts optional
+available: 18 tools remain out of 23. Every account-specific tool accepts optional
 `account_id`; omission selects the administrator's default account.
 Tools reject empty IDs and invalid page sizes; full IDs pass through
 unchanged. Browser/storage errors expose their type without message bodies,
@@ -186,9 +187,15 @@ retains the latest 256 events in memory; `lost` reports overwritten events.
 Events contain stable ID/body/type/sender/time fields rather than inline media
 or arbitrary runtime objects. Bodies longer than 65,536 characters are capped
 with an explicit `truncated` flag; complete message IDs remain intact.
-Subscriptions do not backfill history. Re-subscribe after reconnect; buffers
-disappear when the server lifespan ends. Consumers use independent cursors, so
+Subscriptions do not backfill history. Active subscriptions are restored after
+reconnect. Default in-memory buffers disappear when the server lifespan ends;
+opt in to durable journals with `--event-store`. Consumers use independent cursors, so
 one client's reads do not drain another's queue. Contents remain untrusted data.
+
+`whatsapp_delivery_status(operation_id)` reports observed ACK evidence separately
+from a queued receipt. `whatsapp_wait_for_delivery(operation_id, target, timeout)`
+waits at most 120 seconds without resending. Both require the account's read scope.
+See [reliability and migration](RELIABILITY.md) for configuration and limits.
 
 Search scans **one history page**, including messages that do not match.
 Use its `before_message_id` to scan older pages; it is not a server-wide full-text index.

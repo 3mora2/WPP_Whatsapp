@@ -125,6 +125,7 @@ tokens
 token
 */tokens
 *.lock
+!uv.lock
 
 # Project specific
 main.py  # Example file, not needed for package

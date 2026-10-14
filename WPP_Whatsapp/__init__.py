@@ -6,5 +6,11 @@ from WPP_Whatsapp.core.client import AsyncClient
 from WPP_Whatsapp.core.delivery import DeliveryReceipt, DeliveryState
 from WPP_Whatsapp.core.lifecycle import SessionState
 from WPP_Whatsapp.core.models import Chat, Group, GroupMember, Message
+from WPP_Whatsapp.core.acknowledgements import Acknowledgement, AckTarget
+from WPP_Whatsapp.core.errors import (
+    AcknowledgementTimeoutError,
+    OperationConflictError,
+    OperationQueueFullError,
+)
 
 

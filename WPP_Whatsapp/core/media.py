@@ -42,6 +42,7 @@ class PreparedMedia:
     size: int
     mimetype: str
     filename: str
+    sha256: str = ""
 
 
 @asynccontextmanager
@@ -65,6 +66,7 @@ async def prepare_media(
         size = 0
         mime = "application/octet-stream"
         filename = "attachment"
+        digest = hashlib.sha256()
 
         async def write_chunk(output, chunk, total):
             nonlocal size
@@ -72,6 +74,7 @@ async def prepare_media(
             if size > max_bytes:
                 raise MediaTooLargeError()
             output.write(chunk)
+            digest.update(chunk)
             await report(progress, size, total)
 
         with target.open("wb") as output:
@@ -100,7 +103,7 @@ async def prepare_media(
                             break
                         await write_chunk(output, chunk, total)
                         await asyncio.sleep(0)  # Cancellation even without a progress callback.
-        yield PreparedMedia(target, size, mime, filename)
+        yield PreparedMedia(target, size, mime, filename, digest.hexdigest())
 
 
 async def send_prepared(

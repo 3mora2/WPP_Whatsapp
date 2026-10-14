@@ -4,6 +4,8 @@ These guides cover the 2.2 release line. The core supports Python 3.9+;
 FastMCP requires Python 3.10+. Use installed distribution metadata for the
 exact version: `python -m pip show WPP_Whatsapp`.
 Features introduced in 2.2.0 are marked in their guides.
+The [2.3.0 reliability guide](RELIABILITY.md) covers request identity, durable
+events, bounded recovery, ACK evidence, admission and migration.
 
 ## Start here
 

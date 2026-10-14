@@ -214,7 +214,8 @@ async def test_concurrent_connect_only_opens_one_native_browser():
     client = AsyncClient(wait_for_login=False)
     browser = SimpleNamespace(open=AsyncMock(), close=AsyncMock(), page=Mock(), loop=asyncio.get_running_loop())
     context = SimpleNamespace(start=AsyncMock(), _shutdown_session=AsyncMock(), options={},
-                              onStateChange=Mock(), isClosed=False)
+                              onStateChange=Mock(), isClosed=False,
+                              async_services=SimpleNamespace(events=SimpleNamespace(on=Mock())))
     with patch('WPP_Whatsapp.core.client.AsyncBrowser', return_value=browser), \
          patch('WPP_Whatsapp.core.client.session_directory', return_value='test-profile'), \
          patch('WPP_Whatsapp.api.Whatsapp.Whatsapp', return_value=context):

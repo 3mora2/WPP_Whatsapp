@@ -13,6 +13,8 @@ saved profile; do not run two examples against the same profile at once.
 | [context_manager_example.py](context_manager_example.py) | Sync or native-async reads with cleanup | `python examples/context_manager_example.py --mode async` |
 | [native_async.py](native_async.py) | Native async receive/lookup | `python examples/native_async.py` |
 | [mcp_server.py](mcp_server.py) | Embeddable stdio FastMCP server | `python examples/mcp_server.py` |
+| [reliable_mcp.py](reliable_mcp.py) | Read-only MCP with durable events and opt-in recovery | `python examples/reliable_mcp.py` |
+| [fastapi_app.py](fastapi_app.py) | Authenticated local HTTP with explicit sends and operation IDs | Set `WPP_API_TOKEN`, install `.[web]`, run `uvicorn examples.fastapi_app:create_app --factory --host 127.0.0.1` |
 
 The MCP example requires Python 3.10+ and `python -m pip install -e ".[mcp]"`.
 Other examples support the core Python 3.9+ contract. They do not automatically

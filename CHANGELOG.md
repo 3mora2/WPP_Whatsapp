@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-10-14
+
+- Bind tracked send IDs to canonical request digests; reject changed payloads,
+  recipients and media bytes. Add a non-destructive SQLite schema migration.
+- Add opt-in durable incoming MCP events with persistent cursors, retained-ID
+  deduplication, count/age retention, explicit gaps and per-session namespaces.
+- Add bounded opt-in native recovery and client-owned subscriptions that rebind
+  after replacement contexts, without replaying sends.
+- Observe delivery/read/play ACK evidence separately from queued send confirmation;
+  add typed Python helpers and two read-only MCP tools (23 tools, 18 read-only).
+- Bound composed operations and MCP admission, reuse the existing optional send
+  rate limiter, and keep metadata responsive during slow work.
+- Add type checks, Windows CI, process-crash/concurrency tests, synthetic endurance
+  measurement, and authenticated FastAPI / durable FastMCP application templates.
+
+See [migration, settings and limitations](docs/RELIABILITY.md). Publication remains
+driven by a published GitHub release after the CI checks pass.
+Local candidate results are recorded in the [validation report](docs/VALIDATION_2.3.0.md).
+
 ## [2.2.0] - 2026-10-13
 
 ### Added
