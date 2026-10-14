@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## 2.3.0 (unreleased)
+## [2.3.0] - 2026-10-14
 
 - Bind tracked send IDs to canonical request digests; reject changed payloads,
   recipients and media bytes. Add a non-destructive SQLite schema migration.
