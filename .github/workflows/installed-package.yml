@@ -13,6 +13,7 @@ jobs:
       matrix:
         include:
           - {os: ubuntu-latest, python: '3.9', dependencies: minimum, mcp: false}
+          - {os: ubuntu-latest, python: '3.10', dependencies: minimum, mcp: true}
           - {os: ubuntu-latest, python: '3.12', dependencies: minimum, mcp: true}
           - {os: ubuntu-latest, python: '3.13', dependencies: latest, mcp: true}
           - {os: ubuntu-latest, python: '3.14', dependencies: latest, mcp: true}

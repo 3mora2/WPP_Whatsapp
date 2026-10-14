@@ -2,8 +2,8 @@
 
 From 2.3.0, `uv.lock` is tracked for reproducible development/CI. Run `uv lock
 --check` and `uv run mypy` alongside core/MCP Ruff checks. The type-check scope
-covers eight reliability/contract modules; the entire legacy dynamic API is not
-statically checked. `uv sync --extra dev --extra mcp --extra web` enables optional
+covers all 35 core modules, including generated service stubs; legacy dynamic
+internals remain outside that scope. `uv sync --extra dev --extra mcp --extra web` enables optional
 integration tests on supported Python versions.
 
 Use Python 3.9+ and Node.js for executable JavaScript contract tests. Install
@@ -24,6 +24,11 @@ close their profiles. Real-account tests are described in
 | `core/delivery.py` | Reservation, no-replay policy and uncertain results. |
 | `core/delivery_store.py` | Atomic memory and SQLite metadata storage adapters. |
 | `core/delivery_models.py` | Shared immutable delivery receipts and states. |
+| `core/send_evidence.py` | Pre-dispatch message identity and recovery matching. |
+| `core/journal.py`, `core/consumers.py` | Private journals, atomic leases, acknowledgements and retries. |
+| `core/admin.py` | Local inspection, verified recovery and tombstone-preserving compaction. |
+| `core/metrics.py` | Owned-process measurements and numeric Prometheus output. |
+| `core/service_types.pyi` | Generated complete sync/async composed signatures. |
 | `core/events.py` | Supported event names, ordered dispatch and callback isolation. |
 | `core/options.py` | Known-option validation preserving extension/browser options. |
 | `core/engine.py` | Browser ownership, loop dispatch and resource cleanup. |
@@ -33,7 +38,8 @@ close their profiles. Real-account tests are described in
 | `mcp/cli.py` | Application startup, stdio logging and authenticated HTTP settings. |
 
 Keep these responsibilities separate. Browser errors must not include message
-bodies, tokens or recipient details. Storage adapters receive metadata only.
+bodies, tokens or recipient details. Delivery adapters receive metadata only;
+opt-in private event journals contain bounded incoming payloads.
 Imports must not configure the application's root logger or create folders.
 Applications can configure the `WPP_Whatsapp` logger through standard logging.
 
@@ -68,6 +74,11 @@ session startup, cleanup and injection helpers are excluded from message service
 Names use snake_case, including acronyms: `getWAJSVersion_` becomes
 `get_wajs_version`. Bound wrappers are cached and retain inspectable signatures
 and docstrings.
+
+Run `uv run python tools/generate_stubs.py` after changing a signature or adding
+a service, and `uv run python tools/generate_stubs.py --check` before committing.
+The generator uses the pinned development Ruff formatter. Keep native client
+type declarations aligned with the registry; runtime dispatch stays registry-led.
 
 ## Add a service or event
 

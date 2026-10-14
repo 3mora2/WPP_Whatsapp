@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 from functools import wraps
+from typing import Any, cast
 
 
 def sync_wrapper(async_name: str):
@@ -27,7 +28,7 @@ def sync_wrapper(async_name: str):
                 getattr(self, async_name), *values.values(), timeout_=timeout
             )
 
-        execute.__signature__ = signature
+        cast(Any, execute).__signature__ = signature
         return execute
 
     return decorate

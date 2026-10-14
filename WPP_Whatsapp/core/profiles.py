@@ -1,6 +1,6 @@
 """Advisory process lease; never terminate a browser to claim its profile."""
 
-import os
+import sys
 from pathlib import Path
 
 from .errors import ProfileInUseError
@@ -29,7 +29,7 @@ class ProfileLease:
         stream = open(self.path / ".wpp-profile.lock", "a+b")
         try:
             stream.seek(0)
-            if os.name == "nt":
+            if sys.platform == "win32":
                 import msvcrt
 
                 if not stream.read(1):

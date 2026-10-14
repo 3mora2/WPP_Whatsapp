@@ -178,6 +178,7 @@ Bundled assets: WPPConnect **2.3.4** and WA-JS **4.6.1**.
 | Open a session and read messages | [Quick start](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/QUICKSTART.md) |
 | Find methods and arguments | [API reference](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/API_REFERENCE.md) · [Service signatures](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/API_METHODS.md) |
 | Configure profiles and timeouts | [Configuration](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/CONFIGURATION.md) |
+| Recover operations, consume durable events and inspect metrics | [Operations (2.4 candidate)](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/OPERATIONS.md) |
 | Use typed reads and bounded media operations | [Typed reads and media](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/TYPED_MEDIA.md) |
 | Run a complete example | [Examples](https://github.com/3mora2/WPP_Whatsapp/blob/main/examples/README.md) · [Application templates](https://github.com/3mora2/WPP_Whatsapp/blob/main/scripts/README.md) |
 | Resolve a problem | [Troubleshooting](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/TROUBLESHOOTING.md) · [FAQ](https://github.com/3mora2/WPP_Whatsapp/blob/main/docs/FAQ.md) |

@@ -7,6 +7,8 @@ from WPP_Whatsapp.core.delivery import DeliveryReceipt, DeliveryState
 from WPP_Whatsapp.core.lifecycle import SessionState
 from WPP_Whatsapp.core.models import Chat, Group, GroupMember, Message
 from WPP_Whatsapp.core.acknowledgements import Acknowledgement, AckTarget
+from WPP_Whatsapp.core.consumers import DurableConsumer, EventLease
+from WPP_Whatsapp.core.event_store import SQLiteEventStore
 from WPP_Whatsapp.core.errors import (
     AcknowledgementTimeoutError,
     OperationConflictError,

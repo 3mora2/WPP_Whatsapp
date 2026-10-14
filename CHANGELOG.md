@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2.4.0 (candidate)
+
+- Persist expected outgoing message keys before native/composed text and bounded
+  media dispatch; recover only matching key/chat/type evidence without resending.
+- Preserve uncertainty for exceptions after dispatch starts; retain media snapshots
+  through key-preparation timeouts and release them after preparation failures.
+- Add core private event journals and durable consumers with atomic leases,
+  explicit ack/renew, bounded retries/dead letters and persistent retention loss.
+- Count retention gaps anywhere inside an event page and close journals without
+  waiting for the entire callback worker lifetime.
+- Add local operation listing, inspection, verified recovery and preview-first
+  compaction that keeps operation-ID tombstones.
+- Keep persisted metadata inspectable after closing a tracker, including records
+  outside its bounded memory cache, using short-lived read-only connections.
+- Generate complete sync/async service stubs; type-check all 35 core modules.
+- Add owned-Chrome/Python process metrics, per-command duration/counter metrics,
+  queue measurements and an identifier-free Prometheus formatter.
+- Add six account-authorized FastMCP tools (29 total, 23 in read-only mode),
+  process-crash/concurrency/lease tests and updated operational documentation.
+
 ## 2.3.1 (candidate)
 
 - Add isolated installed-wheel checks, minimum dependency constraints and modern

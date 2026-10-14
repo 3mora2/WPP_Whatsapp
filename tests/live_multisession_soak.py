@@ -45,6 +45,9 @@ async def run(args):
         "callback_lookup_matches": [0, 0],
         "callback_errors": [0, 0],
         "samples_data": [],
+        "state_changes": [],
+        "transient_outages": 0,
+        "source_candidate": "2.4.0",
     }
 
     def save():
@@ -53,11 +56,26 @@ async def run(args):
 
     for index, client in enumerate(clients):
 
+        async def state_changed(state, account=index):
+            # Connection enum strings only; never include browser errors or IDs.
+            if isinstance(state, str) and state.isupper() and state.replace("_", "").isalpha():
+                report["state_changes"].append(
+                    {"account": account, "state": state, "time": round(time.monotonic(), 2)}
+                )
+                report["state_changes"] = report["state_changes"][-1000:]
+
+        client.events.on("onStateChange", state_changed)
+
         async def receive(message, account=index):
             try:
                 await buffers[account].append(message)
                 ident = message.get("id", "")
-                if isinstance(ident, str) and "@g.us_" in ident and not message.get("fromMe"):
+                if (
+                    report.get("phase") == "running"
+                    and isinstance(ident, str)
+                    and "@g.us_" in ident
+                    and not message.get("fromMe")
+                ):
                     report["fresh_group_callbacks"][account] += 1
                     found = await clients[account].messages.get_message(ident)
                     report["callback_lookup_matches"][account] += int(found.get("id") == ident)
@@ -93,14 +111,19 @@ async def run(args):
         process = psutil.Process()
         # Only browser descendants of this owned Python process are measured.
         while time.monotonic() - started < args.seconds:
-            ready = [client.state == SessionState.READY for client in clients]
-            assert all(ready), "An account lost readiness outside a recovery cycle"
-            children = process.children(recursive=True)
-            browser_rss = sum(
-                child.memory_info().rss
-                for child in children
-                if child.is_running() and "chrome" in child.name().lower()
-            )
+            if any(client.state != SessionState.READY for client in clients):
+                report["transient_outages"] += 1
+                report["last_outage_states"] = [client.state.value for client in clients]
+                save()
+                deadline = time.monotonic() + 240
+                while any(client.state != SessionState.READY for client in clients):
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError(
+                            "An account did not recover readiness within 240 seconds"
+                        )
+                    await asyncio.sleep(1)
+            measurements = await asyncio.gather(*(client.metrics() for client in clients))
+            browser_rss = sum(item["process"]["owned_browser_rss_bytes"] for item in measurements)
             report["samples"] += 1
             sample = {
                 "elapsed": round(time.monotonic() - started, 2),
@@ -110,6 +133,8 @@ async def run(args):
                 if sys.platform == "win32"
                 else process.num_fds(),
                 "tasks": len(asyncio.all_tasks()),
+                "states": [client.state.value for client in clients],
+                "recovery": [client.diagnostics()["recovery"] for client in clients],
             }
             report["samples_data"].append(sample)
             report["samples_data"] = report["samples_data"][-1000:]
@@ -117,6 +142,12 @@ async def run(args):
             if args.recover_every and sample["elapsed"] >= next_recovery:
                 await clients[0].reconnect()
                 assert clients[1].state == SessionState.READY
+                deadline = time.monotonic() + 120
+                while clients[0].state != SessionState.READY:
+                    assert clients[1].state == SessionState.READY
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("Manual reconnect did not regain readiness")
+                    await asyncio.sleep(1)
                 report["recoveries"] += 1
                 next_recovery += args.recover_every
             save()
@@ -124,6 +155,11 @@ async def run(args):
                 min(args.interval, max(0, args.seconds - (time.monotonic() - started)))
             )
         report["completed"] = True
+    except BaseException as error:
+        report["failed_category"] = type(error).__name__
+        report["final_states"] = [client.state.value for client in clients]
+        report["final_diagnostics"] = [client.diagnostics() for client in clients]
+        raise
     finally:
         await asyncio.gather(*(client.close() for client in clients), return_exceptions=True)
         await asyncio.gather(*(buffer.close() for buffer in buffers))

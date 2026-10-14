@@ -6,15 +6,16 @@ import asyncio
 import inspect
 from contextlib import AsyncExitStack
 from functools import wraps
-from typing import Any, Callable, Optional, Sequence
+from typing import Any, Callable, Optional, Sequence, cast
 
 from .acknowledgements import Acknowledgement, AckObserver, AckTarget, wait_for_ack
 from .contracts import Callback, Operation, OperationContext
-from .delivery import DeliveryReceipt, DeliveryTracker
+from .delivery import DeliveryReceipt, DeliveryState, DeliveryTracker
 from .events import EVENT_NAMES
 from .media import DEFAULT_MAX_BYTES, Progress, download_to, prepare_media, send_prepared
 from .models import TypedServices
 from .requests import fingerprint
+from .send_evidence import matches_expected, reserve_message
 from .service_registry import ServiceDefinition, service_definitions
 from .service_registry import snake as snake
 from .work import controller
@@ -79,7 +80,7 @@ class Service:
             )
             parameters[position:position] = extra
         bound.__name__ = name
-        bound.__signature__ = signature.replace(parameters=parameters)
+        cast(Any, bound).__signature__ = signature.replace(parameters=parameters)
         self._bound_operations[name] = bound
         return bound
 
@@ -88,7 +89,8 @@ class MessagesService(Service):
     def _ack_observer(self) -> AckObserver:
         observer = getattr(self.context, "_ack_observer", None)
         if observer is None:
-            observer = self.context._ack_observer = AckObserver(self.context)
+            observer = AckObserver(self.context)
+            self.context._ack_observer = observer
         return observer
 
     async def delivery_status(self, operation_id: str) -> Acknowledgement:
@@ -103,7 +105,7 @@ class MessagesService(Service):
                 message = await self.get_message(ident)
                 if message and message.get("id") == ident and message.get("fromMe"):
                     await observer.observe({"id": ident, "ack": message.get("ack")})
-            ack = observer.values.get(ident)
+            ack = observer.values.get(ident) if ident is not None else None
             return {
                 "operation_id": operation_id,
                 "message_id": ident,
@@ -175,13 +177,37 @@ class MessagesService(Service):
             arguments = signature.bind(*args, **kwargs)
             arguments.apply_defaults()
             request = fingerprint(operation, arguments.arguments)
+            expected = None
+
+            async def prepare():
+                nonlocal expected
+                values = arguments.arguments
+                options = dict(values.get("options") or {})
+                expected = await reserve_message(
+                    self.context,
+                    values["to"],
+                    "chat",
+                    options.get("messageId", options.get("msgId")),
+                )
+                options["messageId"] = expected.message_id
+                # Dispatch to the same canonical chat used by the reserved key,
+                # including phone-number aliases resolved to LID chats.
+                values["to"] = expected.chat_id
+                values["options"] = options
+                return expected
+
+            # Legacy operations retain their conservative no-replay behavior.
+            supported = (
+                operation == "sendText_" and getattr(self.context, "bridge", None) is not None
+            )
             return await self.deliveries.send(
-                lambda: self._execute(operation, *args, **kwargs),
+                lambda: self._execute(operation, *arguments.args, **arguments.kwargs),
                 operation_id,
                 timeout=timeout
                 if timeout is not None
                 else self.context.options.get("operationTimeout", 60),
                 request_fingerprint=request,
+                prepare=prepare if supported else None,
             )
 
         return await self.context.ThreadsafeBrowser.create_task(send())
@@ -243,30 +269,37 @@ class MessagesService(Service):
                         "mimetype": media.mimetype,
                     },
                 )
+                expected = None
+
+                async def prepare():
+                    nonlocal expected, adopted
+                    adopted = True
+                    expected = await reserve_message(self.context, to, kind, admitted=True)
+                    return expected
 
                 async def dispatch():
                     nonlocal adopted
                     adopted = True
-                    try:
-                        await work.pace_send()
-                        self.context.lifecycle.require_ready()
-                        return await send_prepared(
-                            self.context,
-                            to,
-                            media,
-                            kind=kind,
-                            caption=caption,
-                            quoted_message_id=quoted_message_id,
-                            progress=progress,
-                        )
-                    finally:
-                        await stack.aclose()
+                    await work.pace_send()
+                    self.context.lifecycle.require_ready()
+                    return await send_prepared(
+                        self.context,
+                        to,
+                        media,
+                        kind=kind,
+                        caption=caption,
+                        quoted_message_id=quoted_message_id,
+                        progress=progress,
+                        expected_id=expected.message_id if expected is not None else None,
+                    )
 
                 return await self.deliveries.send(
                     dispatch,
                     operation_id,
                     timeout=timeout if timeout is not None else 120,
                     request_fingerprint=request,
+                    prepare=prepare if getattr(self.context, "bridge", None) is not None else None,
+                    finalize=stack.aclose,
                 )
             finally:
                 # A shielded task may be scheduled when its caller is cancelled.
@@ -289,7 +322,7 @@ class MessagesService(Service):
             raise ValueError("Search query must not be blank")
         if type(count) is not int or not 1 <= count <= 200:
             raise ValueError("Search count must be between 1 and 200")
-        options = {"count": count}
+        options: dict[str, Any] = {"count": count}
         if before_message_id is not None:
             options.update(id=before_message_id, direction="before")
         messages = await self.get_messages(chat_id, options)
@@ -330,11 +363,24 @@ class MessagesService(Service):
     async def reconcile(self, operation_id: str, message_id: str) -> DeliveryReceipt:
         async def record() -> DeliveryReceipt:
             message = await self.get_message(message_id)
+            expected = await self.deliveries.expected_async(operation_id)
+            if expected is not None and not matches_expected(message, expected):
+                raise ValueError("Message does not match the reserved outgoing evidence")
             if not message or message.get("id") != message_id or not message.get("fromMe"):
                 raise ValueError("Reconciliation requires a verified outgoing message")
             return await self.deliveries.reconcile_async(operation_id, message_id)
 
         return await self.context.ThreadsafeBrowser.create_task(record())
+
+    async def recover(self, operation_id: str) -> DeliveryReceipt:
+        """Look up the exact reserved key after a crash. Never dispatch or resend."""
+        previous = await self.deliveries.get_async(operation_id)
+        if previous and previous.state == DeliveryState.CONFIRMED and previous.message_id:
+            return previous
+        expected = await self.deliveries.expected_async(operation_id)
+        if expected is None:
+            raise ValueError("This operation has no pre-dispatch message evidence")
+        return await self.reconcile(operation_id, expected.message_id)
 
 
 class EventsService:
@@ -401,7 +447,7 @@ class SyncServices:
 
 
 class SyncService:
-    def __init__(self, service: Service) -> None:
+    def __init__(self, service: Any) -> None:
         self.service = service
         self._operations: dict[str, Callable[..., Any]] = {}
 

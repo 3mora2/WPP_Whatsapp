@@ -59,6 +59,7 @@ accept `operation_id` and `timeout`; flat methods retain raw results. See
 | `messages.logout()` | `client.logout`, `await client.logout_` |
 | `messages.mark_played(msgId)` | `client.markPlayed`, `await client.markPlayed_` |
 | `messages.reconcile(operation_id, message_id)` | Service helper |
+| `messages.recover(operation_id)` | Service helper |
 | `messages.reject_call(callId='')` | `client.rejectCall`, `await client.rejectCall_` |
 | `messages.reply(to, content, quotedMsg, *, operation_id=None, timeout=None)` | `client.reply`, `await client.reply_` |
 | `messages.search(chat_id, query, *, count=100, before_message_id=None)` | Service helper |

@@ -6,10 +6,12 @@ import asyncio
 import math
 import threading
 import uuid
+from collections import OrderedDict
 from typing import Any, Awaitable, Callable, Optional
 
 from .delivery_models import DeliveryReceipt as DeliveryReceipt
 from .delivery_models import DeliveryState as DeliveryState
+from .delivery_models import ExpectedMessage
 from .delivery_store import DeliveryStore, MemoryDeliveryStore, SQLiteDeliveryStore
 from .errors import BridgeError, DeliveryUncertainError, SessionClosedError
 
@@ -35,7 +37,7 @@ class DeliveryTracker:
         if path is not None and store is not None:
             raise ValueError("Specify either a delivery path or a store")
         self.namespace = namespace
-        self.records: dict[str, DeliveryReceipt] = {}
+        self.records: dict[str, DeliveryReceipt] = OrderedDict()
         self._store = (
             store
             if store is not None
@@ -47,21 +49,30 @@ class DeliveryTracker:
         self._active: set[str] = set()
         self._closed = False
 
+    def _cache(self, receipt: DeliveryReceipt) -> None:
+        self.records.pop(receipt.operation_id, None)
+        self.records[receipt.operation_id] = receipt
+        while len(self.records) > 1000:
+            self.records.pop(next(iter(self.records)))
+
     def get(self, operation_id: str) -> Optional[DeliveryReceipt]:
         with self._lock:
+            inspectable = isinstance(self._store, (SQLiteDeliveryStore, MemoryDeliveryStore))
             receipt = (
-                self.records.get(operation_id) if self._closed else self._store.get(operation_id)
+                self.records.get(operation_id)
+                if self._closed and not inspectable
+                else self._store.get(operation_id)
             )
             # Only this tracker knows which claims are still executing. Opening
             # another tracker must not overwrite an active owner's persisted state.
             if (
                 receipt
                 and receipt.state == DeliveryState.PENDING
-                and operation_id not in self._active
+                and (self._closed or operation_id not in self._active)
             ):
                 receipt = DeliveryReceipt(operation_id, DeliveryState.UNKNOWN)
             if receipt:
-                self.records[operation_id] = receipt
+                self._cache(receipt)
             return receipt
 
     async def _io(self, call: Callable[..., Any], *args: Any) -> Any:
@@ -81,7 +92,7 @@ class DeliveryTracker:
             )
             if previous is None:
                 self._active.add(ident)
-                self.records[ident] = pending
+                self._cache(pending)
             return previous
 
     def _record(self, receipt: DeliveryReceipt) -> DeliveryReceipt:
@@ -94,11 +105,9 @@ class DeliveryTracker:
             try:
                 self._store.save(receipt)
             except Exception:
-                self.records[receipt.operation_id] = DeliveryReceipt(
-                    receipt.operation_id, DeliveryState.UNKNOWN
-                )
+                self._cache(DeliveryReceipt(receipt.operation_id, DeliveryState.UNKNOWN))
                 raise DeliveryUncertainError(receipt.operation_id) from None
-            self.records[receipt.operation_id] = receipt
+            self._cache(receipt)
             return receipt
 
     async def _save(
@@ -134,6 +143,8 @@ class DeliveryTracker:
         timeout: Optional[float] = None,
         *,
         request_fingerprint: Optional[str] = None,
+        prepare: Optional[Callable[[], Awaitable[ExpectedMessage]]] = None,
+        finalize: Optional[Callable[[], Awaitable[None]]] = None,
     ) -> DeliveryReceipt:
         if timeout is not None and (
             not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout < 0
@@ -150,8 +161,19 @@ class DeliveryTracker:
         if self._closed:
             raise SessionClosedError("Delivery tracker is closed")
 
+        dispatch_started = False
+
         async def invoke() -> Any:
-            return await call()
+            nonlocal dispatch_started
+            try:
+                if prepare is not None:
+                    expected = await prepare()
+                    await self._io(self._store.set_expected, ident, expected)
+                dispatch_started = True
+                return await call()
+            finally:
+                if finalize is not None:
+                    await finalize()
 
         execution = asyncio.create_task(invoke())
         execution.add_done_callback(lambda task: self._completed(ident, task))
@@ -177,9 +199,17 @@ class DeliveryTracker:
                 raise DeliveryUncertainError(ident) from None
             raise
         except Exception:
-            await self._save(ident, DeliveryState.FAILED)
+            # The callable may raise during result conversion after WhatsApp
+            # accepted the message. An ordinary exception cannot prove no send.
+            state = DeliveryState.UNKNOWN if dispatch_started else DeliveryState.FAILED
+            await self._save(ident, state)
+            if dispatch_started:
+                raise DeliveryUncertainError(ident) from None
             raise
         message_id = message_id_from_result(result)
+        expected = await self.expected_async(ident)
+        if expected is not None and message_id != expected.message_id:
+            message_id = None
         if message_id is None:
             await self._save(ident, DeliveryState.UNKNOWN)
             raise DeliveryUncertainError(ident)
@@ -206,6 +236,9 @@ class DeliveryTracker:
             update.add_done_callback(lambda done: None if done.cancelled() else done.exception())
 
     async def _confirm_late(self, ident: str, message_id: str) -> None:
+        expected = await self.expected_async(ident)
+        if expected is not None and expected.message_id != message_id:
+            return
         previous = await self._io(self.get, ident)
         if previous and previous.state == DeliveryState.UNKNOWN:
             await self._save(ident, DeliveryState.CONFIRMED, message_id)
@@ -222,6 +255,9 @@ class DeliveryTracker:
                 raise ValueError("Only a pending or unknown operation can be reconciled")
             if not isinstance(message_id, str) or not message_id:
                 raise ValueError("A verified message ID is required")
+            expected = self._store.expected(operation_id)
+            if expected is not None and expected.message_id != message_id:
+                raise ValueError("Message does not match the reserved ID")
             return self._record(DeliveryReceipt(operation_id, DeliveryState.CONFIRMED, message_id))
 
     def close(self) -> None:
@@ -244,3 +280,13 @@ class DeliveryTracker:
 
     async def reconcile_async(self, operation_id: str, message_id: str) -> DeliveryReceipt:
         return await self._io(self.reconcile, operation_id, message_id)
+
+    async def expected_async(self, operation_id: str) -> Optional[ExpectedMessage]:
+        method = getattr(self._store, "expected", None)
+        return await self._io(method, operation_id) if method is not None else None
+
+    async def list_operations(self, *, state=None, after="", limit=50) -> list[dict]:
+        method = getattr(self._store, "list_operations", None)
+        if method is None:
+            raise ValueError("Operation listing requires the SQLite delivery store")
+        return await self._io(lambda: method(state=state, after=after, limit=limit))

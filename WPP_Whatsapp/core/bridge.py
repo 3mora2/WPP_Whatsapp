@@ -16,6 +16,7 @@ class JavascriptBridge:
         self.transport, self.page = transport, page
         self.metrics = {"calls": 0, "failures": 0, "duration_seconds": 0.0}
         self.last_failure = None
+        self.command_metrics = {}
 
     async def call(self, command, arg=None):
         try:
@@ -24,14 +25,28 @@ class JavascriptBridge:
             raise BridgeError(command, dispatched=False) from None
         start = time.monotonic()
         self.metrics["calls"] += 1
+        measured = self.command_metrics.setdefault(
+            command,
+            {
+                "calls": 0,
+                "failures": 0,
+                "duration_seconds": 0.0,
+                "max_seconds": 0.0,
+            },
+        )
+        measured["calls"] += 1
         try:
             return await self.transport.page_evaluate(source, arg, page=self.page)
         except PlaywrightError as error:
             self.metrics["failures"] += 1
+            measured["failures"] += 1
             self.last_failure = classify_failure("browser_operation", error)
             raise BridgeError(command) from None
         finally:
-            self.metrics["duration_seconds"] += time.monotonic() - start
+            elapsed = time.monotonic() - start
+            self.metrics["duration_seconds"] += elapsed
+            measured["duration_seconds"] += elapsed
+            measured["max_seconds"] = max(measured["max_seconds"], elapsed)
 
     def call_sync(self, command, arg=None, timeout_=120):
         return self.transport.run_threadsafe(self.call(command, arg), timeout_=timeout_)

@@ -1,6 +1,6 @@
 [project]
 name = "WPP_Whatsapp"
-version = "2.3.1"
+version = "2.4.0"
 description = "WPP_Whatsapp aim of exporting functions from WhatsApp Web to the python"
 requires-python = ">=3.9"
 authors = [
@@ -40,6 +40,7 @@ dev = [
 
 [project.scripts]
 wpp-whatsapp-mcp = "WPP_Whatsapp.mcp.cli:main"
+wpp-whatsapp-admin = "WPP_Whatsapp.core.admin:main"
 
 [project.urls]
 Homepage = "https://github.com/3mora2/WPP_Whatsapp"
@@ -55,7 +56,7 @@ include = ["WPP_Whatsapp*"]
 exclude = ["archive*", "tests*", "examples*"]
 
 [tool.setuptools.package-data]
-WPP_Whatsapp = ["*/*.js", "*.md", "js_lib/*.md", "py.typed"]
+WPP_Whatsapp = ["*/*.js", "*.md", "js_lib/*.md", "core/*.pyi", "py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -72,7 +73,7 @@ select = ["E4", "E7", "E9", "F", "I", "B"]
 
 [tool.mypy]
 python_version = "3.9"
-files = ["WPP_Whatsapp/core/requests.py", "WPP_Whatsapp/core/delivery_models.py", "WPP_Whatsapp/core/contracts.py", "WPP_Whatsapp/core/acknowledgements.py", "WPP_Whatsapp/core/event_store.py", "WPP_Whatsapp/core/work.py", "WPP_Whatsapp/core/subscriptions.py", "WPP_Whatsapp/core/recovery.py"]
+files = ["WPP_Whatsapp/core"]
 follow_imports = "silent"
 ignore_missing_imports = true
 check_untyped_defs = true
