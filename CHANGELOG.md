@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## 2.4.0 (candidate)
+## [2.4.0] - 2026-10-15
 
 - Persist expected outgoing message keys before native/composed text and bounded
   media dispatch; recover only matching key/chat/type evidence without resending.
@@ -26,8 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   queue measurements and an identifier-free Prometheus formatter.
 - Add six account-authorized FastMCP tools (29 total, 23 in read-only mode),
   process-crash/concurrency/lease tests and updated operational documentation.
-
-## 2.3.1 (candidate)
 
 - Add isolated installed-wheel checks, minimum dependency constraints and modern
   Python compatibility jobs on Linux and Windows.

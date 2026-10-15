@@ -16,8 +16,8 @@ FastMCP support is included from version 2.1.0. For a source checkout, use
 The account policies, events, search and media tools described below require
 version 2.2.0 or newer; version 2.1.0 contains the original twelve tools.
 Delivery ACK tools, persistent event journals and recovery settings require 2.3.0.
-The six operation-recovery, durable-consumer and metrics tools require the 2.4.0
-candidate. Until publication, use its source checkout; see [operations](OPERATIONS.md).
+The six operation-recovery, durable-consumer and metrics tools require 2.4.0
+or newer; see [operations](OPERATIONS.md).
 
 The equivalent module command is `python -m WPP_Whatsapp.mcp --session mybot`.
 Chrome must be installed. The default transport is stdio: stdout contains only

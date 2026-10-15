@@ -1,6 +1,6 @@
 # Documentation
 
-These guides cover the published 2.3 line and the additive 2.4.0 candidate. The core supports Python 3.9+;
+These guides cover version 2.4.0 and earlier compatible releases. The core supports Python 3.9+;
 FastMCP requires Python 3.10+. Use installed distribution metadata for the
 exact version: `python -m pip show WPP_Whatsapp`.
 Features introduced in 2.2.0 are marked in their guides.
@@ -17,7 +17,7 @@ events, bounded recovery, ACK evidence, admission and migration.
 | Browse every composed-service signature | [Generated service API](API_METHODS.md) |
 | Configure profiles, runtime and timeouts | [Configuration](CONFIGURATION.md) |
 | Connect an MCP client | [FastMCP](FASTMCP.md) |
-| Recover operations, acknowledge events and inspect metrics | [Operations (2.4 candidate)](OPERATIONS.md) |
+| Recover operations, acknowledge events and inspect metrics | [Operations (2.4)](OPERATIONS.md) |
 | Use typed results, support reports or bounded media | [Typed reads and media](TYPED_MEDIA.md) |
 | Migrate legacy/async code and track delivery | [Architecture and migration](ARCHITECTURE.md) |
 | Diagnose failures | [Troubleshooting](TROUBLESHOOTING.md), [FAQ](FAQ.md) |
@@ -25,7 +25,7 @@ events, bounded recovery, ACK evidence, admission and migration.
 | Run examples or application templates | [Examples](../examples/README.md), [Scripts](../scripts/README.md) |
 | Extend and validate the library | [Development](DEVELOPMENT.md), [Tests](../tests/README.md) |
 | Review release changes | [Changelog](../CHANGELOG.md) |
-| Review local candidate evidence and remaining validation | [2.4.0 validation](VALIDATION_2.4.0.md) |
+| Review local validation evidence and test boundaries | [2.4.0 validation](VALIDATION_2.4.0.md) |
 
 ## Contributing
 

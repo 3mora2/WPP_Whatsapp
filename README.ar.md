@@ -179,7 +179,7 @@ wpp-whatsapp-mcp --session mybot --transport http --port 8765
 | أفتح جلسة وأقرأ الرسائل | [البداية السريعة](docs/QUICKSTART.md) |
 | أجد الأساليب ومعاملاتها | [مرجع API](docs/API_REFERENCE.md) · [تواقيع الخدمات](docs/API_METHODS.md) |
 | أضبط ملفات المتصفح والمهل | [الإعدادات](docs/CONFIGURATION.md) |
-| أسترجع العمليات وأعالج الأحداث المحفوظة وأراقب الأداء | [التشغيل (مرشح 2.4)](docs/OPERATIONS.md) |
+| أسترجع العمليات وأعالج الأحداث المحفوظة وأراقب الأداء | [التشغيل (2.4)](docs/OPERATIONS.md) |
 | أستخدم نتائج ذات أنواع محددة وعمليات وسائط بحدود واضحة | [القراءة والوسائط](docs/TYPED_MEDIA.md) |
 | أشغّل مثالًا كاملًا | [الأمثلة](examples/README.md) · [قوالب التطبيقات](scripts/README.md) |
 | أحل مشكلة | [استكشاف الأخطاء](docs/TROUBLESHOOTING.md) · [الأسئلة الشائعة](docs/FAQ.md) |

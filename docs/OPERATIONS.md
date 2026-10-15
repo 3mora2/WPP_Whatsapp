@@ -1,4 +1,4 @@
-# Operating persistent clients (2.4.0 candidate)
+# Operating persistent clients (2.4.0)
 
 These APIs are additive. Flat legacy methods retain raw results. No recovery or
 administration command automatically resends a message.

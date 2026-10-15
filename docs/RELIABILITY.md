@@ -1,7 +1,7 @@
 # Reliability services
 
 For pre-dispatch message recovery, acknowledged consumers, administration,
-metrics and generated types in the 2.4.0 candidate, see [operations](OPERATIONS.md).
+metrics and generated types in 2.4.0, see [operations](OPERATIONS.md).
 
 These additions preserve flat legacy methods and raw read results. Tracked
 composed sends enforce request identity. Recovery and durable events are opt-in.
