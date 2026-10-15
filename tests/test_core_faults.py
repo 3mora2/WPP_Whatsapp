@@ -47,7 +47,7 @@ async def test_cancelled_send_remains_unknown_and_cannot_be_replayed():
     (BridgeError('send', dispatched=False), DeliveryState.FAILED, BridgeError),
     (BridgeError('send'), DeliveryState.UNKNOWN, DeliveryUncertainError),
     (SessionClosedError(), DeliveryState.UNKNOWN, DeliveryUncertainError),
-    (ValueError('invalid local input'), DeliveryState.FAILED, ValueError),
+    (ValueError('callable stage is unproven'), DeliveryState.UNKNOWN, DeliveryUncertainError),
 ])
 async def test_delivery_distinguishes_local_failures_and_uncertain_dispatch(error, state, exception):
     tracker = DeliveryTracker()

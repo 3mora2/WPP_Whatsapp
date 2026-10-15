@@ -8,7 +8,7 @@ import sqlite3
 import threading
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 
 class SQLiteEventStore:
@@ -23,7 +23,7 @@ class SQLiteEventStore:
         self._connection: Optional[sqlite3.Connection] = None
         self._closed = False
 
-    def _db(self):
+    def _db(self) -> sqlite3.Connection:
         if self._closed:
             raise RuntimeError("Event store is closed")
         if self._connection is None:
@@ -34,10 +34,20 @@ class SQLiteEventStore:
                 CREATE TABLE IF NOT EXISTS events(namespace TEXT NOT NULL, sequence INTEGER NOT NULL,
                     message_id TEXT, created REAL NOT NULL, payload TEXT NOT NULL,
                     PRIMARY KEY(namespace, sequence), UNIQUE(namespace,message_id));
+                CREATE TABLE IF NOT EXISTS event_consumers(namespace TEXT NOT NULL, id TEXT NOT NULL,
+                    cursor INTEGER NOT NULL DEFAULT 0, sequence INTEGER, token TEXT,
+                    lease_until REAL NOT NULL DEFAULT 0, attempts INTEGER NOT NULL DEFAULT 0,
+                    retry_at REAL NOT NULL DEFAULT 0, payload TEXT, max_attempts INTEGER NOT NULL,
+                    lost INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(namespace,id));
+                CREATE TABLE IF NOT EXISTS event_dead_letters(namespace TEXT NOT NULL,
+                    consumer TEXT NOT NULL, sequence INTEGER NOT NULL, attempts INTEGER NOT NULL,
+                    category TEXT NOT NULL, payload TEXT NOT NULL, created REAL NOT NULL,
+                    PRIMARY KEY(namespace,consumer,sequence));
             """)
         return self._connection
 
-    def _sequence(self, db) -> int:
+    def _sequence(self, db: sqlite3.Connection) -> int:
         row = db.execute(
             "SELECT sequence FROM event_cursors WHERE namespace=?", (self.namespace,)
         ).fetchone()
@@ -48,13 +58,13 @@ class SQLiteEventStore:
         with self._lock:
             return self._sequence(self._db())
 
-    def _prune(self, db, sequence):
+    def _prune(self, db: sqlite3.Connection, sequence: int) -> None:
         db.execute(
             "DELETE FROM events WHERE namespace=? AND (sequence<=? OR created<?)",
             (self.namespace, sequence - self.capacity, time.time() - self.retention),
         )
 
-    def append(self, event):
+    def append(self, event: dict[str, Any]) -> None:
         with self._lock:
             db = self._db()
             # Cross-process writers reserve sequence and dedup atomically.
@@ -110,14 +120,14 @@ class SQLiteEventStore:
                     (self.namespace, after, limit),
                 ).fetchall()
                 selected = [json.loads(row[0]) for row in rows]
-                first = selected[0]["sequence"] if selected else sequence + 1
+                cursor = selected[-1]["sequence"] if selected else sequence
                 return {
                     "events": selected,
-                    "lost": max(0, first - after - 1),
-                    "cursor": selected[-1]["sequence"] if selected else sequence,
+                    "lost": max(0, cursor - after - len(selected)),
+                    "cursor": cursor,
                 }
 
-    def close(self):
+    def close(self) -> None:
         with self._lock:
             self._closed = True
             if self._connection is not None:

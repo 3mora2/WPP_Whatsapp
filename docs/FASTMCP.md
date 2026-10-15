@@ -16,6 +16,8 @@ FastMCP support is included from version 2.1.0. For a source checkout, use
 The account policies, events, search and media tools described below require
 version 2.2.0 or newer; version 2.1.0 contains the original twelve tools.
 Delivery ACK tools, persistent event journals and recovery settings require 2.3.0.
+The six operation-recovery, durable-consumer and metrics tools require 2.4.0
+or newer; see [operations](OPERATIONS.md).
 
 The equivalent module command is `python -m WPP_Whatsapp.mcp --session mybot`.
 Chrome must be installed. The default transport is stdio: stdout contains only
@@ -76,9 +78,15 @@ configuration format belongs to the MCP client; commands remain Python code.
 | `whatsapp_reply` | Tracked text reply with the complete quoted message ID. |
 | `whatsapp_send_file` | Tracked document from the account's media root. |
 | `whatsapp_send_image` | Tracked image from the account's media root. |
+| `whatsapp_list_operations` | Inspect a bounded page of delivery metadata. |
+| `whatsapp_recover_delivery` | Verify pre-dispatch evidence without sending. |
+| `whatsapp_metrics` | Numeric operational metrics in Prometheus format. |
+| `whatsapp_claim_event` | Lease one durable event for a named consumer. |
+| `whatsapp_complete_event` | Acknowledge, retry or renew the returned lease. |
+| `whatsapp_dead_letters` | Inspect events that exhausted retries. |
 
 `--read-only` omits sending and reconciliation tools. Session control remains
-available: 18 tools remain out of 23. Every account-specific tool accepts optional
+available: 23 tools remain out of 29. Every account-specific tool accepts optional
 `account_id`; omission selects the administrator's default account.
 Tools reject empty IDs and invalid page sizes; full IDs pass through
 unchanged. Browser/storage errors expose their type without message bodies,
@@ -107,7 +115,7 @@ operation ID not found in the ledger. FastMCP's `result.data` can be a parsed mo
 
 The server's default SQLite store is `<token-directory>/.deliveries/mcp.sqlite3`,
 scoped by WhatsApp session. Override it with `--delivery-store`. It stores operation
-IDs, states, message IDs and timestamps, never recipients, message bodies, media
+IDs, states, message IDs, timestamps and pre-dispatch recipient/type evidence, never message bodies, media
 or credentials. Keep it across restarts for persistent deduplication. Deleting it
 or changing the ID removes that protection. This is not server-side exactly-once
 delivery. See [delivery semantics](ARCHITECTURE.md#sending-and-uncertain-results).

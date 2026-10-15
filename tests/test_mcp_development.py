@@ -229,7 +229,10 @@ async def test_http_jwt_auth_denies_cross_account_and_scope_escalation():
     first, second = EventClient("one"), EventClient("two")
     await first.connect()
     await second.connect()
-    policy = {"reader": {"a": {"read"}}, "operator": {"b": {"read", "send"}}}
+    policy = {
+        "reader": {"a": {"read"}},
+        "operator": {"b": {"read", "send", "events", "diagnostics"}},
+    }
     server = create_server(
         accounts={
             "a": AccountConfig("one", client=first),
@@ -254,7 +257,7 @@ async def test_http_jwt_auth_denies_cross_account_and_scope_escalation():
         subject="reader",
         issuer="https://issuer.example",
         audience="whatsapp",
-        scopes=["whatsapp:read", "whatsapp:send"],
+        scopes=["whatsapp:read", "whatsapp:send", "whatsapp:events", "whatsapp:diagnostics"],
     )
     async with app.router.lifespan_context(app):
         async with Client(transport(token)) as client:
@@ -264,6 +267,21 @@ async def test_http_jwt_auth_denies_cross_account_and_scope_escalation():
             ).structured_content["ready"]
             for tool, args in (
                 ("whatsapp_get_messages", {"account_id": "b", "chat_id": GROUP_ID}),
+                ("whatsapp_list_operations", {"account_id": "b"}),
+                ("whatsapp_metrics", {"account_id": "a"}),
+                ("whatsapp_claim_event", {"account_id": "a", "consumer_id": "worker"}),
+                ("whatsapp_dead_letters", {"account_id": "a", "consumer_id": "worker"}),
+                (
+                    "whatsapp_complete_event",
+                    {
+                        "account_id": "a",
+                        "consumer_id": "worker",
+                        "sequence": 1,
+                        "token": "0" * 32,
+                        "outcome": "ack",
+                    },
+                ),
+                ("whatsapp_recover_delivery", {"account_id": "a", "operation_id": "blocked"}),
                 (
                     "whatsapp_send_text",
                     {
@@ -294,6 +312,24 @@ async def test_http_jwt_auth_denies_cross_account_and_scope_escalation():
                         "operation_id": "blocked",
                     },
                 )
+            for tool, args in (
+                ("whatsapp_metrics", {"account_id": "b"}),
+                ("whatsapp_claim_event", {"account_id": "b", "consumer_id": "worker"}),
+                ("whatsapp_dead_letters", {"account_id": "b", "consumer_id": "worker"}),
+                (
+                    "whatsapp_complete_event",
+                    {
+                        "account_id": "b",
+                        "consumer_id": "worker",
+                        "sequence": 1,
+                        "token": "0" * 32,
+                        "outcome": "ack",
+                    },
+                ),
+                ("whatsapp_recover_delivery", {"account_id": "b", "operation_id": "blocked"}),
+            ):
+                with pytest.raises(ToolError, match="permission unavailable"):
+                    await client.call_tool(tool, args)
         # Invalid signatures are rejected by the HTTP auth layer before tool execution.
         invalid = RSAKeyPair.generate().create_token(
             issuer="https://issuer.example", audience="whatsapp"
@@ -321,4 +357,6 @@ async def test_read_only_account_cannot_send_even_on_writable_server():
                 "whatsapp_send_text",
                 {"chat_id": GROUP_ID, "text": "blocked", "operation_id": "blocked"},
             )
+        with pytest.raises(ToolError, match="read-only"):
+            await client.call_tool("whatsapp_recover_delivery", {"operation_id": "blocked"})
     fake.context.sendText_.assert_not_awaited()

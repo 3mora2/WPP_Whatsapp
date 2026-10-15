@@ -59,7 +59,7 @@ async def test_schema_discovery_lazy_start_and_readiness():
     fake = FakeClient()
     async with Client(create_server(fake)) as client:
         tools = {tool.name: tool for tool in await client.list_tools()}
-        assert len(tools) == 23
+        assert len(tools) == 29
         assert all("ctx" not in tool.input_schema.get("properties", {}) for tool in tools.values())
         assert tools["whatsapp_get_messages"].annotations.read_only_hint is True
         assert tools["whatsapp_send_text"].annotations.idempotent_hint is True
@@ -330,7 +330,7 @@ async def test_real_stdio_server_discovery_and_status_without_browser(tmp_path):
         keep_alive=False,
     )
     async with Client(transport, timeout=15) as client:
-        assert len(await client.list_tools()) == 18
+        assert len(await client.list_tools()) == 23
         result = await client.call_tool("whatsapp_status")
         assert result.structured_content == {
             "session": "mcp",
@@ -380,9 +380,11 @@ async def test_real_http_server_discovery_and_status_without_browser(tmp_path):
             raise TimeoutError("HTTP server did not start")
 
     try:
-        await asyncio.wait_for(ready(), 15)
+        # Match the bounded polling window: cold optional imports can take over
+        # 12 seconds on Windows while the endurance workloads are active.
+        await asyncio.wait_for(ready(), 30)
         async with Client(f"http://127.0.0.1:{port}/mcp", timeout=10) as client:
-            assert len(await client.list_tools()) == 18
+            assert len(await client.list_tools()) == 23
             assert (await client.call_tool("whatsapp_status")).structured_content["state"] == "new"
     finally:
         process.terminate()

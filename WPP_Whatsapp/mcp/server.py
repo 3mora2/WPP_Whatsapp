@@ -322,7 +322,9 @@ def build_server(
 
             return await _call(runtime, reconcile)
 
+    from .operations import register_operations
     from .tools import register_tools
 
     register_tools(server, read_only=read_only)
+    register_operations(server, read_only=read_only)
     return server

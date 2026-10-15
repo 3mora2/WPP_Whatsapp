@@ -656,12 +656,18 @@ COMMANDS: dict[str, str] = {
                         });
                     }""",
     "Media.release": """key => window.__wppMedia?.delete(key)""",
-    "Media.send": """async ({key, chatId, filename, mimetype, type, caption, quotedMsg}) => {
+    "Messages.reserve": """async ({chatId, messageId}) => {
+                const chat = await WPP.chat.find(chatId);
+                const key = messageId ?? await WPP.chat.generateMessageID(chat);
+                const id = typeof key === 'string' ? key : key._serialized ?? key.toString();
+                return {id, chatId: chat.id._serialized ?? chat.id.toString()};
+            }""",
+    "Media.send": """async ({key, chatId, filename, mimetype, type, caption, quotedMsg, expectedId}) => {
                 const parts = window.__wppMedia.get(key);
                 const file = new File(parts, filename, {type: mimetype});
                 window.__wppMedia.delete(key);
                 const chat = await WPP.chat.find(chatId);
-                const messageId = await WPP.chat.generateMessageID(chat);
+                const messageId = expectedId ?? await WPP.chat.generateMessageID(chat);
                 const serialized = messageId._serialized ?? messageId.toString();
                 let result, failure;
                 // Dispatch once. WA-JS may stall after WhatsApp registers the

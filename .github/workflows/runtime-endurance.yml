@@ -7,6 +7,7 @@ on:
       - 'WPP_Whatsapp/core/**'
       - 'WPP_Whatsapp/mcp/**'
       - 'tools/soak_runtime.py'
+      - 'tools/soak_operations.py'
       - '.github/workflows/runtime-endurance.yml'
 
 permissions:
@@ -23,8 +24,11 @@ jobs:
           python-version: '3.12'
       - run: uv sync --extra dev
       - run: uv run python tools/soak_runtime.py --iterations 2000 --cycles 5 --report runtime-soak.json
+      - run: uv run python tools/soak_operations.py --iterations 200 --cycles 3 --report operations-soak.json
       - uses: actions/upload-artifact@v4
         with:
           name: synthetic-runtime-endurance
-          path: runtime-soak.json
+          path: |
+            runtime-soak.json
+            operations-soak.json
           if-no-files-found: error

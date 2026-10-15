@@ -191,6 +191,7 @@ Las siguientes guías detalladas están disponibles en inglés.
 | Abrir una sesión y leer mensajes | [Inicio rápido](docs/QUICKSTART.md) |
 | Encontrar métodos y argumentos | [Referencia de la API](docs/API_REFERENCE.md) · [Firmas de los servicios](docs/API_METHODS.md) |
 | Configurar perfiles y tiempos de espera | [Configuración](docs/CONFIGURATION.md) |
+| Recuperar operaciones, consumir eventos persistentes y consultar métricas | [Operaciones (2.4)](docs/OPERATIONS.md) |
 | Usar lecturas tipadas y operaciones multimedia con límites definidos | [Lecturas tipadas y archivos multimedia](docs/TYPED_MEDIA.md) |
 | Ejecutar un ejemplo completo | [Ejemplos](examples/README.md) · [Plantillas de aplicaciones](scripts/README.md) |
 | Resolver un problema | [Solución de problemas](docs/TROUBLESHOOTING.md) · [Preguntas frecuentes](docs/FAQ.md) |

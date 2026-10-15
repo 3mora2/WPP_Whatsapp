@@ -107,7 +107,7 @@ async def test_new_ack_tools_are_read_only_and_do_not_dispatch():
     fake.messages.wait_for_delivery = AsyncMock(side_effect=fake.messages.delivery_status)
     async with Client(create_server(fake, read_only=True)) as client:
         tools = {tool.name: tool for tool in await client.list_tools()}
-        assert len(tools) == 18 and tools["whatsapp_wait_for_delivery"].annotations.read_only_hint
+        assert len(tools) == 23 and tools["whatsapp_wait_for_delivery"].annotations.read_only_hint
         result = await client.call_tool("whatsapp_delivery_status", {"operation_id": "existing"})
         assert result.structured_content["delivered"] and not result.structured_content["read"]
         with pytest.raises(ToolError):

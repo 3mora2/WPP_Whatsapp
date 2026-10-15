@@ -2,11 +2,24 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, cast
 
 if TYPE_CHECKING:
-    from .services import MessagesService
+    from .service_types import (
+        AsyncCatalog,
+        AsyncChats,
+        AsyncCommunities,
+        AsyncGroups,
+        AsyncLabels,
+        AsyncLists,
+        AsyncMessages,
+        AsyncNewsletters,
+        AsyncProfile,
+        AsyncServices,
+        AsyncStatus,
+    )
 
+from .contracts import OperationContext
 from .diagnostics import classify_failure, snapshot
 from .engine import AsyncBrowser
 from .errors import SessionNotReadyError
@@ -21,6 +34,17 @@ from .subscriptions import ClientEvents
 
 class AsyncClient:
     """Native asyncio client with composed services; no background browser thread."""
+
+    if TYPE_CHECKING:
+        catalog: AsyncCatalog
+        chats: AsyncChats
+        communities: AsyncCommunities
+        groups: AsyncGroups
+        labels: AsyncLabels
+        lists: AsyncLists
+        newsletters: AsyncNewsletters
+        profile: AsyncProfile
+        status: AsyncStatus
 
     def __init__(
         self,
@@ -38,14 +62,14 @@ class AsyncClient:
         self.wait_for_login = wait_for_login
         self.wa_js_version = wa_js_version
         self.options = validate_options(options)
-        self._context = None
+        self._context: Optional[OperationContext] = None
         self.browser = None
         self._lock = None
         self._loop = None
         self._state = SessionState.NEW
         self._failure = None
         self._closing = False
-        self.events = ClientEvents()
+        self.events = ClientEvents(session)
         self._recovery = RecoverySupervisor(self)
 
     def _session_lock(self):
@@ -88,12 +112,15 @@ class AsyncClient:
         try:
             await self.browser.open(user_data_dir=directory, **options)
             phase = "runtime_start"
-            self._context = Whatsapp(
-                self.session,
-                self.browser,
-                self.browser.page,
-                wa_js_version=self.wa_js_version,
-                **self.options,
+            self._context = cast(
+                "OperationContext",
+                Whatsapp(
+                    self.session,
+                    self.browser,
+                    self.browser.page,
+                    wa_js_version=self.wa_js_version,
+                    **self.options,
+                ),
             )
             self._context.options.setdefault(
                 "runtimeCacheDir", str(Path(directory).parent / ".runtime-cache")
@@ -118,6 +145,7 @@ class AsyncClient:
                         lambda done: None if done.cancelled() else done.exception()
                     )
 
+            assert self.browser.page is not None
             self.browser.page.on("crash", browser_lost)
             self.browser.page.on("close", browser_lost)
             should_wait = self.wait_for_login if wait_for_login is None else wait_for_login
@@ -173,17 +201,17 @@ class AsyncClient:
             self._recovery.schedule()
 
     @property
-    def services(self):
+    def services(self) -> AsyncServices:
         if self._context is None:
             raise SessionNotReadyError("Connect the client first")
-        return self._context.async_services
+        return cast("AsyncServices", self._context.async_services)
 
     @property
     def typed(self) -> TypedServices:
         return self.services.typed
 
     @property
-    def messages(self) -> MessagesService:
+    def messages(self) -> AsyncMessages:
         return self.services.messages
 
     def diagnostics(self) -> dict:
@@ -192,6 +220,20 @@ class AsyncClient:
             **snapshot(self.state, self._context, self._failure),
             "recovery": dict(self._recovery.stats),
         }
+
+    async def metrics(self, *, include_processes=True) -> dict:
+        """Numeric operational metrics; measures only this client's owned Chrome tree."""
+        from .metrics import process_snapshot
+
+        bridge = getattr(self._context, "bridge", None)
+        result = self.diagnostics()
+        result["commands"] = {
+            name: dict(values) for name, values in getattr(bridge, "command_metrics", {}).items()
+        }
+        if include_processes:
+            roots = dict(getattr(self.browser, "process_roots", {}))
+            result["process"] = await asyncio.to_thread(process_snapshot, roots)
+        return result
 
     def __getattr__(self, name):
         if not name.startswith("_") and (

@@ -21,9 +21,12 @@ if str(ROOT) not in sys.path:
 
 # The standalone script also works before an editable install is configured.
 from WPP_Whatsapp import AsyncClient, Create, MultiCreate, Whatsapp  # noqa: E402
+from WPP_Whatsapp.core.consumers import DurableConsumer  # noqa: E402
 from WPP_Whatsapp.core.delivery import DeliveryTracker  # noqa: E402
+from WPP_Whatsapp.core.journal import EventJournal  # noqa: E402
 from WPP_Whatsapp.core.service_registry import service_definitions  # noqa: E402
 from WPP_Whatsapp.core.services import EventsService, MessagesService, ServiceHub  # noqa: E402
+from WPP_Whatsapp.core.subscriptions import ClientEvents  # noqa: E402
 
 
 @lru_cache(maxsize=1)
@@ -65,6 +68,7 @@ def generated_api():
                         "send_text",
                         "get_message",
                         "reconcile",
+                        "recover",
                         "search",
                         "send_media",
                         "download_media_to",
@@ -214,6 +218,8 @@ def recipe_errors(source, location):
                 value = service_hub()
             elif value is AsyncClient and name == "typed":
                 value = service_hub().typed
+            elif value is AsyncClient and name == "events":
+                value = ClientEvents
             elif value is AsyncClient and name in (*service_hub().names,):
                 value = getattr(service_hub(), name)
             elif isinstance(value, MessagesService) and name == "deliveries":
@@ -234,6 +240,8 @@ def recipe_errors(source, location):
             if isinstance(node.value, ast.Call):
                 value = resolve(node.value.func)
                 assigned = value if value in (Create, AsyncClient, MultiCreate) else None
+                if value is EventJournal.consumer:
+                    assigned = DurableConsumer
                 if isinstance(node.value.func, ast.Attribute) and node.value.func.attr in (
                     "start",
                     "start_",
@@ -255,6 +263,8 @@ def recipe_errors(source, location):
                         bindings[item.optional_vars.id] = (
                             Whatsapp if factory is Create else AsyncClient
                         )
+                    elif factory is ClientEvents.journal:
+                        bindings[item.optional_vars.id] = EventJournal
             self.generic_visit(node)
             bindings.clear()
             bindings.update(original)

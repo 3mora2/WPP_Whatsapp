@@ -23,6 +23,7 @@ class AsyncBrowser:
         self.contexts = []
         self.leases = {}
         self._close_task = None
+        self.process_roots = {}
 
     async def open(self, browser="chromium", no_context=False, **options):
         if browser not in ("chromium", "firefox", "webkit"):
@@ -58,12 +59,18 @@ class AsyncBrowser:
                 self.page = (
                     self.context.pages[0] if self.context.pages else await self.context.new_page()
                 )
+                from .metrics import find_browser_roots
+
+                self.process_roots = await asyncio.to_thread(
+                    find_browser_roots, options.get("user_data_dir")
+                )
             return self
         except BaseException:
             await self.close()
             raise
 
     async def open_context(self, user_data_dir, **options):
+        assert self.browser_type is not None
         lease = ProfileLease(user_data_dir).acquire()
         context = None
         try:

@@ -115,6 +115,7 @@ async def send_prepared(
     caption: str = "",
     quoted_message_id: Optional[str] = None,
     progress: Optional[Progress] = None,
+    expected_id: Optional[str] = None,
 ) -> dict:
     """Transfer chunks to a File accepted by WA-JS; browser still buffers the file."""
     if kind not in {"document", "image", "video", "audio"}:
@@ -146,6 +147,7 @@ async def send_prepared(
                 "type": kind,
                 "caption": caption,
                 "quotedMsg": quoted_message_id,
+                "expectedId": expected_id,
             },
         )
     except BridgeError:

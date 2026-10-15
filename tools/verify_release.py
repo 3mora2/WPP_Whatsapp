@@ -21,7 +21,7 @@ import zipfile
 
 PACKAGE = 'WPP_Whatsapp'
 ASSETS = ('js_lib/wapi.js', 'js_lib/wppconnect-wa.js', 'js_lib/message_compat.js')
-SUFFIXES = {'.py', '.js', '.json', '.md', '.typed'}
+SUFFIXES = {'.py', '.pyi', '.js', '.json', '.md', '.typed'}
 
 
 def version(source):

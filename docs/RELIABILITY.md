@@ -1,4 +1,7 @@
-# Reliability services (2.3.0)
+# Reliability services
+
+For pre-dispatch message recovery, acknowledged consumers, administration,
+metrics and generated types in 2.4.0, see [operations](OPERATIONS.md).
 
 These additions preserve flat legacy methods and raw read results. Tracked
 composed sends enforce request identity. Recovery and durable events are opt-in.
@@ -100,7 +103,7 @@ Neither timeout nor cancellation sends a message. ACKs are refreshed from WhatsA
 after restart; they are not a second durable local delivery ledger.
 
 MCP exposes the read-only `whatsapp_delivery_status` and
-`whatsapp_wait_for_delivery` (maximum 120 seconds). There are 23 tools, 18 with
+`whatsapp_wait_for_delivery` (maximum 120 seconds). There are 29 tools, 23 with
 `--read-only`. Each tool retains account authorization and verified JWT scopes.
 
 ## Admission, pacing and measurement

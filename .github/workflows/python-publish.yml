@@ -96,6 +96,7 @@ jobs:
             uv lock --check
             uv sync --extra dev
             uv run mypy
+            if [ -f tools/generate_stubs.py ]; then uv run python tools/generate_stubs.py --check; fi
           fi
       - name: Validate documentation and example API contracts
         run: |

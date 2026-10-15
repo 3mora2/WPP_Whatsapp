@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import asyncio
 from threading import Event
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from WPP_Whatsapp.core.service_types import AsyncServices
+    from WPP_Whatsapp.core.service_types import SyncServices as ComposedServices
 
 from WPP_Whatsapp.api.const import defaultOptions, Logger
 from WPP_Whatsapp.api.helpers.jsFunction import setInterval
@@ -271,14 +276,14 @@ class Whatsapp:
                 await observer.close()
 
     @property
-    def async_services(self):
+    def async_services(self) -> 'AsyncServices':
         from WPP_Whatsapp.core.services import ServiceHub
         if not hasattr(self, '_service_hub'):
             self._service_hub = ServiceHub(self)
         return self._service_hub
 
     @property
-    def services(self):
+    def services(self) -> 'ComposedServices':
         from WPP_Whatsapp.core.services import SyncServices
         return SyncServices(self.async_services)
 

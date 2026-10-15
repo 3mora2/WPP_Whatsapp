@@ -7,7 +7,7 @@ transports replaceable and allows unit tests to use small operation contexts.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Awaitable, Callable, Protocol, TypeVar, Union
+from typing import Any, Awaitable, Callable, Optional, Protocol, TypeVar, Union
 
 from .lifecycle import SessionLifecycle
 
@@ -25,7 +25,7 @@ class BrowserTransport(Protocol):
         self,
         task: Union[Awaitable[Result], Callable[..., Awaitable[Result]]],
         *args: Any,
-        timeout_: float = 120,
+        timeout_: Optional[float] = 120,
         **kwargs: Any,
     ) -> Result: ...
 
@@ -37,5 +37,8 @@ class OperationContext(Protocol):
     options: dict[str, Any]
     lifecycle: SessionLifecycle
     ThreadsafeBrowser: BrowserTransport
+    isClosed: bool
+    _ack_observer: Any
+    _delivery_tracker: Any
 
     def __getattr__(self, name: str) -> Any: ...

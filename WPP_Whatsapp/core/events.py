@@ -100,7 +100,7 @@ class EventDispatcher:
         if not isinstance(maxsize, int) or isinstance(maxsize, bool) or maxsize < 1:
             raise ValueError("eventQueueSize must be a positive integer")
         self.emitter = emitter
-        self.queue = asyncio.Queue(maxsize=maxsize)
+        self.queue: asyncio.Queue = asyncio.Queue(maxsize=maxsize)
         self.closed = False
         self.seen = OrderedDict()
         self.on_error = on_error or (lambda error_type: None)

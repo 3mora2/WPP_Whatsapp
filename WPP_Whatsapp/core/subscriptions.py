@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from .events import EVENT_NAMES
 
 if TYPE_CHECKING:
+    from .journal import EventJournal
     from .services import EventsService
 
 
@@ -19,7 +21,8 @@ class _Subscription:
 
 
 class ClientEvents:
-    def __init__(self) -> None:
+    def __init__(self, namespace: str = "default") -> None:
+        self.namespace = namespace
         self._entries: list[_Subscription] = []
         self._source: Optional[EventsService] = None
 
@@ -58,6 +61,25 @@ class ClientEvents:
 
     def on_any_message(self, callback: Callable[..., Any]) -> Callable[[], None]:
         return self.on("onAnyMessage", callback)
+
+    def journal(
+        self,
+        path: Union[str, Path],
+        *,
+        namespace: Optional[str] = None,
+        capacity: int = 10000,
+        retention: float = 86400,
+    ) -> EventJournal:
+        """Attach a private durable journal, explicitly opting into message storage."""
+        from .journal import EventJournal
+
+        return EventJournal(
+            self,
+            path,
+            namespace=self.namespace if namespace is None else namespace,
+            capacity=capacity,
+            retention=retention,
+        )
 
     @property
     def stats(self) -> dict[str, int]:

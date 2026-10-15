@@ -247,7 +247,9 @@ async def test_bounded_admission_recovers_after_cancellation():
         await waiting
     release.set()
     await first
-    assert work.stats == {"active": 0, "waiting": 0, "rejected": 1, "completed": 1}
+    assert {key: work.stats[key] for key in ("active", "waiting", "rejected", "completed")} == {
+        "active": 0, "waiting": 0, "rejected": 1, "completed": 1}
+    assert work.stats["queue_seconds"] >= 0 and work.stats["duration_seconds"] >= 0
 
 
 @pytest.mark.asyncio

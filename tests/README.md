@@ -1,5 +1,14 @@
 # Tests and validation boundaries
 
+The 2.4.0 candidate adds [crash/lease/compaction tests](test_production_hardening.py)
+and [real FastMCP dispatch tests](test_mcp_operations.py). Installed-wheel CI
+exercises minimum and current dependency sets on Python 3.9 and 3.12–3.14,
+including Windows. These synthetic checks do not replace real-account testing.
+See [operational semantics](../docs/OPERATIONS.md).
+`python tools/soak_operations.py --iterations 200 --cycles 3` exercises durable
+send evidence, uncertainty recovery, consumer retries/dead letters, reopen
+deduplication and tombstone-preserving compaction using synthetic operations.
+
 The 2.3.0 reliability cases in `test_reliability.py` and `test_mcp_reliability.py`
 cover request conflicts, legacy schema migration, actual process termination,
 persistent event cursors/retention, subscriptions, bounded recovery, admission,
@@ -22,6 +31,8 @@ uv run pytest tests/ -q
 uv run pytest tests/test_mcp.py tests/test_mcp_development.py tests/test_mcp_optional.py -q
 uv run pytest tests/ --cov=WPP_Whatsapp --cov-report=term-missing
 uv run python tools/verify_docs.py
+uv run python tools/generate_stubs.py --check
+uv run mypy
 ```
 
 On Python 3.9, omit `--extra mcp`; the MCP protocol module is skipped and base
@@ -30,6 +41,14 @@ compatibility tests still run. In PowerShell, enable native browser checks with
 `RUN_WHATSAPP_BROWSER_TESTS=1 uv run pytest tests/ -q`. CI intentionally skips
 these real-browser checks and runs synthetic tests on Python 3.9–3.12 plus
 separate MCP jobs on Python 3.10 and 3.12.
+
+For opt-in two-real-account endurance, run
+`python tests/live_multisession_soak.py --seconds 7200`. It opens only its two
+configured profiles, waits for two different accounts, records numeric process
+samples, verifies incoming full-ID lookups and reconnects the first account while
+checking the second remains ready. It sends no messages. Reports omit IDs/bodies;
+its private event journals contain received messages. A completed duration must
+be distinguished from a transient outage, exhausted recovery or interrupted run.
 
 ## Coverage areas
 
